@@ -8,7 +8,7 @@ import { useDocumentMeta } from "../lib/meta";
 import {
   applyScenario,
   chaos,
-  cycle,
+  pickTeam,
   decode,
   encode,
   type Bootstrap,
@@ -190,9 +190,10 @@ export default function WhatIfPage() {
         <div>
           <h1 className="display text-[48px] font-extrabold leading-none">What-If Lab</h1>
           <p className="mt-2 max-w-[62ch] text-[14px] text-ink-soft">
-            Click a game to pick its result. Every change reruns the rest of the season{" "}
-            {N_SIMS.toLocaleString()} times in your browser with the same random numbers, so the
-            differences you see come from your picks, not luck.
+            Click a team to pick it to win. Click it again for overtime, again for a shootout, and
+            once more to clear. Every change reruns the rest of the season {N_SIMS.toLocaleString()}{" "}
+            times in your browser with the same random numbers, so the differences you see come from
+            your picks, not luck.
           </p>
         </div>
         <div className="text-right text-[13px] text-ink-soft" aria-live="polite">
@@ -270,30 +271,46 @@ export default function WhatIfPage() {
                   const o = scenario[g.game_id];
                   const hw = (g.probs?.[0] ?? 0) + (g.probs?.[1] ?? 0) + (g.probs?.[2] ?? 0);
                   return (
-                    <li key={g.game_id}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setScenario((s) => {
-                            const next = cycle(s[g.game_id]);
-                            const copy = { ...s };
-                            if (next) copy[g.game_id] = next;
-                            else delete copy[g.game_id];
-                            return copy;
-                          })
-                        }
-                        className="grid w-full grid-cols-[4.5rem_1.5rem_4.5rem_1fr] items-center py-2 text-left hover:bg-ice-land focus-visible:bg-ice-land"
-                        aria-label={`${g.away} at ${g.home}. ${o ? outcomeLabel(o, g.home, g.away) : "Not decided"}. Click to change.`}
+                    <li
+                      key={g.game_id}
+                      className="grid grid-cols-[4.5rem_1.5rem_4.5rem_1fr] items-center py-1.5"
+                    >
+                      {(["away", "home"] as const).map((side, k) => {
+                        const code = side === "home" ? g.home : g.away;
+                        const next = pickTeam(o, side);
+                        return [
+                          k === 1 && (
+                            <span key="at" className="text-center text-[13px] text-ink-soft">
+                              at
+                            </span>
+                          ),
+                          <button
+                            key={side}
+                            type="button"
+                            aria-pressed={!!o && o.startsWith(side)}
+                            onClick={() =>
+                              setScenario((s) => {
+                                const copy = { ...s };
+                                const n = pickTeam(s[g.game_id], side);
+                                if (n) copy[g.game_id] = n;
+                                else delete copy[g.game_id];
+                                return copy;
+                              })
+                            }
+                            className="rounded-[var(--radius)] hover:bg-ice-land focus-visible:bg-ice-land"
+                            aria-label={`${g.away} at ${g.home}, ${o ? outcomeLabel(o, g.home, g.away) : "Not decided"}. ${next ? `Pick ${code} to win ${HOW[next.slice(next.indexOf("_") + 1)]}` : "Clear the pick"}.`}
+                          >
+                            <PickCode code={code} ringed={!!o && o.startsWith(side)} />
+                          </button>,
+                        ];
+                      })}
+                      <span
+                        className={`text-right text-[14px] ${o ? "font-semibold text-blue-line" : "text-ink-soft"}`}
                       >
-                        <PickCode code={g.away} ringed={!!o && o.startsWith("away")} />
-                        <span className="text-center text-[13px] text-ink-soft">at</span>
-                        <PickCode code={g.home} ringed={!!o && o.startsWith("home")} />
-                        <span
-                          className={`text-right text-[14px] ${o ? "font-semibold text-blue-line" : "text-ink-soft"}`}
-                        >
-                          {o ? HOW[o.slice(o.indexOf("_") + 1)] : `${g.home} ${pct(hw, 0)} to win`}
-                        </span>
-                      </button>
+                        {o
+                          ? HOW[o.slice(o.indexOf("_") + 1)]
+                          : `${g.home} ${pct(g.p_home_win ?? hw, 0)} to win`}
+                      </span>
                     </li>
                   );
                 })}

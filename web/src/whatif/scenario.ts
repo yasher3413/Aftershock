@@ -27,6 +27,8 @@ export interface BootstrapGame {
   status: "final" | "future";
   result?: { home_goals: number; away_goals: number; end: string };
   probs?: number[];
+  /** Headline pregame home-win odds, for display; the simulation uses probs. */
+  p_home_win?: number;
   lam?: number[];
   stakes?: number;
 }
@@ -45,10 +47,16 @@ export interface Bootstrap {
 export type Scenario = Record<number, Outcome>;
 
 /** Unset, then each of the six outcomes, then unset again. */
-export function cycle(current: Outcome | undefined): Outcome | undefined {
-  if (!current) return OUTCOMES[0];
-  const i = OUTCOMES.indexOf(current);
-  return i === OUTCOMES.length - 1 ? undefined : OUTCOMES[i + 1];
+/**
+ * Clicking a team: the first click makes it win in regulation, the next ones
+ * step through overtime and a shootout, and one more clears the pick.
+ * Clicking the other team switches straight to that team in regulation.
+ */
+export function pickTeam(current: Outcome | undefined, side: "home" | "away"): Outcome | undefined {
+  if (!current || !current.startsWith(side)) return `${side}_reg`;
+  if (current.endsWith("reg")) return `${side}_ot`;
+  if (current.endsWith("ot")) return `${side}_so`;
+  return undefined;
 }
 
 export function encode(s: Scenario): string {

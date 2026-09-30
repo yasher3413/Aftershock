@@ -1,4 +1,12 @@
-import { applyScenario, chaos, cycle, decode, encode, resultFor, type Bootstrap } from "./scenario";
+import {
+  applyScenario,
+  chaos,
+  decode,
+  pickTeam,
+  encode,
+  resultFor,
+  type Bootstrap,
+} from "./scenario";
 
 const boot: Bootstrap = {
   season: 20262027,
@@ -37,14 +45,14 @@ const boot: Bootstrap = {
   ],
 };
 
-it("cycles through all six outcomes and back to unset", () => {
-  const seen = [];
-  let o = cycle(undefined);
-  while (o) {
-    seen.push(o);
-    o = cycle(o);
-  }
-  expect(seen).toHaveLength(6);
+it("picks a team, then steps through overtime, shootout, and unset", () => {
+  expect(pickTeam(undefined, "away")).toBe("away_reg");
+  expect(pickTeam("away_reg", "away")).toBe("away_ot");
+  expect(pickTeam("away_ot", "away")).toBe("away_so");
+  expect(pickTeam("away_so", "away")).toBeUndefined();
+  // The other team takes over in regulation, whatever was picked before.
+  expect(pickTeam("away_ot", "home")).toBe("home_reg");
+  expect(pickTeam("home_so", "away")).toBe("away_reg");
 });
 
 it("round-trips the URL encoding and ignores junk", () => {

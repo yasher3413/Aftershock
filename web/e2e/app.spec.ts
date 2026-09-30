@@ -31,13 +31,23 @@ test("team page renders the rooting guide", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Odds over the season" })).toBeVisible();
 });
 
-test("toggling a game in the What-If Lab changes the odds", async ({ page }) => {
+test("picking a team in the What-If Lab changes the odds", async ({ page }) => {
   await page.goto("/what-if");
   await expect(page.getByText(/seasons in \d+ ms/)).toBeVisible({ timeout: 30_000 });
   const changes = page.locator("tbody td:nth-child(3)");
   await expect(changes.first()).toHaveText(/0\.0 pp/);
-  await page.locator('button[aria-label*="Not decided"]').first().click();
+  // Home team: regulation, then overtime; the away team takes over in regulation.
+  const home = page.locator('button[aria-label*="Not decided"]').nth(1);
+  const name = (await home.getAttribute("aria-label"))!.match(/Pick (\w+) to win/)![1]!;
+  await home.click();
   await expect(page).toHaveURL(/s=\d+\.hr/);
+  await page.getByRole("button", { name: new RegExp(`Pick ${name} to win in overtime`) }).click();
+  await expect(page).toHaveURL(/s=\d+\.ho/);
+  await page
+    .getByRole("button", { name: /to win in regulation/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/s=\d+\.ar/);
   await expect(async () => {
     const texts = await changes.allInnerTexts();
     expect(texts.some((t) => !/^0\.0 pp$/.test(t.trim()))).toBe(true);
