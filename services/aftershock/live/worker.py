@@ -71,6 +71,7 @@ class Worker:
         self.day: Any = None
         self.standings: list[S.StandingsRow] = []
         self.stakes: dict[int, float] = {}
+        self.pregame_home: dict[int, float] = {}
         self.games: dict[int, S.GameSummary] = {}
         self.engine: SeasonEngine | None = None
         self._lock_conn: AsyncConnection | None = None
@@ -111,19 +112,21 @@ class Worker:
                 datetime.now(UTC),
                 shrink=load_shrink(self.settings),
             )
-            lam = {
-                g: (h, a)
-                for g, h, a in (
-                    await s.execute(
-                        text(
-                            "SELECT p.game_id, p.exp_home_goals, p.exp_away_goals "
-                            "FROM game_pregame p "
-                            "JOIN games g ON g.id = p.game_id WHERE g.season = :s"
-                        ),
-                        {"s": self.season},
-                    )
+            pregame = (
+                await s.execute(
+                    text(
+                        "SELECT p.game_id, p.exp_home_goals, p.exp_away_goals, "
+                        "p.p_home_reg + p.p_home_ot + p.p_home_so "
+                        "FROM game_pregame p "
+                        "JOIN games g ON g.id = p.game_id WHERE g.season = :s"
+                    ),
+                    {"s": self.season},
                 )
-            }
+            ).all()
+            lam = {g: (h, a) for g, h, a, _ in pregame}
+            # The headline pregame odds, so the What-If Lab labels games the
+            # same way the schedule does (its simulation uses shrunk ratings).
+            self.pregame_home = {g: float(p) for g, _, _, p in pregame}
         self.engine = SeasonEngine(
             inputs=inputs,
             backend=self.backend,
@@ -208,7 +211,7 @@ class Worker:
 
     async def publish_whatif(self) -> None:
         assert self.engine is not None
-        payload = whatif_payload(self.engine.inputs, self.season, self.stakes)
+        payload = whatif_payload(self.engine.inputs, self.season, self.stakes, self.pregame_home)
         await self.redis.set(WHATIF_KEY, json.dumps(payload, separators=(",", ":")))
 
     async def reconcile(self, rows: list[S.StandingsRow]) -> int:

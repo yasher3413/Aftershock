@@ -16,7 +16,10 @@ END_NAMES = {END_OT: "OT", END_SO: "SO", END_OT_FORFEIT: "OTF"}
 
 
 def whatif_payload(
-    inputs: SimInputs, season: int, stakes: dict[int, float] | None = None
+    inputs: SimInputs,
+    season: int,
+    stakes: dict[int, float] | None = None,
+    pregame_home: dict[int, float] | None = None,
 ) -> dict[str, Any]:
     sch = inputs.schedule
     games = []
@@ -39,6 +42,9 @@ def whatif_payload(
             g["status"] = "future"
             g["probs"] = [round(float(p), 5) for p in inputs.probs[i]]
             g["lam"] = [round(float(x), 4) for x in inputs.lam[i]]
+            if pregame_home and int(sch.game_ids[i]) in pregame_home:
+                # Display only: the headline pregame odds shown everywhere else.
+                g["p_home_win"] = round(pregame_home[int(sch.game_ids[i])], 4)
             if stakes and int(sch.game_ids[i]) in stakes:
                 g["stakes"] = round(float(stakes[int(sch.game_ids[i])]), 4)
         games.append(g)
