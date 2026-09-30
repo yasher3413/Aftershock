@@ -262,7 +262,11 @@ fn tilted_sample_follows_tilted_probabilities() {
         h2h: 1,
         tiltable: true,
         ph,
-        np,
+        q: 1.0 - ph,
+        inv_ph: 1.0 / ph,
+        inv_q: 1.0 / (1.0 - ph),
+        ch: [np[0], np[0] + np[1]],
+        ca: [np[3], np[3] + np[4]],
         last: 5,
         sg: ScheduledGame {
             home: 0,
@@ -294,8 +298,12 @@ fn tilted_sample_follows_tilted_probabilities() {
     // Zero-probability trailing outcomes stay impossible.
     let probs = [0.5f32, 0.0, 0.0, 0.5, 0.0, 0.0];
     let q = Pending {
-        np: probs.map(|x| x as f64),
         ph: 0.5,
+        q: 0.5,
+        inv_ph: 2.0,
+        inv_q: 2.0,
+        ch: [0.5, 0.5],
+        ca: [0.5, 0.5],
         last: 3,
         cdf: OutcomeCdf::new(&probs).unwrap(),
         ..p

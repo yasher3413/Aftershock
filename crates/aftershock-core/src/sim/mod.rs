@@ -260,8 +260,14 @@ struct Pending {
     tiltable: bool,
     /// Home win probability `p0 + p1 + p2` (normalized).
     ph: f64,
-    /// Normalized outcome probabilities.
-    np: [f64; 6],
+    /// `1 - ph`, `1 / ph`, and `1 / (1 - ph)`.
+    q: f64,
+    inv_ph: f64,
+    inv_q: f64,
+    /// Cumulative normalized home outcomes `[p0, p0 + p1]`.
+    ch: [f64; 2],
+    /// Cumulative normalized away outcomes `[p3, p3 + p4]`.
+    ca: [f64; 2],
     /// Last outcome with positive probability.
     last: u8,
     sg: ScheduledGame,
@@ -313,6 +319,8 @@ struct Worker {
     /// Per team `exp(delta[t])` for the current simulation (all 1 when
     /// team strength noise is off).
     ratio: [f64; 32],
+    /// Per team `exp(-delta[t])`.
+    inv_ratio: [f64; 32],
 }
 
 /// Per-thread integer tallies. Integer sums make the merged result
@@ -507,7 +515,11 @@ impl Simulator {
                 h2h: g.counts_h2h as u16,
                 tiltable: is_future && ph > 0.0 && ph < 1.0,
                 ph,
-                np,
+                q: 1.0 - ph,
+                inv_ph: 1.0 / ph,
+                inv_q: 1.0 / (1.0 - ph),
+                ch: [np[0], np[0] + np[1]],
+                ca: [np[3], np[3] + np[4]],
                 last,
                 sg: *g,
                 cdf,
@@ -593,15 +605,16 @@ fn pre_goal_steps(cfg: &LeagueConfig) -> Option<Vec<TiebreakStep>> {
 /// last positive outcome are 1.0, as in [`OutcomeCdf`].
 #[inline(always)]
 fn tilted_sample(p: &Pending, ratio: f64, u: f32) -> u8 {
-    let ph2 = noise::tilt(p.ph, ratio);
-    let (sh, sa) = (ph2 / p.ph, (1.0 - ph2) / (1.0 - p.ph));
-    let np = &p.np;
-    let mut c = [0.0f64; 5];
-    c[0] = np[0] * sh;
-    c[1] = c[0] + np[1] * sh;
-    c[2] = c[1] + np[2] * sh;
-    c[3] = c[2] + np[3] * sa;
-    c[4] = c[3] + np[4] * sa;
+    let a = p.ph * ratio;
+    let ph2 = a / (a + p.q);
+    let (sh, sa) = (ph2 * p.inv_ph, (1.0 - ph2) * p.inv_q);
+    let mut c = [
+        p.ch[0] * sh,
+        p.ch[1] * sh,
+        ph2,
+        ph2 + p.ca[0] * sa,
+        ph2 + p.ca[1] * sa,
+    ];
     for b in c.iter_mut().skip(p.last as usize) {
         *b = 1.0;
     }
@@ -657,6 +670,7 @@ impl Prepared<'_> {
             local: Box::new([[0; 8]; 32]),
             h2h: Box::new([0; 1024]),
             ratio: [1.0; 32],
+            inv_ratio: [1.0; 32],
         }
     }
 
@@ -681,11 +695,13 @@ impl Prepared<'_> {
         let key = SimKey::new(self.seed, sim);
         let noisy = self.team_sigma > 0.0;
         if noisy {
-            for (t, r) in w.ratio.iter_mut().enumerate().take(self.cfg.n_teams()) {
-                *r = noise::team_delta(self.seed, sim, t as u64, self.team_sigma).exp();
+            for t in 0..self.cfg.n_teams() {
+                let d = noise::team_delta(self.seed, sim, t as u64, self.team_sigma);
+                w.ratio[t] = d.exp();
+                w.inv_ratio[t] = (-d).exp();
             }
         }
-        let ratio = &w.ratio;
+        let (ratio, inv_ratio) = (&w.ratio, &w.inv_ratio);
         let local = &mut *w.local;
         let h2h = &mut *w.h2h;
         local.fill([0; 8]);
@@ -693,7 +709,11 @@ impl Prepared<'_> {
         for (pi, p) in self.pending.iter().enumerate() {
             let u = key.game(p.game as u64).uniform_f32(Stream::Outcome);
             let k = if noisy && p.tiltable {
-                tilted_sample(p, ratio[p.h as usize & 31] / ratio[p.a as usize & 31], u)
+                tilted_sample(
+                    p,
+                    ratio[p.h as usize & 31] * inv_ratio[p.a as usize & 31],
+                    u,
+                )
             } else {
                 p.cdf.sample(u)
             };
@@ -770,7 +790,7 @@ impl Prepared<'_> {
         slot: u64,
         a: TeamIdx,
         b: TeamIdx,
-        ratio: &[f64; 32],
+        ratio: [&[f64; 32]; 2],
     ) -> TeamIdx {
         let cfg = self.cfg;
         let n = cfg.n_teams();
@@ -782,7 +802,10 @@ impl Prepared<'_> {
             let (host, guest) = if h_hosts { (h, v) } else { (v, h) };
             let mut p = self.playoff_p[host as usize * n + guest as usize] as f64;
             if self.team_sigma > 0.0 {
-                p = noise::tilt(p, ratio[host as usize & 31] / ratio[guest as usize & 31]);
+                p = noise::tilt(
+                    p,
+                    ratio[0][host as usize & 31] * ratio[1][guest as usize & 31],
+                );
             }
             let host_wins = rng.next_f64() < p;
             if host_wins == h_hosts {
@@ -806,7 +829,7 @@ impl Prepared<'_> {
         let cfg = self.cfg;
         let n = cfg.n_teams();
         let acc = &w.acc;
-        let ratio = &w.ratio;
+        let ratio = [&w.ratio, &w.inv_ratio];
         let r = rank_league(acc, cfg, &mut w.ranking);
         playoff_bracket(r, acc, cfg, &mut w.bracket);
 

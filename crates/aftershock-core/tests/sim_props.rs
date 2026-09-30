@@ -227,14 +227,17 @@ proptest! {
                 let ph = np[0] + np[1] + np[2];
                 let dh = team_delta(seed, sim, g.home as u64, sigma as f64);
                 let da = team_delta(seed, sim, g.away as u64, sigma as f64);
-                let ph2 = tilt(ph, dh.exp() / da.exp());
-                let (sh, sa) = (ph2 / ph, (1.0 - ph2) / (1.0 - ph));
-                let mut c = [0.0; 5];
-                let mut run = 0.0;
-                for k in 0..5 {
-                    run += np[k] * if k < 3 { sh } else { sa };
-                    c[k] = run;
-                }
+                // Same arithmetic as the engine: sigmoid(logit(ph) + dh - da)
+                // written as a ratio of odds.
+                let ph2 = tilt(ph, dh.exp() * (-da).exp());
+                let (sh, sa) = (ph2 * (1.0 / ph), (1.0 - ph2) * (1.0 / (1.0 - ph)));
+                let c = [
+                    np[0] * sh,
+                    (np[0] + np[1]) * sh,
+                    ph2,
+                    ph2 + np[3] * sa,
+                    ph2 + (np[3] + np[4]) * sa,
+                ];
                 let u = SimKey::new(seed, sim).game(f as u64).uniform_f32(Stream::Outcome) as f64;
                 let want = c.iter().filter(|&&b| u >= b).count() as u8;
                 prop_assert_eq!(r.outcome(sim as usize, f), want);
