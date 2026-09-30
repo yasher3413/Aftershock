@@ -504,6 +504,7 @@ def train(ot_stats: dict[str, float], settings: Settings | None = None) -> dict[
             "use_xg": use_xg,
             "calibration": report["calibration"],
             "overtime": ot_stats,
+            "state_rates": {k: list(v) for k, v in rates.items()},
         },
     )
     reports = s.ml_dir / "reports"
