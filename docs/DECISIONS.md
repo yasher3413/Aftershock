@@ -246,3 +246,59 @@ Each entry: date, decision, alternatives considered, reason.
   computed as a ratio of odds (`p r / (p r + 1 - p)` with `r = exp(delta
   difference)`), which needs no `exp` per game; cost at `team_sigma =
   0.15` is about 9 percent single threaded.
+
+## 2026-09-30: Win probability boosts from an analytic baseline
+
+- **Decision:** both win-probability classifiers start from the logit of a
+  Skellam model of remaining goals (scoring rates measured per manpower and
+  goalie state, applied for the power-play clock or at most two minutes).
+- **Alternatives:** trees alone; a plain score-and-clock Skellam baseline.
+- **Reason:** trees alone could not reach the near-certain probabilities of
+  decided games and lost to a lookup table. A state-blind baseline could not
+  express the pulled-goalie effect the brief's sanity test requires.
+
+## 2026-09-30: Rating shrink and team noise for season simulations
+
+- **Decision:** future games inside a season simulation use ratings shrunk
+  toward the mean (0.5 before the season, 0.85 after 15 percent is played)
+  and per-simulation team strength noise (sigma 0.1), tuned on 2016-17 to
+  2018-19 season backtests.
+- **Alternatives:** raw ratings (overconfident: a strong team at 99.9 percent
+  in October); a hand-picked cap.
+- **Reason:** current ratings are noisy estimates and a season simulation
+  compounds overconfidence across dozens of games. Tuning on held-out
+  seasons keeps the choice measured rather than guessed.
+
+## 2026-09-30: Leaderboards use the season's team, not the current one
+
+- **Decision:** a player's team on a leaderboard is the team he scored most
+  of that season's goals for.
+- **Alternatives:** `players.current_team`.
+- **Reason:** players move; a 2025-26 board should not show 2026-27 teams.
+
+## 2026-09-30: E2E tests run on recorded API responses
+
+- **Decision:** Playwright tests serve real responses captured from a
+  running API (`web/e2e/fixtures`, refreshed with
+  `scripts/capture_e2e_fixtures.py`) through network routing.
+- **Alternatives:** stand up Postgres, Redis, the worker, and a precompute
+  inside CI.
+- **Reason:** keeps CI fast and deterministic while every byte the page sees
+  is real data. The full stack is exercised by `make up` and the live runs.
+
+## 2026-09-30: Share-image fonts are bundled
+
+- **Decision:** Big Shoulders Display and Instrument Sans TTFs (SIL Open Font
+  License, license texts included) ship in `services/aftershock/share/fonts`
+  and are installed into the api and worker images.
+- **Alternatives:** system fonts.
+- **Reason:** share images must match the site. On macOS, Cairo resolves
+  fonts through CoreText, so local renders fall back to system fonts unless
+  the fonts are installed; the Linux images are correct.
+
+## 2026-09-30: Replay bundle paths are relative to the data directory
+
+- **Decision:** `replay_bundles.path` stores a path relative to `DATA_DIR`.
+- **Alternatives:** absolute paths.
+- **Reason:** the same database must work on the host and inside containers
+  where the data directory is mounted elsewhere.
