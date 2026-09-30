@@ -14,7 +14,12 @@ fn fingerprint(r: &SimResult) -> u64 {
             h = h.wrapping_mul(0x0000_0100_0000_01B3);
         }
     };
-    r.counts.iter().for_each(|&c| eat(c as u64));
+    // The eleven metrics that existed when the value was pinned; metrics
+    // added later (bottom three) are appended rows and left out.
+    r.counts
+        .iter()
+        .take(11 * r.n_teams)
+        .for_each(|&c| eat(c as u64));
     r.points_sum.iter().for_each(|&c| eat(c));
     r.points_hist.iter().for_each(|&c| eat(c as u64));
     r.seed_counts.iter().for_each(|&c| eat(c as u64));

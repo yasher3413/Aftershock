@@ -36,6 +36,8 @@ fn probabilities_are_consistent() {
     assert!((pres - 1.0).abs() < 1e-12);
     let last: f64 = r.prob(Metric::Last).iter().sum();
     assert!((last - 1.0).abs() < 1e-12);
+    let bottom3: f64 = r.prob(Metric::Bottom3).iter().sum();
+    assert!((bottom3 - 3.0).abs() < 1e-9);
     let round2: f64 = r.prob(Metric::Round2).iter().sum();
     assert!((round2 - 8.0).abs() < 1e-9);
     let cf: f64 = r.prob(Metric::ConfFinal).iter().sum();

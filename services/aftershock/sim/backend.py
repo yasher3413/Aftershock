@@ -31,6 +31,7 @@ METRICS = (
     "p_final",
     "p_cup",
     "p_last",
+    "p_bottom3",
     "exp_points",
 )
 SEED_SLOTS = ("div1", "div2", "div3", "wc1", "wc2", "out")

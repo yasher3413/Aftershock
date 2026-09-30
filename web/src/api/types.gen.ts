@@ -305,6 +305,7 @@ export interface OddsUpdateMsg {
  */
 export interface TeamOdds {
   exp_points: number;
+  p_bottom3: number;
   p_conf_final: number;
   p_conf_first: number;
   p_cup: number;

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useLeaders, useTremors } from "../api/client";
+import { useLeaders, useStateQuery, useTremors } from "../api/client";
 import type { LeadersResponse } from "../api/types.gen";
-import { pp } from "../lib/format";
+import { pct, pp } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { useMyTeam } from "../lib/myTeam";
 import { TremorLine } from "../panels/TremorFeed";
@@ -13,7 +13,7 @@ const SEASONS = [
   { id: 20242025, label: "2024-25" },
 ];
 
-type Tab = LeadersResponse["kind"] | "tremors";
+type Tab = LeadersResponse["kind"] | "tremors" | "lottery";
 const TABS: { id: Tab; label: string; blurb: string }[] = [
   {
     id: "skater",
@@ -38,6 +38,12 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
     blurb: "How much a team's goals moved everyone else's playoff odds.",
   },
   { id: "tremors", label: "Top 100 tremors", blurb: "The season's biggest goals by magnitude." },
+  {
+    id: "lottery",
+    label: "Lottery watch",
+    blurb:
+      "Chances of finishing in the league's bottom three this season, the best draft lottery odds. Current season only.",
+  },
 ];
 
 function LeaderTable({ season, kind }: { season: number; kind: LeadersResponse["kind"] }) {
@@ -90,6 +96,40 @@ function LeaderTable({ season, kind }: { season: number; kind: LeadersResponse["
             <td className={`text-right tabular-nums ${r.value < 0 ? "down" : ""}`}>
               {kind === "team_chaos" ? pp(r.value).replace("+", "") : pp(r.value)}
             </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Lottery() {
+  const { data } = useStateQuery();
+  const rows = [...(data?.odds ?? [])]
+    .sort((a, b) => (b.p_bottom3 ?? 0) - (a.p_bottom3 ?? 0))
+    .slice(0, 12);
+  if (!rows.length) return <p className="text-ink-soft">Loading</p>;
+  return (
+    <table className="w-full text-[14px]">
+      <thead className="text-left text-[12px] text-ink-soft">
+        <tr>
+          <th className="font-normal">Team</th>
+          <th className="text-right font-normal">Bottom three</th>
+          <th className="text-right font-normal">Last overall</th>
+          <th className="text-right font-normal">Projected points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((o) => (
+          <tr key={o.team} className="border-t border-ice-scratch">
+            <td className="py-1.5">
+              <Link to={`/team/${o.team}`} className="display text-[16px] font-bold">
+                {o.team}
+              </Link>
+            </td>
+            <td className="text-right tabular-nums">{pct(o.p_bottom3 ?? 0)}</td>
+            <td className="text-right tabular-nums">{pct(o.p_last)}</td>
+            <td className="text-right tabular-nums">{Math.round(o.exp_points)}</td>
           </tr>
         ))}
       </tbody>

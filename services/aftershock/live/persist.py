@@ -154,6 +154,7 @@ def odds_rows(run_id: int, out: SimOutput) -> list[dict[str, Any]]:
                         "p_final",
                         "p_cup",
                         "p_last",
+                        "p_bottom3",
                         "exp_points",
                     )
                 },

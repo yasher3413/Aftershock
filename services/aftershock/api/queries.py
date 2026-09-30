@@ -39,6 +39,7 @@ ODDS_METRICS = (
     "p_final",
     "p_cup",
     "p_last",
+    "p_bottom3",
 )
 
 

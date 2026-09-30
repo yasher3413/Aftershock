@@ -64,6 +64,7 @@ class TeamOdds(Model):
     p_final: Prob
     p_cup: Prob
     p_last: Prob
+    p_bottom3: Prob = 0.0
     exp_points: float
 
 

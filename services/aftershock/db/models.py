@@ -229,6 +229,7 @@ class TeamOdds(Base):
     p_final: Mapped[float] = mapped_column(Float)
     p_cup: Mapped[float] = mapped_column(Float)
     p_last: Mapped[float] = mapped_column(Float)
+    p_bottom3: Mapped[float] = mapped_column(Float, server_default="0")
     exp_points: Mapped[float] = mapped_column(Float)
     points_hist: Mapped[dict[str, Any]] = mapped_column(JSONB)
     seed_dist: Mapped[dict[str, Any]] = mapped_column(JSONB)

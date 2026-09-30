@@ -165,10 +165,12 @@ pub enum Metric {
     Cup,
     /// Finishes last in the league.
     Last,
+    /// Finishes in the league's bottom three (draft lottery watch).
+    Bottom3,
 }
 
 /// All count metrics with their output names, in storage order.
-pub const METRICS: [(Metric, &str); 11] = [
+pub const METRICS: [(Metric, &str); 12] = [
     (Metric::Playoffs, "p_playoffs"),
     (Metric::Division, "p_division"),
     (Metric::Top3Div, "p_top3_div"),
@@ -180,6 +182,7 @@ pub const METRICS: [(Metric, &str); 11] = [
     (Metric::Final, "p_final"),
     (Metric::Cup, "p_cup"),
     (Metric::Last, "p_last"),
+    (Metric::Bottom3, "p_bottom3"),
 ];
 const N_METRICS: usize = METRICS.len();
 
@@ -864,6 +867,9 @@ impl Prepared<'_> {
             }
             if r.league_rank[team] as usize == n {
                 c[Metric::Last as usize * n + team] += 1;
+            }
+            if r.league_rank[team] as usize + 3 > n {
+                c[Metric::Bottom3 as usize * n + team] += 1;
             }
             if r.conference_rank[team] == 1 {
                 c[Metric::ConfFirst as usize * n + team] += 1;

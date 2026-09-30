@@ -45,6 +45,7 @@ def odds_list(out: SimOutput | None) -> list[S.TeamOdds]:
                     "p_final",
                     "p_cup",
                     "p_last",
+                    "p_bottom3",
                     "exp_points",
                 )
             },

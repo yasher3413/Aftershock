@@ -1798,6 +1798,13 @@
           "title": "Exp Points",
           "type": "number"
         },
+        "p_bottom3": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Bottom3",
+          "type": "number"
+        },
         "p_conf_final": {
           "maximum": 1.0,
           "minimum": 0.0,
@@ -1882,6 +1889,7 @@
         "p_final",
         "p_cup",
         "p_last",
+        "p_bottom3",
         "exp_points"
       ],
       "title": "TeamOdds",
