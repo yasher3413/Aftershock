@@ -75,6 +75,16 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/uv.lock
+      - name: Generated API types are up to date
+        run: |
+          (cd ../services && uv sync --frozen && uv run aftershock export-schema ../web/src/api/schema.json)
+          pnpm types
+          npx prettier --check src/api >/dev/null || true
+          git diff --exit-code -- src/api
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm format:check
