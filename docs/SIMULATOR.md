@@ -71,6 +71,12 @@ one goal against; the input scores already include that goal. Standings
 are ordered by points; the tiebreak chain runs only among clubs tied in
 points.
 
+One exception to the overtime-loss point: a club that pulls its goalkeeper
+for an extra attacker in overtime and loses forfeits that point, and the
+NHL records a regulation loss (L, 0 points) for it while the winner keeps
+an overtime win. The engine models this as `EndType::OvertimeForfeit`. See
+the 2023-24 note under the gold test results.
+
 ### Chain `nhl-2019` (2019-20 onward)
 
 Official text, in order:
@@ -144,8 +150,8 @@ There is no regulation-wins, total-wins, or goals-for step in this chain.
   excludes the odd game of every pair in the group.
 - **Exhausted chain.** If every step is equal, clubs keep config order. The
   official procedure would go to a draw or a tiebreak game, which a
-  deterministic engine cannot reproduce; this has never been needed in the
-  validated seasons.
+  deterministic engine cannot reproduce. No tie in the division, wild-card,
+  or conference standings of the validated seasons reaches this point.
 
 ### Playoff qualification, bracket, and home ice
 
@@ -188,20 +194,72 @@ first-round matchups including which club had home ice.
 
 | Season | Chain | Teams | Results fed | Records match | Division order match | Wild-card order match | Playoff teams match | Round-1 matchups match |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2015-16 | nhl-2010 | 30 | 1230 | yes | yes | yes | yes | yes |
+| 2016-17 | nhl-2010 | 30 | 1230 | yes | yes | yes | yes | yes |
+| 2017-18 | nhl-2010 | 31 | 1271 | yes | yes | yes | yes | yes |
+| 2018-19 | nhl-2010 | 31 | 1271 | yes | yes | yes | yes | yes |
+| 2021-22 | nhl-2019 | 32 | 1312 | yes | yes | yes | yes | yes |
+| 2022-23 | nhl-2019 | 32 | 1312 | yes | yes | yes | yes | yes |
+| 2023-24 | nhl-2019 | 32 | 1312 | yes (1 adjustment) | yes | yes | yes | yes |
 | 2024-25 | nhl-2019 | 32 | 1312 | yes | yes | yes | yes | yes |
 | 2025-26 | nhl-2019 | 32 | 1312 | yes | yes | yes | yes | yes |
 
-Conference and league order also match in every season above.
+Full conference order and league order also match in all nine seasons.
 
-Ties in points that the data exercises (all within the same grouping):
+### Surprise: the pulled-goalie overtime forfeit (2023-24)
 
-- 2025-26: TBL and MTL at 106 in the Atlantic (RW 40 to 34); PIT and PHI at
-  98 in the Metropolitan (RW); DET and CBJ at 92 for the second Eastern wild
-  card race order (RW); STL, NSH, and SJS at 86, a three-way wild-card tie
-  settled by RW 33, 28, 27 even though SJS has the most ROW and total wins,
-  which confirms RW is checked before ROW and W.
-- 2024-25: BOS and PHI at 76 (RW 26 to 21); STL and CGY at 96 for the last
-  Western wild card (RW 32 to 31), which decided a playoff spot.
+The first run matched everything except Minnesota in 2023-24: the engine
+had 88 points, 33 L, 10 OTL; the official line is 87 points, 34 L, 9 OTL.
+On 2024-03-30 (game 2023021166) Minnesota lost 2-1 in overtime to Vegas
+after pulling its goalkeeper for an extra attacker, and Jonathan
+Marchessault scored into the empty net. Under the NHL regular-season
+overtime rule, a club that pulls its goalkeeper in overtime and loses
+forfeits the point it earned by reaching overtime, and the NHL records the
+game as a regulation loss for it (Vegas keeps an overtime win: ROW, not
+RW). The feed reports the game as plain `OT`, so nothing in the fixture
+could reveal it. The engine models this as `EndType::OvertimeForfeit`, and
+the gold test lists the game by id with sources
+([Star Tribune](https://www.startribune.com/minnesota-wild-vegas-golden-knights-overtime-empty-net-nhl-filip-gustavsson/600355226),
+[The Hockey News](https://thehockeynews.com/nhl/minnesota-wild/game-day/wild-fall-2-1-to-vegas-in-overtime-forfeit-point-for-pulling-goalie)).
+It is the only such game in the validated seasons. The standings did not
+change otherwise (MIN finished outside the playoffs either way), but the
+league order between MIN and PIT did. Live ingestion should detect this
+case from play-by-play (an overtime goal against a team with no goalkeeper
+on the ice) and pass the forfeit end type.
+
+### Ties the data exercises
+
+Every tie in points within a division, a wild-card race, or a conference in
+the nine seasons, and the step that settles it:
+
+- **Regulation wins (nhl-2019):** 2021-22 NYR over TBL at 110 (RW 44 to 39
+  although TBL has more ROW); 2022-23 PIT over BUF at 91, DET over WSH at
+  80, EDM over COL at 109; 2023-24 WSH over DET at 91 for the last Eastern
+  wild card (RW 32 to 27 although DET has more ROW and wins), NSH over LAK
+  at 99, CGY over SEA at 81; 2024-25 BOS over PHI at 76, STL over CGY at 96
+  for the last Western wild card; 2025-26 TBL over MTL at 106, PIT over PHI
+  at 98, DET over CBJ at 92, UTA over ANA at 92, and a three-way wild-card
+  tie at 86 settled STL, NSH, SJS by RW 33, 28, 27 although SJS has the
+  most ROW and total wins.
+- **ROW (nhl-2010):** 2015-16 CHI over ANA at 103 and ARI over WPG at 78;
+  2016-17 BOS over TOR, NYI over TBL (although TBL has more wins), CGY over
+  NSH (although NSH has more RW); 2017-18 WSH over TOR, MIN over ANA;
+  2018-19 TOR over PIT, WPG over STL, DAL over VGK; 2015-16 DET over BOS at
+  93 in the Atlantic (ROW 39 to 38 although BOS has more RW and wins).
+- **Head-to-head (nhl-2010):** 2016-17 STL over SJS at 99 in the Western
+  conference order: equal ROW (44), and STL won the season series although
+  SJS had the better goal differential (+20 to +17). Removing the
+  head-to-head step breaks this season in the gold test.
+- **No RW step before 2019-20:** 2017-18 CBJ over NJD at 97 in the
+  Metropolitan and the Eastern wild-card race, with equal ROW (39) although
+  NJD has more RW (33 to 30). An RW step would reverse them.
+
+No tie in the nine seasons involves three or more clubs reaching the
+head-to-head step. The one head-to-head decision (STL and SJS met three
+times; the first game in San Jose is the odd game) comes out the same with
+or without the exclusion, because STL won all three meetings; the gold test
+also passes with the exclusion disabled. So the restart rule and the
+odd-game rule are pinned down by unit tests only.
 
 ## Monte Carlo
 

@@ -150,3 +150,18 @@ Each entry: date, decision, alternatives considered, reason.
 - **Alternatives:** read files at runtime only.
 - **Reason:** the wasm32 build has no filesystem, and embedding keeps one
   source of truth.
+
+## 2026-09-30: Pulled-goalie overtime losses are a separate end type
+
+- **Decision:** `EndType::OvertimeForfeit` records an overtime loss by a
+  club that had pulled its goalkeeper: the loser gets a regulation loss (L,
+  0 points), the winner an overtime win (ROW, not RW). The gold test lists
+  the one such game in the validated seasons (2023021166, VGK at MIN,
+  2024-03-30) by game id, because the feed reports it as plain `OT`.
+- **Alternatives:** a per-team point adjustment in the gold test; a boolean
+  on every `GameResult`.
+- **Reason:** the official 2023-24 standings charge MIN 34 L and 9 OTL (87
+  points), which only this rule explains. An end type keeps `GameResult`
+  small, keeps W/L/OTL/RW/ROW and head-to-head points consistent, and lets
+  live ingestion pass the case through once it detects it from
+  play-by-play. The adjustment names a game, not a team.
