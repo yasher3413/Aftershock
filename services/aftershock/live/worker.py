@@ -53,6 +53,7 @@ REPLAY_TYPES = frozenset(
 DRIFT_S = 10.0
 FULL_RERUN_S = 300.0
 STATE_S = 15.0
+STATE_REFRESH_S = 300.0
 ESS_FLOOR = 0.5
 
 
@@ -79,6 +80,7 @@ class Worker:
         # Everything published tonight, kept to write the night's replay bundle.
         self.night_frames: list[dict[str, Any]] = []
         self.night_initial: dict[str, Any] | None = None
+        self._last_full_state = 0.0
 
     # ------------------------------------------------------------------
     # Startup
@@ -645,7 +647,12 @@ class Worker:
                 await self.write_health()
                 await self.drift()
                 if time.monotonic() - last_state > STATE_S:
-                    await self.publish_state()
+                    # Refresh at least every five minutes so the mode (live or
+                    # demo) and tonight's clock follow the schedule.
+                    stale = time.monotonic() - self._last_full_state > STATE_REFRESH_S
+                    await self.publish_state(force=stale)
+                    if stale:
+                        self._last_full_state = time.monotonic()
                     last_state = time.monotonic()
                 await self.nightly()
                 await self.maybe_recap()
