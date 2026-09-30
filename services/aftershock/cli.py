@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
@@ -172,3 +173,12 @@ def recap(night: str) -> None:
 
     result = asyncio.run(generate_recap(date.fromisoformat(night)))
     typer.echo(result["headline"])
+
+
+@app.command()
+def backtest() -> None:
+    """Season backtest of playoff odds; tunes the rating shrink for simulations."""
+    from aftershock.sim.backtest import run_backtest
+
+    rep = run_backtest()
+    typer.echo(json.dumps({"shrink": rep["shrink"], "brier": rep["brier"]}, indent=2))
