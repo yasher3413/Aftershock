@@ -263,12 +263,241 @@ odd-game rule are pinned down by unit tests only.
 
 ## Monte Carlo
 
-Added with the simulator.
+`aftershock_core::sim` (`crates/aftershock-core/src/sim/`).
+
+### Inputs
+
+A `Simulator` is built once from a `LeagueConfig` and the full-season
+`Schedule` (every game in chronological order, home and away team index).
+Each run takes a `SimInput`:
+
+- `status[g]` for every game: `Final(GameResult)`,
+  `Live { home_score, away_score, probs, lam_home_rem, lam_away_rem }`, or
+  `Future { probs, lam_home, lam_away }`. Outcome order everywhere is
+  `[home_reg, home_ot, home_so, away_reg, away_ot, away_so]`. `lam_*` are
+  expected regulation goals (future) or expected remaining regulation goals
+  (live).
+- `tie_theta`: multiplier on the regulation-tie cells of the scoreline
+  tables.
+- `playoff_p` (`n x n`): `playoff_p[i][j]` is the probability that team `i`
+  beats team `j` in a playoff game hosted by `i`.
+- `focus_games`: schedule indices whose outcome is recorded per simulation
+  (live games plus the next seven days).
+- `n_sims`, `seed`.
+
+### Preparation (once per run)
+
+- Final games are applied once to a base `SeasonAccumulator`. Games played
+  and head-to-head game counts of the remaining games do not depend on
+  outcomes, so they are added to the base too.
+- Each remaining game gets an `OutcomeCdf`: five `f32` boundaries over the
+  fixed 6-outcome order, built from the normalized probabilities. The last
+  outcome with positive mass ends at exactly 1.0, so a zero-probability
+  outcome can never be drawn.
+- Each remaining game gets a `ScoreTable`: Poisson(`lam_home`) x
+  Poisson(`lam_away`) over 0..=10 goals per side, regulation-tie cells
+  multiplied by `tie_theta`, split into three classes (home ahead, away
+  ahead, tied) with a conditional `f32` CDF inside each class.
+
+### One simulation
+
+1. For every remaining game, one uniform from stream `Outcome` picks the
+   outcome by inverse CDF (the number of boundaries at or below it). The
+   outcome is applied branch free: each outcome is a fixed delta vector
+   `[w, l, otl, rw, row, points]` per team plus head-to-head points, added
+   into a 32-team scratch and flushed into the accumulator once.
+2. Scorelines (GF and GA) are sampled only if some tie could reach a goals
+   step of the tiebreak chain: two clubs level in points and in every
+   earlier non-head-to-head step (for `nhl-2019`: GP, RW, ROW, W). If no
+   such pair exists, no standings comparison and no home-ice comparison can
+   look at goals, so skipping them cannot change any output. Because the
+   scoreline uniform is keyed by game, sampling them later gives exactly
+   the same goals as sampling them up front; a unit test checks lazy and
+   eager runs are identical. On the synthetic 2026-27 benchmark about 4
+   percent of seasons need the goals pass.
+3. `rank_league`, `playoff_bracket`, then the playoffs (below).
+4. Tallies: per-team integer counts for each metric, a 1-point histogram
+   of final points, the six-slot seed distribution, and the per-simulation
+   records.
+
+Work is split into chunks of 64 simulations. With the `parallel` feature
+(native) chunks run on rayon, each worker thread owning its scratch
+(accumulator, `StandingsScratch`, bracket, outcome buffer), so the hot loop
+allocates nothing. Tallies are integers merged by addition, so the result
+does not depend on how chunks are scheduled. Without the feature (wasm) the
+same chunk code runs serially.
+
+### Scorelines and live conditioning
+
+After the outcome class is known, the regulation scoreline is drawn inside
+that class from the game's `ScoreTable` with a second uniform (stream
+`Scoreline`). An overtime win is the tied regulation score plus one goal
+for the winner; a shootout win is the tied score plus one goal for the
+winner in GF (the standings rule), with `EndType::Shootout`.
+
+For a live game the table is over goals still to be scored, 0..=10 per
+side from `lam_*_rem`, and each cell is classified by the final regulation
+result (current score plus added goals). Tie cells (those ending level) get
+`tie_theta`. The added goals are drawn inside the sampled class with a
+uniform from stream `LiveGoals`. If the sampled class has no mass in the
+table (for example a 4-0 game with no time left and a sampled away win),
+the smallest-goal cell consistent with the class is used: the trailing side
+scores just enough to tie or lead.
+
+`tie_theta` scales every tied cell equally, so it changes class masses but
+never the conditional shape inside a class. Because the class itself comes
+from the 6-way probabilities, `tie_theta` currently has no effect on the
+sampled results; it is accepted so the tables match the scoreline model if
+they are later used to derive class probabilities.
+
+### Playoff simulation
+
+After each regular season: rank, build the bracket with `playoff_bracket`
+(division winner with the better conference standing meets WC2), then play
+every series game by game. Series slots per simulation are round 1
+`0..8` (four per conference in bracket order), round 2 `8..12`, conference
+finals `12..14`, and the final `14`. Each series uses a `KeyedRng` keyed by
+`(seed, sim, slot, Stream::Playoff)`, so playoff randomness is independent
+of regular-season game indices. Home ice goes to the better regular-season
+record (`home_ice`), the config's 2-2-1-1-1 pattern (`HHAAHAH`) picks the
+host of each game, and the host wins with probability
+`playoff_p[host][guest]`. First to four wins.
+
+### Outputs per team
+
+`p_playoffs`, `p_division` (first in division), `p_top3_div`,
+`p_wildcard`, `p_presidents` (first in the league), `p_conf_first`,
+`p_round2` (won round 1), `p_conf_final` (won round 2), `p_final` (won the
+conference final), `p_cup`, `p_last` (last in the league), `exp_points`, a
+points histogram (1-point bins, counts), and a seed distribution over
+`div1, div2, div3, wc1, wc2, out`.
+
+### Per-simulation records
+
+For every simulation the result keeps the outcome class (0..5) of every
+focus game, a `u32` playoff bitmask, a `u32` division-winner bitmask, and
+the Cup winner index. Focus games that are already final are recorded with
+their actual outcome and one-hot probabilities.
+
+### Conditional tables
+
+`SimRecords::conditional()` counts, for every focus game `f` and outcome
+`k`: the simulations with that outcome, and per team how many of those made
+the playoffs and won the Cup. Counts are exposed (so callers can compute
+binomial standard errors, `sqrt(p (1 - p) / n_fk)`) together with helper
+probabilities.
+
+### Importance reweighting
+
+`SimRecords::reweight(games, new_probs)` weights every simulation by the
+product over the given focus games of `P_new(k) / P_old(k)` for its sampled
+outcome `k`, where `P_old` is what the game was sampled with. It returns
+reweighted `p_playoffs`, `p_division`, and `p_cup` plus the effective
+sample size `(sum w)^2 / sum w^2`. This updates odds for a changed live win
+probability without re-running; when the effective sample size falls too
+low, re-run instead.
+
+### Bindings
+
+Python (`crates/aftershock-py`, module `aftershock_core`, built with
+`cd services && uv run maturin develop --release -m ../crates/aftershock-py/Cargo.toml`):
+
+- `Simulator(config: str, home: uint16[n], away: uint16[n])`; `.teams`,
+  `.n_games`.
+- `Simulator.run(status uint8[n] (0 future, 1 live, 2 final), home_goals
+  uint8[n], away_goals uint8[n], end uint8[n] (0 REG, 1 OT, 2 SO, 3 OT
+  forfeit), live_home uint8[n], live_away uint8[n], probs float32[n, 6],
+  lam float32[n, 2], playoff_p float32[t, t], tie_theta float, n_sims int,
+  seed int, focus uint32[f]) -> SimResult`. The GIL is released while
+  simulating.
+- `SimResult`: `metrics` (dict name -> float64[t]), `points_hist`
+  (int64[t, max_points + 1]), `seed_dist` (float64[t, 6]), `seed_slots`,
+  `duration_ms`, `n_sims`, `focus_outcomes` (uint8[n_sims, f]),
+  `playoff_mask`, `division_mask`, `cup_winner`, `prob(name)`,
+  `conditional()` -> dict (`outcome_counts` int64[f, 6], `playoffs_counts`
+  int64[f, 6, t], `cup_counts` int64[f, 6, t]), `reweight(games uint32[k],
+  new_probs float32[k, 6])` -> dict (`p_playoffs`, `p_division`, `p_cup`
+  float64[t], `ess` float).
+- `standings(config, home, away, home_goals, away_goals, end)` -> dict of
+  arrays (`w, l, otl, points, rw, row, gf, ga, league_rank,
+  conference_rank, division_rank, wildcard_rank, qualified`, plus `teams`).
+- `config_teams(config)`, `METRICS`.
+
+WASM (`crates/aftershock-wasm`, `wasm-pack build crates/aftershock-wasm
+--release --target web`): `simulate(json_state: string, n_sims: number,
+seed: bigint) -> string`. Input and output JSON are documented at the top
+of `crates/aftershock-wasm/src/lib.rs`; each output team has every metric
+above, `seed_dist` as an object keyed by slot, and `points_hist` (counts
+indexed by points, trailing zeros trimmed). Single threaded. For the same
+input and seed, the native and wasm outputs were checked to be
+byte-identical JSON.
 
 ## Common random numbers
 
-Added with the simulator.
+Every random number in a run is a pure function of `(seed, sim, game,
+stream)`: a hash of those four numbers, not the next value of a generator
+that walks through the season. Simulation 7's draw for game 500 is the same
+number no matter which thread runs it, whether games 1 to 499 were final or
+future, or what their probabilities were.
+
+That is what makes before/after comparisons nearly noise free. When a game
+ends or a probability moves, the new run reuses the same seed, so every
+other game in every simulation plays out exactly as before. The only
+simulations that change are the ones where the changed game now lands on a
+different outcome, which are exactly those whose uniform falls between the
+old and new CDF boundary. A 0.02 change in one game's home-win probability
+flips about 2 percent of simulations for that game and leaves the other 98
+percent identical, so the odds delta reflects that game's effect instead of
+two independent samples of Monte Carlo noise.
+
+The property tests (`crates/aftershock-core/tests/sim_props.rs`) check:
+
+1. The result is identical (every count and every per-simulation record)
+   for 1, 2, 3, and 8 rayon threads and the serial path, and across repeated
+   runs; the same tests pass with the `parallel` feature off.
+2. Changing one game's probabilities to arbitrary new values never changes
+   the sampled outcome of any other focus game in any simulation.
+3. Moving probability mass between two adjacent outcomes of one game flips
+   exactly the simulations whose uniform (recomputed independently from the
+   RNG) lies between the old and new boundary, in the expected direction,
+   and each sampled outcome equals the inverse CDF of its uniform.
+
+A unit test also checks that the fast season path (branch-free deltas, lazy
+goals) produces the same accumulator as applying each sampled result
+through the plain `SeasonAccumulator::apply`.
 
 ## Benchmarks
 
-Added with the simulator.
+Machine: Apple M1, 8 cores (4 performance, 4 efficiency), 8 GB, macOS 26.2.
+Measured 2026-09-30 while other workloads were running on the machine (load
+average 6 to 11 from parallel backfill jobs), so these numbers are
+conservative. Workload: a synthetic balanced 2026-27 schedule (32 teams,
+84 games each, 1,344 games), every game future from opening night, plus
+full playoffs, 112 focus games.
+
+| Target | Threads | Sims | Games simulated | Median | p95 | Per sim | Harness |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Native (rayon) | 8 | 20,000 | 1,344 | 105 ms | 123 ms | 5.3 us | `examples/sim_timing.rs`, 50 runs |
+| Native (serial) | 1 | 2,000 | 1,344 | 50 ms | 54 ms | 25 us | same, `RAYON_NUM_THREADS=1` |
+| WASM (node, proxy) | 1 | 10,000 | 1,344 | 275 ms | 306 ms | 27.5 us | `bench/node_bench.mjs`, 20 runs |
+| WASM (node, proxy) | 1 | 10,000 | 672 (mid-season) | 146 ms | 151 ms | 14.6 us | same |
+
+Targets: native 20,000 full seasons under 250 ms at p95 (met, 123 ms);
+WASM 10,000 remaining-season simulations under 2 s (met, 306 ms from
+opening night). Criterion (`cargo bench -p aftershock-core --bench sim`)
+reports 106 ms for the 20,000-simulation run and 22.9 ms for 1,000 serial
+simulations.
+
+The WASM figure comes from the wasm-pack `--target nodejs` build run in
+Node 25 (V8), a proxy for desktop Chrome, which uses the same engine and
+the same single-threaded wasm code; browser timings will differ somewhat
+with the browser and its JIT tiering. The run includes JSON parsing, table
+building, and output serialization.
+
+Reproduce:
+
+```
+cargo run --release -p aftershock-core --example sim_timing -- 20000 50
+wasm-pack build crates/aftershock-wasm --release --target nodejs --out-dir pkg-node
+node crates/aftershock-wasm/bench/node_bench.mjs 10000 20
+```
