@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import Any
 
 from aftershock.ml.strength import OUTCOMES
-from aftershock.sim.inputs import END_OT, END_SO, STATUS_FINAL, SimInputs
+from aftershock.sim.inputs import END_OT, END_OT_FORFEIT, END_SO, STATUS_FINAL, SimInputs
 
-END_NAMES = {END_OT: "OT", END_SO: "SO"}
+END_NAMES = {END_OT: "OT", END_SO: "SO", END_OT_FORFEIT: "OTF"}
 
 
 def whatif_payload(
@@ -32,7 +32,7 @@ def whatif_payload(
             g["result"] = {
                 "home_goals": int(inputs.home_goals[i]),
                 "away_goals": int(inputs.away_goals[i]),
-                # An overtime forfeit counts as a regulation result in the standings.
+                # OTF: a pulled-goalie overtime loss, a regulation loss in the standings.
                 "end": END_NAMES.get(int(inputs.end[i]), "REG"),
             }
         else:

@@ -246,7 +246,11 @@ async def replay_nights(session: Db, season: int | None = None) -> list[S.NightI
 @router.get("/replay/{night}")
 async def replay_bundle(night: date, session: Db) -> Response:
     b = await session.get(ReplayBundle, night)
-    path = Path(b.path) if b is not None else None
+    path = None
+    if b is not None:
+        path = Path(b.path)
+        if not path.is_absolute():
+            path = get_settings().data_dir / path
     data = await asyncio.to_thread(_read_bytes, path) if path else None
     if data is None:
         raise HTTPException(404, f"No replay for {night.isoformat()}")

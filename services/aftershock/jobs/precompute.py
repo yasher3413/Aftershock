@@ -400,7 +400,7 @@ class SeasonPrecompute:
             stmt = insert(ReplayBundle).values(
                 night_date=night,
                 season=self.season,
-                path=str(path),
+                path=str(path.relative_to(self.s.data_dir)),
                 total_energy=energy(magnitudes),
                 n_games=len(replays),
                 n_tremors=n_tremors,
@@ -553,8 +553,9 @@ async def rewrite_bundles(season: int) -> int:
                 await sess.execute(select(ReplayBundle).where(ReplayBundle.season == season))
             ).scalars()
         )
+        s = get_settings()
         for b in bundles:
-            path = Path(b.path)
+            path = Path(b.path) if Path(b.path).is_absolute() else s.data_dir / b.path
             if not path.exists():
                 continue
             with gzip.open(path, "rt", encoding="utf-8") as fh:
