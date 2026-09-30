@@ -259,6 +259,15 @@ export default function TeamPage() {
           </Section>
         </div>
 
+        <Section title="Embed these odds" id="embed-h">
+          <p className="text-[14px] text-ink-soft">
+            A live gauge for your site or blog. It refreshes every minute.
+          </p>
+          <pre className="mt-2 overflow-x-auto rounded-[var(--radius)] bg-ice-land p-3 text-[12px]">
+            {`<iframe src="${typeof window !== "undefined" ? window.location.origin : ""}/embed/${abbrev}" width="320" height="130" style="border:0" title="${t.name} playoff odds"></iframe>`}
+          </pre>
+        </Section>
+
         <div className="grid gap-x-10 md:grid-cols-2">
           <Section title="Coming up" id="sched-h">
             <table className="w-full text-[14px]">

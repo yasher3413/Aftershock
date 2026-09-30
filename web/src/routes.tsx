@@ -12,12 +12,14 @@ const Leaders = lazy(() => import("./pages/Leaders"));
 const WhatIf = lazy(() => import("./pages/WhatIf"));
 const Method = lazy(() => import("./pages/Method"));
 const Status = lazy(() => import("./pages/Status"));
+const Embed = lazy(() => import("./pages/Embed"));
 
 function page(node: ReactNode) {
   return <Suspense fallback={<div className="p-6 text-ink-soft">Loading</div>}>{node}</Suspense>;
 }
 
 export const router = createBrowserRouter([
+  { path: "/embed/:abbrev", element: page(<Embed />) },
   {
     element: <Shell />,
     errorElement: <RouteError />,
