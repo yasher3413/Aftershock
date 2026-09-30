@@ -105,6 +105,20 @@ def test_deterministic_for_fixed_seed() -> None:
     assert not np.array_equal(a.focus_outcomes, c.focus_outcomes)
 
 
+def test_team_sigma_keyword() -> None:
+    sim, args = scenario()
+    default = sim.run(**args)
+    zero = sim.run(**args, team_sigma=0.0)
+    for name in default.metrics:
+        np.testing.assert_array_equal(default.metrics[name], zero.metrics[name])
+    noisy = sim.run(**args, team_sigma=0.3)
+    assert noisy.metrics["p_cup"].sum() == pytest.approx(1.0)
+    assert noisy.metrics["p_playoffs"].sum() == pytest.approx(16.0)
+    assert not np.array_equal(default.metrics["p_playoffs"], noisy.metrics["p_playoffs"])
+    with pytest.raises(ValueError):
+        sim.run(**args, team_sigma=-1.0)
+
+
 def test_conditional_and_reweight() -> None:
     sim, args = scenario()
     res = sim.run(**args)
