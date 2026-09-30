@@ -66,10 +66,14 @@ export const useRecap = (date: string) =>
     retry: false,
   });
 
+/** Methodology reports are free-form JSON written by the training jobs. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Methodology = Record<string, any>;
+
 export const useMethodology = () =>
   useQuery({
     queryKey: ["methodology"],
-    queryFn: () => api<Record<string, any>>("/methodology"),
+    queryFn: () => api<Methodology>("/methodology"),
     staleTime: 600_000,
   });
 
