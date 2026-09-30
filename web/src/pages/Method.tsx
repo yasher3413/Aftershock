@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useMethodology } from "../api/client";
 import { useDocumentMeta } from "../lib/meta";
+import { CalibrationChart, GroupedBars } from "../charts/Calibration";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const f = (v: any, d = 3) => (typeof v === "number" ? v.toFixed(d) : "");
@@ -11,18 +12,6 @@ function H({ id, children }: { id: string; children: ReactNode }) {
     <h2 id={id} className="mt-10 border-t border-ice-scratch pt-6 text-[22px] font-semibold">
       {children}
     </h2>
-  );
-}
-
-function Plot({ src, alt }: { src?: string; alt: string }) {
-  if (!src) return null;
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="my-4 w-full max-w-[560px] rounded-[var(--radius)] bg-white p-2"
-      loading="lazy"
-    />
   );
 }
 
@@ -37,7 +26,7 @@ export default function MethodPage() {
   const wp = m?.wp?.test;
   const bt = m?.backtest;
   const mag = m?.magnitude;
-  const plots = m?.plots ?? {};
+  const charts = m?.charts ?? {};
   return (
     <article className="mx-auto w-full max-w-[72ch] px-4 py-8 text-[16px] leading-relaxed">
       <h1 className="display text-[52px] font-extrabold leading-none">How it works</h1>
@@ -63,10 +52,12 @@ export default function MethodPage() {
           percent go in.
         </p>
       )}
-      <Plot
-        src={plots.xg_reliability}
-        alt="xG reliability: predicted against observed goal rates"
-      />
+      {charts.xg_reliability && (
+        <CalibrationChart
+          title="Shots: predicted against actual goal rate, 2025-26"
+          curves={charts.xg_reliability}
+        />
+      )}
 
       <H id="strength">2. How good is each team</H>
       <p>
@@ -84,10 +75,13 @@ export default function MethodPage() {
           good models live around 58 to 62 percent.
         </p>
       )}
-      <Plot
-        src={plots.strength_reliability}
-        alt="Team strength reliability for the home team winning"
-      />
+      {charts.strength_reliability && (
+        <CalibrationChart
+          title="Home team wins: predicted against actual, 2021-22 to 2025-26"
+          curves={charts.strength_reliability}
+          max={1}
+        />
+      )}
 
       <H id="wp">3. Who is winning right now</H>
       <p>
@@ -106,8 +100,21 @@ export default function MethodPage() {
           should be: score and clock carry most of the signal.
         </p>
       )}
-      <Plot src={plots.wp_logloss_by_time} alt="Win probability log loss by game time" />
-      <Plot src={plots.wp_reliability} alt="Win probability reliability" />
+      {charts.wp_logloss_by_time && (
+        <GroupedBars
+          title="Log loss by minutes played, 2025-26 (lower is better)"
+          labels={charts.wp_logloss_by_time.labels}
+          series={charts.wp_logloss_by_time.series}
+          unit="log loss"
+        />
+      )}
+      {charts.wp_reliability && (
+        <CalibrationChart
+          title="In-game outcomes: predicted against actual, 2025-26"
+          curves={charts.wp_reliability}
+          max={1}
+        />
+      )}
 
       <H id="sim">4. Rerunning the season</H>
       <p>
@@ -127,10 +134,13 @@ export default function MethodPage() {
           April they are sharp.
         </p>
       )}
-      <Plot
-        src={plots.backtest_reliability}
-        alt="Season simulation reliability for making the playoffs"
-      />
+      {charts.backtest_reliability && (
+        <CalibrationChart
+          title="Making the playoffs: predicted against actual, 2021-22 to 2025-26"
+          curves={charts.backtest_reliability}
+          max={1}
+        />
+      )}
 
       <H id="crn">5. Why one goal can be measured</H>
       <p>

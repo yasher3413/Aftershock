@@ -323,13 +323,76 @@ async def whatif_bootstrap(st: State) -> Response:
 async def methodology(st: State) -> dict[str, Any]:
     reports = st.settings.ml_dir / "reports"
     out: dict[str, Any] = {"plots": {}}
+    raw: dict[str, Any] = {}
     for name in ("xg", "strength", "wp", "backtest", "magnitude"):
         f = reports / f"{name}.json"
         if f.exists():
-            out[name] = _strip_bins(json.loads(f.read_text()))
+            raw[name] = json.loads(f.read_text())
+            out[name] = _strip_bins(raw[name])
     for svg in sorted(reports.glob("*.svg")):
         out["plots"][svg.stem] = f"/api/reports/{svg.name}"
+    out["charts"] = _charts(raw)
     return out
+
+
+def _curve(rel: dict[str, Any]) -> dict[str, Any]:
+    return {"pred": rel["pred"], "obs": rel["obs"], "ece": rel["ece"]}
+
+
+def _charts(raw: dict[str, Any]) -> dict[str, Any]:
+    """The measured series behind each methodology chart, drawn by the page
+    in the site's own type and colors (the SVGs in ml/reports are the same
+    data for offline reading)."""
+    charts: dict[str, Any] = {}
+    try:
+        t = raw["xg"]["test"]
+        charts["xg_reliability"] = {
+            "LightGBM": _curve(t["lightgbm"]["reliability"]),
+            "Distance + angle logistic": _curve(
+                t["baseline_logistic_distance_angle"]["reliability"]
+            ),
+        }
+    except KeyError:
+        pass
+    try:
+        t = raw["strength"]["test"]
+        charts["strength_reliability"] = {
+            "Team strength": _curve(t["strength"]["reliability_home_win"]),
+            "Points % to date": _curve(t["points_pct_to_date"]["reliability_home_win"]),
+        }
+    except KeyError:
+        pass
+    try:
+        t = raw["wp"]["test"]
+        rel = t["lightgbm_ordinal"]["reliability"]
+        charts["wp_reliability"] = {
+            "Home regulation win": _curve(rel["home_reg_win"]),
+            "Away regulation win": _curve(rel["away_reg_win"]),
+            "Tied after regulation": _curve(rel["tied_after_reg"]),
+        }
+        labels = list(t["lightgbm_ordinal"]["by_bucket"])
+        charts["wp_logloss_by_time"] = {
+            "labels": labels,
+            "series": {
+                name: [t[key]["by_bucket"][k]["log_loss"] for k in labels]
+                for name, key in (
+                    ("Ordinal LightGBM", "lightgbm_ordinal"),
+                    ("Multinomial logistic", "multinomial_logistic"),
+                    ("Score and time table", "lookup_table"),
+                )
+            },
+        }
+    except KeyError:
+        pass
+    try:
+        rel = raw["backtest"]["reliability"]
+        charts["backtest_reliability"] = {
+            "Simulator": _curve(rel["sim"]),
+            "Points % baseline": _curve(rel["points_pct_baseline"]),
+        }
+    except KeyError:
+        pass
+    return charts
 
 
 def _strip_bins(obj: Any) -> Any:
