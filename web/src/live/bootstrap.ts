@@ -17,7 +17,7 @@ export function replayInitial(state: StateResponse, bundle: ReplayBundleOut): Li
     ...emptyLiveData,
     ...base,
     mode: "demo",
-    standings: bundle.initial.standings.length ? bundle.initial.standings : base.standings,
+    standings: bundle.initial.standings,
     odds,
     oddsDayStart: odds,
     games,

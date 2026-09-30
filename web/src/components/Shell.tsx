@@ -1,5 +1,6 @@
 import { NavLink, Outlet, Link, useLocation } from "react-router";
 import { useLive } from "../live/store";
+import { useClock } from "../live/clock";
 import { longDate } from "../lib/format";
 
 const NAV = [
@@ -11,7 +12,8 @@ const NAV = [
 
 export function Shell() {
   // The home view is an app-like screen pinned to the viewport on desktop.
-  const home = useLocation().pathname === "/";
+  const path = useLocation().pathname;
+  const home = path === "/" || path.startsWith("/night/");
   return (
     <div className={`flex flex-col ${home ? "min-h-dvh lg:h-dvh" : "min-h-dvh"}`}>
       <a
@@ -68,7 +70,11 @@ function ModeChip() {
     (s) => Object.values(s.games).filter((g) => g.state === "LIVE" || g.state === "CRIT").length,
   );
   const loaded = useLive((s) => s.loaded);
+  const replaying = useClock((s) => s.mode === "replay");
   if (!loaded) return null;
+  if (replaying && !(mode === "demo" && replay)) {
+    return <span className="hidden text-[13px] text-ink-soft sm:inline">Replay</span>;
+  }
   if (mode === "demo" && replay) {
     return (
       <span className="hidden text-[13px] text-ink-soft sm:inline">
