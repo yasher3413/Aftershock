@@ -6,6 +6,7 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends curl bi
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
+COPY config config
 RUN wasm-pack build crates/aftershock-wasm --release --target web --out-dir /pkg
 
 FROM node:24-slim AS build

@@ -6,6 +6,7 @@ RUN python3 -m venv /tools && /tools/bin/pip install -q maturin==1.*
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
+COPY config config
 RUN /tools/bin/maturin build --release -m crates/aftershock-py/Cargo.toml -o /wheels -i python3
 
 FROM python:3.12-slim-bookworm AS app
