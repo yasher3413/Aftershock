@@ -75,6 +75,14 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the WASM simulator
+        run: |
+          curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
+          wasm-pack build ../crates/aftershock-wasm --release --target web --out-dir ../../web/src/wasm/pkg
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
