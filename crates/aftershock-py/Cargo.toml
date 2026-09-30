@@ -9,5 +9,12 @@ publish.workspace = true
 name = "aftershock_py"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# Enabled by maturin (see pyproject.toml). Off for `cargo test`, so test
+# binaries link against libpython.
+extension-module = ["pyo3/extension-module"]
+
 [dependencies]
 aftershock-core = { path = "../aftershock-core" }
+pyo3 = "0.29"
+numpy = "0.29"

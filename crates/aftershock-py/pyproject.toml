@@ -1,0 +1,14 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "aftershock-core"
+version = "0.1.0"
+description = "Python bindings for the Aftershock rules engine and simulator"
+requires-python = ">=3.12"
+dependencies = ["numpy>=2.1"]
+
+[tool.maturin]
+module-name = "aftershock_core"
+features = ["extension-module"]
