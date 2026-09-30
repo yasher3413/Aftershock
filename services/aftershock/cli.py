@@ -133,3 +133,15 @@ def train_all() -> None:
     train_xg(build=True)
     train_strength(build=True)
     train_wp(build=True)
+
+
+@app.command("export-schema")
+def export_schema(path: Path) -> None:
+    """Write the JSON Schema of every API and WebSocket type."""
+    import json
+
+    from aftershock.api.schemas import Schema
+
+    schema = Schema.model_json_schema(mode="serialization")
+    path.write_text(json.dumps(schema, indent=2, sort_keys=True) + "\n")
+    typer.echo(f"wrote {path}")
