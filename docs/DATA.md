@@ -128,9 +128,10 @@ except through `homeTeamDefendingSide`: `left` means the home team defends
 the -x end and attacks +x in that period.
 
 Normalization (`nhl/parse.py`): rotate each located event by 180 degrees when
-needed so the event owner attacks toward +x. For seasons without
-`homeTeamDefendingSide`, the direction per period is inferred by majority
-vote of unblocked shots taken in the shooter's offensive zone with |x| > 25.
+needed so the event owner attacks toward +x. The direction per period comes
+from a majority vote of unblocked shots taken in the shooter's offensive zone
+with |x| > 25, falling back to `homeTeamDefendingSide` when the vote is close
+(see the per-season checks for why).
 
 Checks:
 
@@ -196,7 +197,10 @@ Notes:
   seasons. They are dropped from xG training.
 - `homeTeamDefendingSide` first appears in 2019-20. Inference agrees with it
   in every period from 2021-22 on. In 2019-20 (30 of 3,923 periods) and
-  2020-21 (11 of 3,084) the two disagree; spot checks show the explicit field
-  is the one that is wrong in those games (goals land at the -89 end), which
-  is why the parser trusts the field only when present and the models were
-  checked on normalized goal locations instead.
+  2020-21 (11 of 3,084) the two disagree. In all 45 of those periods
+  (counted over regular season and playoffs), the shooters' offensive-zone
+  shots sit at the end the inference picks, so the field is the one that is
+  wrong. The parser therefore prefers a decisive shot vote (margin of three or
+  more) and falls back to the field only when the vote is close. The models
+  were trained before this change; it affects 45 periods of about 7,000 in
+  those two seasons.

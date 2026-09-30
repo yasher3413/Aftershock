@@ -264,10 +264,12 @@ def parse_play_by_play(raw: JSON) -> ParsedGame:
 def home_attack_signs(plays: list[Play], home_id: int) -> dict[int, int]:
     """Direction the home team attacks in each period: +1 toward +x, -1 toward -x.
 
-    Uses ``homeTeamDefendingSide`` when the feed provides it ("left" means the
-    home team defends the -x end, so it attacks +x). Older seasons lack the
-    field, so the direction is inferred by majority vote from unblocked shots
-    taken in the shooter's offensive zone.
+    The direction is voted by unblocked shots taken in the shooter's
+    offensive zone. When the vote is decisive (a margin of at least three),
+    it wins; otherwise ``homeTeamDefendingSide`` is used ("left" means the home
+    team defends the -x end, so it attacks +x). The vote is preferred because
+    the field is wrong in a few 2019-20 and 2020-21 periods (see DATA.md),
+    and it is the only source for seasons before 2019-20.
     """
     explicit: dict[int, int] = {}
     votes: dict[int, int] = {}
@@ -289,10 +291,13 @@ def home_attack_signs(plays: list[Play], home_id: int) -> dict[int, int]:
     periods = sorted({p.period for p in plays})
     signs: dict[int, int] = {}
     for period in periods:
-        if period in explicit:
+        v = votes.get(period, 0)
+        if abs(v) >= 3:
+            signs[period] = 1 if v > 0 else -1
+        elif period in explicit:
             signs[period] = explicit[period]
-        elif votes.get(period):
-            signs[period] = 1 if votes[period] > 0 else -1
+        elif v:
+            signs[period] = 1 if v > 0 else -1
         elif period - 1 in signs:
             signs[period] = -signs[period - 1]
         else:
