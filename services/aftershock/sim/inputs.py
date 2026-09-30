@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -193,8 +194,14 @@ async def build_inputs(
     engine: RatingEngine,
     params: StrengthParams,
     now: datetime,
+    shrink: Callable[[float], float] | None = None,
 ) -> SimInputs:
-    """Inputs from the database: finals as results, everything else as future."""
+    """Inputs from the database: finals as results, everything else as future.
+
+    Future games use ratings shrunk toward the mean by ``shrink(fraction of
+    the season played)`` (tuned by the season backtest), because a season
+    simulation compounds any overconfidence in current ratings.
+    """
     n = schedule.n
     status = np.zeros(n, dtype=np.uint8)
     hg = np.zeros(n, dtype=np.uint8)
@@ -209,6 +216,13 @@ async def build_inputs(
             .where(Game.season == schedule.season, Game.game_type == 2)
         )
     ).all()
+    n_final = sum(1 for g, _ in rows if g.state in FINISHED_STATES)
+    factor = shrink(n_final / max(n, 1)) if shrink else 1.0
+    sim_engine = engine
+    if factor != 1.0:
+        from aftershock.sim.backtest import shrunk
+
+        sim_engine = shrunk(engine, factor)
     finals: list[Game] = []
     for g, pg in rows:
         i = schedule.index.get(g.id)
@@ -252,7 +266,7 @@ async def build_inputs(
         live_away=np.zeros(n, dtype=np.uint8),
         probs=probs,
         lam=lam,
-        playoff_p=playoff_matrix(engine, schedule.teams),
+        playoff_p=playoff_matrix(sim_engine, schedule.teams),
         tie_theta=params.tie_theta,
         focus=np.array(focus, dtype=np.uint32),
     )

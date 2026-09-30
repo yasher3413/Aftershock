@@ -37,6 +37,7 @@ from aftershock.ml.xg import XgModel
 from aftershock.nhl.client import NhlApiError, NhlClient
 from aftershock.nhl.parse import LIVE_STATES, parse_play_by_play
 from aftershock.sim.backend import SimBackend, default_backend
+from aftershock.sim.backtest import load_shrink
 from aftershock.sim.inputs import build_inputs, load_schedule
 from aftershock.sim.whatif import whatif_payload
 from aftershock.tremors.compute import magnitude_scale, rooting_guide, stakes
@@ -91,7 +92,14 @@ class Worker:
         rating_engine, _, _ = await asyncio.to_thread(replay, rows, params)
         async with session_scope() as s:
             schedule = await load_schedule(s, self.season, self.settings)
-            inputs = await build_inputs(s, schedule, rating_engine, params, datetime.now(UTC))
+            inputs = await build_inputs(
+                s,
+                schedule,
+                rating_engine,
+                params,
+                datetime.now(UTC),
+                shrink=load_shrink(self.settings),
+            )
             lam = {
                 g: (h, a)
                 for g, h, a in (
