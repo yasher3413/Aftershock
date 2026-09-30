@@ -342,6 +342,22 @@ class StatusResponse(Model):
     jobs: list[JobRunOut]
 
 
+class PushKeys(Model):
+    p256dh: str
+    auth: str
+
+
+class PushSubscriptionIn(Model):
+    endpoint: str
+    keys: PushKeys
+
+
+class PushSubscribeRequest(Model):
+    subscription: PushSubscriptionIn
+    team: str
+    min_magnitude: float = Field(ge=0, le=10)
+
+
 class RecapResponse(Model):
     night_date: date
     headline: str

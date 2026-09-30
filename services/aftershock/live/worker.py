@@ -81,6 +81,7 @@ class Worker:
         self.night_frames: list[dict[str, Any]] = []
         self.night_initial: dict[str, Any] | None = None
         self._last_full_state = 0.0
+        self._background: set[asyncio.Task[Any]] = set()
 
     # ------------------------------------------------------------------
     # Startup
@@ -185,6 +186,15 @@ class Worker:
         msg = await self.publisher.publish(kind, payload)
         if kind in REPLAY_TYPES:
             self.night_frames.append(msg)
+
+    def _notify(self, t: S.Tremor) -> None:
+        """Web push and Discord run in the background; they never delay the map."""
+        from aftershock.live.notify import discord_tremor, push_tremor
+
+        for coro in (push_tremor(t, self.settings), discord_tremor(t, self.settings)):
+            task = asyncio.create_task(coro)
+            self._background.add(task)
+            task.add_done_callback(self._background.discard)
 
     async def publish_odds(self, snap: OddsSnapshot) -> None:
         await self.publisher.publish(
@@ -468,6 +478,8 @@ class Worker:
             await self.publish("game_update", {"game": self.games[game_id].model_dump(mode="json")})
         for kind, payload in published:
             await self.publish(kind, payload)
+            if kind == "tremor":
+                self._notify(S.Tremor.model_validate(payload["tremor"]))
         for snap in eff.odds:
             await self.persist_run(snap, full=True)
         if eff.odds:

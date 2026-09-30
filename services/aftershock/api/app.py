@@ -357,6 +357,60 @@ async def status(st: State, session: Db) -> S.StatusResponse:
 
 
 # ----------------------------------------------------------------------
+# Web push
+
+
+@router.get("/push/key")
+async def push_key(st: State) -> dict[str, str]:
+    if not st.settings.vapid_public_key:
+        raise HTTPException(404, "Push notifications are not configured on this server.")
+    return {"key": st.settings.vapid_public_key}
+
+
+@router.post("/push/subscribe", status_code=204)
+async def push_subscribe(body: S.PushSubscribeRequest, session: Db, st: State) -> Response:
+    from sqlalchemy.dialects.postgresql import insert
+
+    from aftershock.db.models import PushSubscription, Team
+
+    if not st.settings.vapid_public_key:
+        raise HTTPException(404, "Push notifications are not configured on this server.")
+    if await session.get(Team, body.team.upper()) is None:
+        raise HTTPException(422, f"No team {body.team}")
+    stmt = insert(PushSubscription).values(
+        endpoint=body.subscription.endpoint,
+        keys=body.subscription.keys.model_dump(),
+        team=body.team.upper(),
+        min_magnitude=body.min_magnitude,
+    )
+    await session.execute(
+        stmt.on_conflict_do_update(
+            index_elements=["endpoint"],
+            set_={
+                "keys": stmt.excluded["keys"],
+                "team": stmt.excluded.team,
+                "min_magnitude": stmt.excluded.min_magnitude,
+            },
+        )
+    )
+    await session.commit()
+    return Response(status_code=204)
+
+
+@router.post("/push/unsubscribe", status_code=204)
+async def push_unsubscribe(body: S.PushSubscriptionIn, session: Db) -> Response:
+    from sqlalchemy import delete as sql_delete
+
+    from aftershock.db.models import PushSubscription
+
+    await session.execute(
+        sql_delete(PushSubscription).where(PushSubscription.endpoint == body.endpoint)
+    )
+    await session.commit()
+    return Response(status_code=204)
+
+
+# ----------------------------------------------------------------------
 # Share images
 
 OG_CACHE = {"Cache-Control": "public, max-age=3600"}

@@ -220,3 +220,24 @@ def bootstrap_lite() -> None:
         await SeasonPrecompute(20252026).run()
 
     asyncio.run(run())
+
+
+@app.command("vapid-keys")
+def vapid_keys() -> None:
+    """Print a new VAPID key pair for web push (put them in .env)."""
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    key = ec.generate_private_key(ec.SECP256R1())
+
+    def b64(raw: bytes) -> str:
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+    private = key.private_numbers().private_value.to_bytes(32, "big")
+    public = key.public_key().public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
+    )
+    typer.echo(f"VAPID_PUBLIC_KEY={b64(public)}")
+    typer.echo(f"VAPID_PRIVATE_KEY={b64(private)}")

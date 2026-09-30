@@ -8,6 +8,7 @@ import { localTime, pct, pp } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { useMyTeam } from "../lib/myTeam";
 import { TremorLine } from "../panels/TremorFeed";
+import { Alerts } from "../panels/Alerts";
 
 const SEED_LABELS: Record<string, string> = {
   div1: "1st in division",
@@ -144,6 +145,7 @@ export default function TeamPage() {
           >
             {myTeam === abbrev ? "This is my team" : "Make this my team"}
           </button>
+          <Alerts team={abbrev} />
         </div>
       </header>
 
