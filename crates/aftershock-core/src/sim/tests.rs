@@ -344,6 +344,10 @@ fn team_noise_moves_extreme_odds_toward_half() {
     let weak = (0..32)
         .min_by(|&a, &b| base[a].total_cmp(&base[b]))
         .unwrap();
+    eprintln!(
+        "strong {:.4} -> {:.4}, weak {:.4} -> {:.4}",
+        base[strong], noisy[strong], base[weak], noisy[weak]
+    );
     assert!(base[strong] > 0.99, "{}", base[strong]);
     assert!(
         noisy[strong] < base[strong],
