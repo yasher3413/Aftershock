@@ -67,3 +67,14 @@ def fetch_raw(
             await fetch_all(client, from_season, to_season)
 
     asyncio.run(run())
+
+
+@app.command()
+def backfill(
+    from_season: Annotated[int, typer.Option(help="First season id.")] = 20152016,
+    to_season: Annotated[int | None, typer.Option(help="Last season id (default current).")] = None,
+) -> None:
+    """Fetch and load history into Postgres (resumable)."""
+    from aftershock.jobs.backfill import run_backfill
+
+    asyncio.run(run_backfill(from_season, to_season))
