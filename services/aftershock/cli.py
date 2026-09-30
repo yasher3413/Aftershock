@@ -145,3 +145,11 @@ def export_schema(path: Path) -> None:
     schema = Schema.model_json_schema(mode="serialization")
     path.write_text(json.dumps(schema, indent=2, sort_keys=True) + "\n")
     typer.echo(f"wrote {path}")
+
+
+@app.command()
+def ratings() -> None:
+    """Recompute team ratings and pregame probabilities into Postgres."""
+    from aftershock.jobs.ratings import run_ratings
+
+    asyncio.run(run_ratings())
