@@ -51,3 +51,19 @@ def record_live(
             await recorder.run(until=datetime.now(UTC) + timedelta(hours=hours))
 
     asyncio.run(run())
+
+
+@app.command("fetch-raw")
+def fetch_raw(
+    from_season: Annotated[int, typer.Option(help="First season id, e.g. 20152016.")] = 20152016,
+    to_season: Annotated[int | None, typer.Option(help="Last season id (default current).")] = None,
+) -> None:
+    """Fetch schedules, standings, and play-by-play into the raw cache."""
+    from aftershock.ingest.fetch import fetch_all
+    from aftershock.nhl.client import NhlClient
+
+    async def run() -> None:
+        async with NhlClient() as client:
+            await fetch_all(client, from_season, to_season)
+
+    asyncio.run(run())
