@@ -36,11 +36,12 @@ UTC) to verify live mode end to end.
 
 ## Next
 
-- After the precompute: calibrate magnitude, rewrite bundles, run the
-  on-ice job for both seasons, capture README media, refresh e2e fixtures.
+- After the precompute rerun: recheck the magnitude scale and the month
+  profile, update the methodology copy with the measured numbers, capture
+  README media, refresh e2e fixtures.
 - Tonight: watch the worker on real games; record tremor latency; turn the
   recorded live sequences into live-engine test fixtures.
-- Tag v0.4.0 (live engine), v0.5.0 (live map), v0.6.0 (site), v1.0.0.
+- Tag v1.0.0 after the live night (v0.4.0 to v0.6.0 are tagged).
 
 ## Background jobs
 
@@ -48,11 +49,19 @@ UTC) to verify live mode end to end.
   Log `logs/recorder.log`, output `data/recordings/`.
 - **Worker**: `aftershock worker`, log `logs/worker.log`.
 - **API**: uvicorn on :8000 (`logs/api.log`); **web dev** on :5173.
-- **Precompute**: `aftershock precompute --season 20252026 --season
-  20242025`, started 15:07 UTC, log `logs/precompute.log`, then calibrates
-  magnitude and rewrites bundles.
+- **Precompute rerun**: `aftershock precompute --season 20252026 --season
+  20242025` then `aftershock onice`, started 20:01 UTC, log
+  `logs/precompute2.log`.
 
 ## Known issues
+
+- 2026-09-30 19:40 UTC: the first history precompute simulated every night
+  from empty standings. The season engine swaps in a new inputs object on
+  each tremor, and the precompute kept its own stale reference, so no game
+  was ever marked final. Every 2024-25 and 2025-26 tremor, odds point, and
+  bundle was deleted and is being recomputed (fix in `cdfc54d`, guarded by
+  `check_finals`). The live worker always reads `engine.inputs` and was not
+  affected; neither were the model metrics or the season backtest.
 
 - 2026-09-30 16:10 UTC: the disk filled during Docker builds and Docker
   Desktop's containerd now crashes on start. Postgres and Redis run from
