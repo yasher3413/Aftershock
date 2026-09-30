@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from aftershock.recap.generate import EM_DASH, template_recap, validate
+from aftershock.config import Settings
+from aftershock.recap.generate import (
+    EM_DASH,
+    _GiveUp,
+    _Retry,
+    llm_recap,
+    recap_writer,
+    template_recap,
+    validate,
+)
 
 DATA: dict[str, Any] = {
     "date": "2026-10-01",
@@ -76,3 +86,39 @@ def test_validation_catches_bad_drafts() -> None:
     short = {**ok, "body": "Too short."}
     assert any("words" in e for e in validate(short, DATA))
     assert validate({"headline": "x"}, DATA) == ["missing fields"]
+
+
+async def test_llm_loop_retries_and_feeds_back_validation_errors() -> None:
+    good = template_recap(DATA)
+    bad = {**good, "body": good["body"] + " A swing of 7.7 pp."}
+    prompts: list[str] = []
+    replies: list[object] = [_Retry("503"), json.dumps(bad), json.dumps(good)]
+
+    async def draft(prompt: str) -> str:
+        prompts.append(prompt)
+        r = replies.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return str(r)
+
+    assert await llm_recap(DATA, draft) == good
+    assert len(prompts) == 3
+    assert "7.7" in prompts[2] and "failed validation" in prompts[2]
+
+
+async def test_llm_loop_gives_up_on_a_hard_failure() -> None:
+    async def draft(prompt: str) -> str:
+        raise _GiveUp("401")
+
+    assert await llm_recap(DATA, draft) is None
+
+
+def test_openai_is_preferred_when_both_keys_are_set() -> None:
+    both = Settings(openai_api_key="sk-test", anthropic_api_key="sk-ant-test")
+    only_anthropic = Settings(openai_api_key="", anthropic_api_key="sk-ant-test")
+    neither = Settings(openai_api_key="", anthropic_api_key="")
+    w = recap_writer(both)
+    assert w is not None and w[0] == both.openai_recap_model
+    w = recap_writer(only_anthropic)
+    assert w is not None and w[0] == only_anthropic.recap_model
+    assert recap_writer(neither) is None

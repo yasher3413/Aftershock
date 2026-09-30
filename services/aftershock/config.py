@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     sim_n: int = 20_000
     sim_n_backfill: int = 5_000
     demo_mode: Literal["auto", "on", "off"] = "auto"
+    # Nightly recap writer (optional; without a key the template recap is used).
+    # With both keys set, OpenAI is used.
+    openai_api_key: str = ""
+    openai_recap_model: str = "gpt-6.1-sol"
     anthropic_api_key: str = ""
     recap_model: str = "claude-sonnet-5-5"
     public_base_url: str = "http://localhost:8080"

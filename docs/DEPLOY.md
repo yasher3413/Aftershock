@@ -11,8 +11,9 @@ do, and it lists every credential required.
 - An Upstash Redis database (or Fly's Redis offering), for pub/sub.
 - A Cloudflare account with Pages enabled (for the web app), or serve the web
   image from Fly as well.
-- Optional: an `ANTHROPIC_API_KEY` for model-written recaps (without it the
-  deterministic template is used).
+- Optional: an `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` for model-written
+  recaps (without one the deterministic template is used). The worker makes
+  one call per night; visitors only read the stored recap.
 - A domain, if you want one; set `PUBLIC_BASE_URL` to it.
 
 ## Environment
@@ -26,6 +27,7 @@ do, and it lists every credential required.
 | `SIM_N` | worker | simulations per run, default 20000 |
 | `SIM_N_BACKFILL` | jobs | default 5000 |
 | `DEMO_MODE` | worker | `auto` (default), `on`, or `off` |
+| `OPENAI_API_KEY`, `OPENAI_RECAP_MODEL` | worker | optional; model default `gpt-6.1-sol`; used when set |
 | `ANTHROPIC_API_KEY`, `RECAP_MODEL` | worker | optional; model default `claude-sonnet-5-5` |
 | `PUBLIC_BASE_URL` | api | absolute URLs in share metadata |
 | `DATA_DIR` | api, worker | where replay bundles and the raw cache live |
@@ -47,7 +49,7 @@ Then the worker, sharing the database and a data volume:
 fly launch --no-deploy --name aftershock-worker --dockerfile infra/worker.Dockerfile
 fly postgres attach aftershock-db --app aftershock-worker
 fly volumes create aftershock_data --app aftershock-worker --size 5
-fly secrets set --app aftershock-worker REDIS_URL=... ANTHROPIC_API_KEY=...
+fly secrets set --app aftershock-worker REDIS_URL=... OPENAI_API_KEY=...
 fly scale count 1 --app aftershock-worker   # one leader; a second would wait on the lock
 fly deploy --app aftershock-worker
 ```

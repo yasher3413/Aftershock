@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -325,36 +326,105 @@ def template_recap(data: dict[str, Any]) -> dict[str, Any]:
     return {"headline": headline, "body": body, "key_numbers": keys}
 
 
-async def llm_recap(data: dict[str, Any], settings: Settings) -> dict[str, Any] | None:
+class _Retry(Exception):
+    """A transient provider failure: try again."""
+
+
+class _GiveUp(Exception):
+    """A provider failure retrying will not fix."""
+
+
+Draft = Callable[[str], Awaitable[str]]
+
+
+def _anthropic_draft(settings: Settings) -> Draft:
     import anthropic
 
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    prompt = "Write tonight's recap from this data.\n\n" + json.dumps(data, indent=2, default=str)
-    feedback = ""
-    for attempt in range(3):
+
+    async def draft(prompt: str) -> str:
         try:
             resp = await client.messages.create(
                 model=settings.recap_model,
                 max_tokens=16000,
                 system=SYSTEM,
-                messages=[{"role": "user", "content": prompt + feedback}],
+                messages=[{"role": "user", "content": prompt}],
                 output_config={"format": {"type": "json_schema", "schema": SCHEMA}},
             )
         except anthropic.RateLimitError as exc:
-            log.warning("recap.rate_limited", attempt=attempt, error=str(exc))
-            continue
+            raise _Retry(str(exc)) from exc
         except anthropic.APIStatusError as exc:
-            log.warning("recap.api_error", status=exc.status_code, error=str(exc))
             if exc.status_code < 500:
-                return None
-            continue
+                raise _GiveUp(str(exc)) from exc
+            raise _Retry(str(exc)) from exc
         except anthropic.APIConnectionError as exc:
-            log.warning("recap.connection_error", error=str(exc))
-            continue
+            raise _Retry(str(exc)) from exc
         if resp.stop_reason == "refusal":
-            log.warning("recap.refused")
+            raise _GiveUp("refused")
+        return next((b.text for b in resp.content if b.type == "text"), "")
+
+    return draft
+
+
+def _openai_draft(settings: Settings) -> Draft:
+    import openai
+
+    client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+
+    async def draft(prompt: str) -> str:
+        try:
+            resp = await client.responses.create(
+                model=settings.openai_recap_model,
+                instructions=SYSTEM,
+                input=prompt,
+                max_output_tokens=16000,
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": "recap",
+                        "schema": SCHEMA,
+                        "strict": True,
+                    }
+                },
+            )
+        except openai.RateLimitError as exc:
+            raise _Retry(str(exc)) from exc
+        except openai.APIStatusError as exc:
+            if exc.status_code < 500:
+                raise _GiveUp(str(exc)) from exc
+            raise _Retry(str(exc)) from exc
+        except openai.APIConnectionError as exc:
+            raise _Retry(str(exc)) from exc
+        for item in resp.output:
+            for part in getattr(item, "content", None) or []:
+                if part.type == "refusal":
+                    raise _GiveUp("refused")
+        return resp.output_text
+
+    return draft
+
+
+def recap_writer(settings: Settings) -> tuple[str, Draft] | None:
+    """(model name, draft function) for the configured provider, if any."""
+    if settings.openai_api_key:
+        return settings.openai_recap_model, _openai_draft(settings)
+    if settings.anthropic_api_key:
+        return settings.recap_model, _anthropic_draft(settings)
+    return None
+
+
+async def llm_recap(data: dict[str, Any], draft: Draft) -> dict[str, Any] | None:
+    prompt = "Write tonight's recap from this data.\n\n" + json.dumps(data, indent=2, default=str)
+    feedback = ""
+    for attempt in range(3):
+        try:
+            text_out = await draft(prompt + feedback)
+        except _Retry as exc:
+            log.warning("recap.retry", attempt=attempt, error=str(exc))
+            continue
+        except _GiveUp as exc:
+            log.warning("recap.gave_up", error=str(exc))
             return None
-        text_out = next((b.text for b in resp.content if b.type == "text"), "")
         try:
             obj = json.loads(text_out)
         except json.JSONDecodeError:
@@ -378,10 +448,11 @@ async def generate_recap(night: date, settings: Settings | None = None) -> dict[
         data = await gather(session, night)
     recap = None
     model = "template"
-    if s.anthropic_api_key:
-        recap = await llm_recap(data, s)
+    writer = recap_writer(s)
+    if writer is not None:
+        recap = await llm_recap(data, writer[1])
         if recap is not None:
-            model = s.recap_model
+            model = writer[0]
     if recap is None:
         recap = template_recap(data)
     validated = not validate(recap, data)
