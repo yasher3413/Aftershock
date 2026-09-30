@@ -1,0 +1,85 @@
+{
+  "categorical": [
+    "shot_type",
+    "prev_type",
+    "manpower"
+  ],
+  "features": [
+    "distance",
+    "angle",
+    "shot_type",
+    "rebound",
+    "rush",
+    "since_prev_s",
+    "dist_from_prev",
+    "prev_type",
+    "prev_same_team",
+    "manpower",
+    "own_skaters",
+    "opp_skaters",
+    "empty_net_against",
+    "score_state",
+    "period",
+    "is_home"
+  ],
+  "levels": {
+    "manpower": [
+      "5v5",
+      "5v4",
+      "4v5",
+      "5v3",
+      "3v5",
+      "4v4",
+      "3v3",
+      "4v3",
+      "3v4",
+      "6v5",
+      "6v4",
+      "5v6",
+      "4v6",
+      "6v3",
+      "other"
+    ],
+    "prev_type": [
+      "faceoff",
+      "hit",
+      "giveaway",
+      "takeaway",
+      "shot-on-goal",
+      "missed-shot",
+      "blocked-shot",
+      "goal",
+      "penalty",
+      "delayed-penalty",
+      "stoppage",
+      "period-start",
+      "other"
+    ],
+    "shot_type": [
+      "wrist",
+      "snap",
+      "slap",
+      "backhand",
+      "tip-in",
+      "deflected",
+      "wrap-around",
+      "poke",
+      "bat",
+      "between-legs",
+      "cradle",
+      "other"
+    ]
+  },
+  "model_version": "xg-bt-1.0.0",
+  "penalty_shot_rate": 0.30612244897959184,
+  "trained_on": {
+    "train": [
+      20152016,
+      20162017,
+      20172018,
+      20182019,
+      20192020
+    ],
+    "validate": 20202021
+  }
+}
