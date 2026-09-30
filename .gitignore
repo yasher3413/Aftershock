@@ -38,3 +38,6 @@ web/src/wasm/pkg/
 # OS
 .DS_Store
 docs/media/raw/
+
+# Local design-tool state (critiques, reviews)
+.impeccable/
