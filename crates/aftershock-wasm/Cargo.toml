@@ -18,9 +18,6 @@ wasm-bindgen = "0.2"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3"
 
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-O3"]
-
 # wasm-opt from some binaryen releases corrupts wasm-bindgen's function table
 # ("WebAssembly.Table.grow(): failed to grow table"), so ship the unoptimized
 # build; it is small and fast enough.
