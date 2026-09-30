@@ -338,7 +338,7 @@ class Worker:
     # ------------------------------------------------------------------
     # Snapshots
 
-    async def on_snapshot(self, raw: dict[str, Any]) -> None:
+    async def on_snapshot(self, raw: dict[str, Any], fetched_at: datetime | None = None) -> None:
         assert self.engine is not None
         game = parse_play_by_play(raw)
         eff = await asyncio.to_thread(self.engine.handle, raw, game)
@@ -350,6 +350,15 @@ class Worker:
             await P.save_xg(s, game.meta.id, eff.xg)
             await P.save_wp(s, game.meta.id, eff.wp_points)
         await self.apply_effects(eff, game.meta.id)
+        if eff.tremors and fetched_at is not None:
+            latency = (datetime.now(UTC) - fetched_at).total_seconds() * 1000
+            log.info(
+                "worker.tremor_latency",
+                game=game.meta.id,
+                goals=len(eff.tremors),
+                ms=round(latency),
+                budget_ms=2000,
+            )
 
     async def apply_effects(self, eff: Effects, game_id: int) -> None:
         assert self.engine is not None
@@ -681,7 +690,7 @@ class Worker:
         )
         async for snap in source.snapshots():
             try:
-                await self.on_snapshot(snap.raw)
+                await self.on_snapshot(snap.raw, snap.at)
             except Exception as exc:
                 log.exception("worker.snapshot_failed", game=snap.game_id, error=str(exc))
 
