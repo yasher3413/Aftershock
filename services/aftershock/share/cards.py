@@ -164,9 +164,9 @@ def _mini_map(t: S.Tremor, teams: list[S.TeamInfo], x: float, y: float, w: float
     reach = math.hypot(w, h) * 0.42
     deltas = {d.team: d.d_playoffs for d in t.deltas}
     out = [
-        f'<path d="{land_path(proj)}" fill="{LAND}" stroke="{SCRATCH}" stroke-width="1"/>',
         f'<clipPath id="mm"><rect x="{x}" y="{y}" width="{w}" height="{h}"/></clipPath>',
         '<g clip-path="url(#mm)">',
+        f'<path d="{land_path(proj)}" fill="{LAND}" stroke="{SCRATCH}" stroke-width="1"/>',
         f'<circle cx="{ox:.1f}" cy="{oy:.1f}" r="{reach:.1f}" fill="none" stroke="{GOAL}" '
         f'stroke-width="{2 + t.magnitude * 0.6:.1f}" opacity="0.55"/>',
         f'<circle cx="{ox:.1f}" cy="{oy:.1f}" r="{reach * 0.72:.1f}" fill="none" '
