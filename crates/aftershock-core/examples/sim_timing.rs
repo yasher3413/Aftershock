@@ -35,7 +35,7 @@ fn main() {
     let q = |p: f64| ms[((ms.len() - 1) as f64 * p).round() as usize];
     println!(
         "n_sims={n_sims} reps={reps} threads={} median={:.1}ms p95={:.1}ms min={:.1}ms per_sim={:.2}us",
-        std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1),
+        rayon::current_num_threads(),
         q(0.5),
         q(0.95),
         ms[0],
