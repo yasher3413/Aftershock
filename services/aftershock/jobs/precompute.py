@@ -95,6 +95,21 @@ def key_indices(game: ReplayGame) -> list[int]:
     return out
 
 
+def check_finals(inputs: SimInputs, games: list[Game], night: date) -> None:
+    """Every game played through ``night`` must be final in the simulator
+    inputs, or the odds would be simulated from stale standings."""
+    expected = sum(
+        1
+        for g in games
+        if g.night_date <= night
+        and g.last_period_type is not None
+        and g.id in inputs.schedule.index
+    )
+    got = int((inputs.status == STATUS_FINAL).sum())
+    if got != expected:
+        raise RuntimeError(f"{night}: {got} games final in the simulator, expected {expected}")
+
+
 class SeasonPrecompute:
     def __init__(
         self, season: int, settings: Settings | None = None, backend: SimBackend | None = None
@@ -196,6 +211,7 @@ class SeasonPrecompute:
                 tonight = [g for g in by_night[night] if g.last_period_type is not None]
                 if night in done or (only is not None and night not in only):
                     self._apply_finals(inputs, tonight)
+                    check_finals(inputs, games, night)
                     stats["skipped"] += 1
                     continue
                 finals = []
@@ -204,7 +220,11 @@ class SeasonPrecompute:
                     if raw is None:
                         raw = await client.play_by_play(g.id)
                     finals.append(raw)
-                n_tremors = await self._night(night, finals, inputs, lam)
+                # The engine swaps in a new inputs object on every tremor, so
+                # carry its state forward rather than the one passed in.
+                n_tremors, inputs = await self._night(night, finals, inputs, lam)
+                self._apply_finals(inputs, tonight)
+                check_finals(inputs, games, night)
                 stats["nights"] += 1
                 stats["tremors"] += n_tremors
                 log.info(
@@ -237,6 +257,7 @@ class SeasonPrecompute:
         inputs.playoff_p = playoff_matrix(eng, sch.teams)
 
     def _apply_finals(self, inputs: SimInputs, games: list[Game]) -> None:
+        # Skipped nights fall through here too, so every played game is final.
         for g in games:
             if g.id in inputs.schedule.index and g.home_score is not None:
                 inputs.set_final(
@@ -252,7 +273,7 @@ class SeasonPrecompute:
         finals: list[dict[str, Any]],
         inputs: SimInputs,
         lam: dict[int, tuple[float, float]],
-    ) -> int:
+    ) -> tuple[int, SimInputs]:
         replays = [ReplayGame(f) for f in finals]
         start = min(r.start for r in replays)
         clock = {"now": start}
@@ -415,7 +436,7 @@ class SeasonPrecompute:
                 )
             )
             await P.refresh_ppa_view(s)
-        return n_tremors
+        return n_tremors, engine.inputs
 
     async def _standings(self, inputs: SimInputs) -> list[S.StandingsRow]:
         import aftershock_core
@@ -516,6 +537,8 @@ async def calibrate_magnitude(
     a = 2.0 - b * med
     scale = MagnitudeScale(a, b)
     path = s.ml_dir / "artifacts" / "magnitude-1.0.0.json"
+    # Goals whose total shift is below this land on M0 after the clamp.
+    floor_shift = (10 ** (-a / b) - 1) / 10000
     meta = {
         "a": a,
         "b": b,
@@ -523,6 +546,8 @@ async def calibrate_magnitude(
         "top10_log_shift": top,
         "seasons": list(seasons),
         "n_goals": len(all_l),
+        "floor_shift": floor_shift,
+        "zero_share": sum(1 for x in all_l if a + b * x <= 0) / len(all_l),
     }
     path.write_text(json.dumps(meta, indent=2) + "\n")
     (s.ml_dir / "reports" / "magnitude.json").write_text(json.dumps(meta, indent=2) + "\n")

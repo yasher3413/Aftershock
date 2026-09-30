@@ -157,3 +157,34 @@ def test_scorer_correction_updates_attribution(
     eff = engine.handle(fixed, parse_play_by_play(fixed))
     assert eff.corrections and eff.corrections[0][1] == {"scorer_id": 42}
     assert not eff.tremors and not eff.reversals
+
+
+def test_final_lands_in_engine_inputs_not_the_ones_passed_in(
+    fixture: Fixture, models: tuple[WinProbModel, XgModel]
+) -> None:
+    """Tremors swap in new inputs, so callers must read ``engine.inputs``.
+
+    The season precompute once kept its own reference and simulated every
+    night from empty standings.
+    """
+    from aftershock.jobs.precompute import check_finals
+    from aftershock.sim.inputs import STATUS_FINAL
+
+    raw = fixture("pbp_regulation_en")
+    engine = make_engine(raw, models)
+    original = engine.inputs
+    engine.full_run("nightly")
+    for _, doc in ReplayGame(raw).frames():
+        engine.handle(doc, parse_play_by_play(doc))
+    i = engine.inputs.schedule.index[raw["id"]]
+    assert engine.inputs.status[i] == STATUS_FINAL
+    assert original.status[i] != STATUS_FINAL
+
+    class G:
+        id = raw["id"]
+        night_date = datetime(2025, 10, 8, tzinfo=UTC).date()
+        last_period_type = "REG"
+
+    check_finals(engine.inputs, [G()], G.night_date)  # type: ignore[list-item]
+    with pytest.raises(RuntimeError):
+        check_finals(original, [G()], G.night_date)  # type: ignore[list-item]
