@@ -188,3 +188,29 @@ def test_final_lands_in_engine_inputs_not_the_ones_passed_in(
     check_finals(engine.inputs, [G()], G.night_date)  # type: ignore[list-item]
     with pytest.raises(RuntimeError):
         check_finals(original, [G()], G.night_date)  # type: ignore[list-item]
+
+
+def test_restart_mid_game_does_not_rebroadcast_stored_goals(
+    fixture: Fixture, models: tuple[WinProbModel, XgModel]
+) -> None:
+    from aftershock.live.worker import drop_known_tremors
+
+    raw = fixture("pbp_regulation_en")
+    game = ReplayGame(raw)
+    goal_idx = [i for i, p in enumerate(game.plays) if p["typeDescKey"] == "goal"]
+    first, second = game.plays[goal_idx[0]], game.plays[goal_idx[1]]
+    # The previous worker stored the first goal; this one starts fresh.
+    known = {(raw["id"], first["eventId"]): 4242}
+    engine = make_engine(raw, models)
+    engine.full_run("nightly")
+    doc = game.at_index(goal_idx[0] + 1)
+    eff = engine.handle(doc, parse_play_by_play(doc))
+    assert [t.event_id for t in eff.tremors] == [first["eventId"]]
+    drop_known_tremors(eff, raw["id"], known)
+    assert eff.tremors == []
+    assert engine.games[raw["id"]].tremors[first["eventId"]].id == 4242
+    # The next goal is new and goes out as usual.
+    doc = game.at_index(goal_idx[1] + 1)
+    eff = engine.handle(doc, parse_play_by_play(doc))
+    drop_known_tremors(eff, raw["id"], known)
+    assert [t.event_id for t in eff.tremors] == [second["eventId"]]

@@ -57,6 +57,21 @@ STATE_REFRESH_S = 300.0
 ESS_FLOOR = 0.5
 
 
+def drop_known_tremors(eff: Effects, game_id: int, known: dict[tuple[int, int], int]) -> None:
+    """Keep goals that were stored before a restart out of this snapshot's
+    broadcasts. The engine has already applied them to the game state; they
+    get their stored ids back so a later reversal or correction still finds
+    them."""
+    kept = []
+    for rec in eff.tremors:
+        tid = known.pop((game_id, rec.event_id), None)
+        if tid is None:
+            kept.append(rec)
+        else:
+            rec.id = tid
+    eff.tremors = kept
+
+
 class Worker:
     def __init__(self, settings: Settings | None = None, backend: SimBackend | None = None) -> None:
         self.settings = settings or get_settings()
@@ -72,6 +87,10 @@ class Worker:
         self.standings: list[S.StandingsRow] = []
         self.stakes: dict[int, float] = {}
         self.pregame_home: dict[int, float] = {}
+        self._ppa_task: asyncio.Task[None] | None = None
+        # Tonight's goals already stored: (game_id, event_id) -> tremor id.
+        self.known_tremors: dict[tuple[int, int], int] = {}
+        self._ppa_dirty = False
         self.games: dict[int, S.GameSummary] = {}
         self.engine: SeasonEngine | None = None
         self._lock_conn: AsyncConnection | None = None
@@ -124,6 +143,20 @@ class Worker:
                 )
             ).all()
             lam = {g: (h, a) for g, h, a, _ in pregame}
+            # A restart mid-game replays every goal so far; remember which are
+            # already stored so they update game state without a second quake.
+            self.known_tremors = {
+                (int(g), int(e)): int(i)
+                for i, g, e in (
+                    await s.execute(
+                        text(
+                            "SELECT t.id, t.game_id, t.event_id FROM tremors t "
+                            "WHERE t.night_date = :n AND NOT t.overturned"
+                        ),
+                        {"n": hockey_night(datetime.now(UTC))},
+                    )
+                ).all()
+            }
             # The headline pregame odds, so the What-If Lab labels games the
             # same way the schedule does (its simulation uses shrunk ratings).
             self.pregame_home = {g: float(p) for g, _, _, p in pregame}
@@ -344,7 +377,10 @@ class Worker:
     async def on_snapshot(self, raw: dict[str, Any], fetched_at: datetime | None = None) -> None:
         assert self.engine is not None
         game = parse_play_by_play(raw)
+        t0 = time.monotonic()
         eff = await asyncio.to_thread(self.engine.handle, raw, game)
+        engine_ms = (time.monotonic() - t0) * 1000
+        drop_known_tremors(eff, game.meta.id, self.known_tremors)
         normalized = {p.event_id: p for p in game.plays}
         async with session_scope() as s:
             if eff.diff is not None:
@@ -352,18 +388,34 @@ class Worker:
                 await P.save_plays(s, eff.diff, normalized)
             await P.save_xg(s, game.meta.id, eff.xg)
             await P.save_wp(s, game.meta.id, eff.wp_points)
-        await self.apply_effects(eff, game.meta.id)
-        if eff.tremors and fetched_at is not None:
-            latency = (datetime.now(UTC) - fetched_at).total_seconds() * 1000
-            log.info(
-                "worker.tremor_latency",
-                game=game.meta.id,
-                goals=len(eff.tremors),
-                ms=round(latency),
-                budget_ms=2000,
-            )
+        await self.apply_effects(eff, game.meta.id, fetched_at=fetched_at, engine_ms=engine_ms)
 
-    async def apply_effects(self, eff: Effects, game_id: int) -> None:
+    def _schedule_ppa_refresh(self) -> None:
+        """Refresh the PPA leaderboard view in the background, coalescing
+        goals that land while a refresh is already running."""
+        self._ppa_dirty = True
+        if self._ppa_task is not None and not self._ppa_task.done():
+            return
+
+        async def run() -> None:
+            while self._ppa_dirty:
+                self._ppa_dirty = False
+                try:
+                    async with session_scope() as s:
+                        await P.refresh_ppa_view(s)
+                except Exception as exc:
+                    log.warning("worker.ppa_refresh_failed", error=str(exc))
+
+        self._ppa_task = asyncio.create_task(run())
+
+    async def apply_effects(
+        self,
+        eff: Effects,
+        game_id: int,
+        *,
+        fetched_at: datetime | None = None,
+        engine_ms: float | None = None,
+    ) -> None:
         assert self.engine is not None
         published: list[tuple[str, dict[str, Any]]] = []
         lg = self.engine.games.get(game_id)
@@ -415,8 +467,6 @@ class Worker:
             for rec, changes in eff.corrections:
                 if rec.id is not None:
                     await P.update_attribution(s, rec.id, changes)
-            if eff.tremors or eff.reversals:
-                await P.refresh_ppa_view(s)
             if eff.tremors:
                 rows = (
                     await s.execute(
@@ -492,6 +542,19 @@ class Worker:
             await self.publish(kind, payload)
             if kind == "tremor":
                 self._notify(S.Tremor.model_validate(payload["tremor"]))
+        if eff.tremors and fetched_at is not None:
+            # Detection (the play-by-play fetch) to broadcast of the tremor.
+            log.info(
+                "worker.tremor_latency",
+                game=game_id,
+                goals=len(eff.tremors),
+                ms=round((datetime.now(UTC) - fetched_at).total_seconds() * 1000),
+                engine_ms=round(engine_ms or 0),
+                budget_ms=2000,
+            )
+        if eff.tremors or eff.reversals:
+            # Leaderboards can trail the map; never hold a broadcast for them.
+            self._schedule_ppa_refresh()
         for snap in eff.odds:
             await self.persist_run(snap, full=True)
         if eff.odds:
