@@ -25,6 +25,7 @@ interface Props {
   width: number;
   yMax?: number;
   formatX?: (t: number) => string;
+  xTicks?: number[];
   ariaLabel: string;
 }
 
@@ -55,7 +56,7 @@ export function LineChart({
     .x((p) => x(p.t))
     .y((p) => y(p.v));
   const ticks = y.ticks(4);
-  const xticks = x.ticks(Math.max(2, Math.floor(width / 130)));
+  const xticks = xTicks ?? x.ticks(Math.max(2, Math.floor(width / 130))).map(Number);
   const fx =
     formatX ??
     ((t: number) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
