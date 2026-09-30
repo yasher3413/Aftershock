@@ -8,13 +8,23 @@ import { useMyTeam } from "../lib/myTeam";
 
 const CONFS = ["Eastern", "Western"] as const;
 
-function Row({ r, odds, mine }: { r: StandingsRow; odds?: TeamOdds; mine: boolean }) {
+function Row({
+  r,
+  odds,
+  mine,
+  cutline = false,
+}: {
+  r: StandingsRow;
+  odds?: TeamOdds;
+  mine: boolean;
+  cutline?: boolean;
+}) {
   const reduce = useReducedMotion();
   return (
     <motion.li
       layout={reduce ? false : "position"}
       transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-      className={`grid grid-cols-[2.6rem_2rem_1fr_3.2rem_2.4rem] items-center gap-2 py-1 text-[13px] ${mine ? "font-semibold" : ""}`}
+      className={`grid grid-cols-[2.6rem_2rem_1fr_3.2rem_2.4rem] items-center gap-2 py-1 text-[13px] ${mine ? "font-semibold" : ""} ${cutline ? "border-t border-dashed border-goal/50" : ""}`}
     >
       <Link to={`/team/${r.team}`} className="display text-[16px] font-bold">
         {r.team}
@@ -98,9 +108,13 @@ export function StandingsPanel() {
           <h3 className="text-[12px] font-semibold text-ink-soft">Wild card</h3>
           <ul>
             {wildcard.map((r, i) => (
-              <div key={r.team} className={i === 2 ? "border-t border-dashed border-goal/50" : ""}>
-                <Row r={r} odds={odds[r.team]} mine={r.team === myTeam} />
-              </div>
+              <Row
+                key={r.team}
+                r={r}
+                odds={odds[r.team]}
+                mine={r.team === myTeam}
+                cutline={i === 2}
+              />
             ))}
           </ul>
         </div>

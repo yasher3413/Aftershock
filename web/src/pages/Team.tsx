@@ -263,7 +263,10 @@ export default function TeamPage() {
           <p className="text-[14px] text-ink-soft">
             A live gauge for your site or blog. It refreshes every minute.
           </p>
-          <pre className="mt-2 overflow-x-auto rounded-[var(--radius)] bg-ice-land p-3 text-[12px]">
+          <pre
+            tabIndex={0}
+            className="mt-2 overflow-x-auto rounded-[var(--radius)] bg-ice-land p-3 text-[12px]"
+          >
             {`<iframe src="${typeof window !== "undefined" ? window.location.origin : ""}/embed/${abbrev}" width="320" height="130" style="border:0" title="${t.name} playoff odds"></iframe>`}
           </pre>
         </Section>
