@@ -431,6 +431,28 @@ LiveMessage = Annotated[
 ]
 
 
+class ReplayInitial(Model):
+    odds: list[TeamOdds]
+    standings: list[StandingsRow]
+    games: list[GameSummary]
+
+
+class ReplayFrame(Model):
+    t: int  # milliseconds after the night's first puck drop
+    message: LiveMessage
+
+
+class ReplayBundleOut(Model):
+    """A whole night, playable by the web client's timeline player."""
+
+    night_date: date
+    season: int
+    start_utc: datetime
+    duration_ms: int
+    initial: ReplayInitial
+    frames: list[ReplayFrame]
+
+
 class Schema(BaseModel):
     """Root that references every wire type, for JSON Schema export."""
 
@@ -446,3 +468,4 @@ class Schema(BaseModel):
     status: StatusResponse
     recap: RecapResponse
     message: LiveMessage
+    replay: ReplayBundleOut

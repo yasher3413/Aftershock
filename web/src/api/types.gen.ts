@@ -1,5 +1,8 @@
 /* Generated from services/aftershock/api/schemas.py. Do not edit; run `make types`. */
 
+/**
+ * Root that references every wire type, for JSON Schema export.
+ */
 export interface Schema {
   game: GameResponse;
   health: HealthResponse;
@@ -17,6 +20,7 @@ export interface Schema {
     | HeartbeatMsg;
   nights: NightInfo[];
   recap: RecapResponse;
+  replay: ReplayBundleOut;
   state: StateResponse;
   status: StatusResponse;
   team: TeamResponse;
@@ -388,6 +392,47 @@ export interface RecapResponse {
   model: string;
   night_date: string;
   validated: boolean;
+}
+/**
+ * A whole night, playable by the web client's timeline player.
+ *
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "ReplayBundleOut".
+ */
+export interface ReplayBundleOut {
+  duration_ms: number;
+  frames: ReplayFrame[];
+  initial: ReplayInitial;
+  night_date: string;
+  season: number;
+  start_utc: string;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "ReplayFrame".
+ */
+export interface ReplayFrame {
+  message:
+    | HelloMsg
+    | GameUpdateMsg
+    | EventMsg
+    | TremorMsg
+    | TremorUpdatedMsg
+    | TremorReversedMsg
+    | OddsUpdateMsg
+    | StandingsUpdateMsg
+    | RecapReadyMsg
+    | HeartbeatMsg;
+  t: number;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "ReplayInitial".
+ */
+export interface ReplayInitial {
+  games: GameSummary[];
+  odds: TeamOdds[];
+  standings: StandingsRow[];
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
