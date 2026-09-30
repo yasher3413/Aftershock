@@ -96,3 +96,40 @@ def train_xg(
             xg.build_season_features(year)
     xg.train()
     xg.train_backtest_variant()
+
+
+@train_app.command("strength")
+def train_strength(
+    build: Annotated[bool, typer.Option(help="Rebuild the per-game tables first.")] = True,
+) -> None:
+    """Tune and backtest the team-strength model."""
+    from aftershock.ml import games_table, strength_fit, xg
+
+    if build:
+        games_table.build_games_table(xg.BACKTEST_VERSION)
+        games_table.build_games_table(xg.MODEL_VERSION)
+    strength_fit.fit()
+
+
+@train_app.command("wp")
+def train_wp(
+    build: Annotated[bool, typer.Option(help="Rebuild feature tables first.")] = True,
+) -> None:
+    """Train and evaluate the in-game win-probability model."""
+    from aftershock.ml import strength_fit, wp, xg
+
+    years = (*wp.TRAIN_SEASONS, wp.VAL_SEASON, wp.TEST_SEASON)
+    if build:
+        pregame = strength_fit.asof_pregame(xg.MODEL_VERSION)
+        for year in years:
+            wp.build_season_features(year, pregame, xg.MODEL_VERSION)
+    ot = wp.measure_overtime(wp.TRAIN_SEASONS)
+    wp.train(ot)
+
+
+@train_app.command("all")
+def train_all() -> None:
+    """Train xG, then team strength, then win probability."""
+    train_xg(build=True)
+    train_strength(build=True)
+    train_wp(build=True)

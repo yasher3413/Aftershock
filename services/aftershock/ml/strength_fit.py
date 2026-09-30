@@ -254,3 +254,16 @@ def load_params(settings: Settings | None = None) -> StrengthParams:
     s = settings or get_settings()
     data = json.loads((s.ml_dir / "artifacts" / f"{MODEL_VERSION}.json").read_text())
     return StrengthParams(**data["params"])
+
+
+def asof_pregame(
+    xg_version: str, params: StrengthParams | None = None, settings: Settings | None = None
+) -> dict[int, tuple[float, float, float]]:
+    """As-of pregame (home reg win, away reg win, tie) for every game in the table."""
+    s = settings or get_settings()
+    p = params or load_params(s)
+    games = records_from_table(load_games_table(xg_version, s).iter_rows(named=True))
+    return {
+        pred.game.game_id: (pred.pregame.p[0], pred.pregame.p[3], pred.pregame.p_reg_tie)
+        for pred, _ in run_history(games, p)
+    }
