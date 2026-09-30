@@ -56,3 +56,26 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* A live game: a soft beat at the venue. */
+.live-pulse {
+  position: absolute;
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--goal);
+  animation: live-pulse 2.4s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
