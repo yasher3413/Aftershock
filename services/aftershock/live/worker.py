@@ -184,6 +184,70 @@ class Worker:
         payload = whatif_payload(self.engine.inputs, self.season, self.stakes)
         await self.redis.set(WHATIF_KEY, json.dumps(payload, separators=(",", ":")))
 
+    async def reconcile(self, rows: list[S.StandingsRow]) -> int:
+        """Compare standings computed from our results with NHL.com's; log mismatches.
+
+        The API's numbers are what we display either way; a mismatch means
+        our stored results are missing or wrong somewhere.
+        """
+        assert self.engine is not None
+        import aftershock_core
+        import numpy as np
+
+        inp = self.engine.inputs
+        done = np.flatnonzero(inp.status == 2)
+        sch = inp.schedule
+        ours = aftershock_core.standings(
+            sch.config,
+            sch.home[done],
+            sch.away[done],
+            inp.home_goals[done],
+            inp.away_goals[done],
+            inp.end[done],
+        )
+        by_team = {t: i for i, t in enumerate(ours["teams"])}
+        mismatches = []
+        for r in rows:
+            i = by_team.get(r.team)
+            if i is None:
+                continue
+            fields = {
+                "w": r.w,
+                "l": r.l,
+                "otl": r.otl,
+                "points": r.points,
+                "rw": r.rw,
+                "row": r.row,
+                "gf": r.gf,
+                "ga": r.ga,
+            }
+            diff = {
+                k: {"ours": int(ours[k][i]), "nhl": v}
+                for k, v in fields.items()
+                if int(ours[k][i]) != v
+            }
+            if diff:
+                mismatches.append({"team": r.team, "fields": diff})
+        if mismatches:
+            from aftershock.db.models import ReconcileEvent
+
+            async with session_scope() as s:
+                s.add(ReconcileEvent(kind="standings", detail={"teams": mismatches}))
+            log.warning("worker.standings_mismatch", teams=[m["team"] for m in mismatches])
+        return len(mismatches)
+
+    async def refresh_schedule(self) -> None:
+        """Reload this season's schedule and results (postponements, reschedules)."""
+        from aftershock.ingest.fetch import fetch_season, season_infos
+        from aftershock.jobs.backfill import load_season
+
+        infos = await season_infos(self.client)
+        info = infos.get(self.season)
+        if info is None:
+            return
+        await fetch_season(self.client, info, is_current=True)
+        await load_season(self.client, info, is_current=True)
+
     async def refresh_standings(self) -> None:
         try:
             raw = await self.client.standings()
@@ -439,8 +503,10 @@ class Worker:
         if self.day == night:
             return
         log.info("worker.new_day", night=str(night))
+        await self.refresh_schedule()
         await run_ratings(self.settings)
         await self.boot()
+        await self.reconcile(self.standings)
 
     async def maybe_recap(self) -> None:
         """Fifteen minutes after the night's last game goes final."""

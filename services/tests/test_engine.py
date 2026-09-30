@@ -40,7 +40,7 @@ def season_for(game: dict[str, Any]) -> tuple[SimInputs, dict[str, str]]:
         season=int(game["season"]),
         config="test",
         teams=teams,
-        game_ids=np.array([int(game["id"])] + list(range(1, n)), dtype=np.int64),
+        game_ids=np.array([int(game["id"]), *range(1, n)], dtype=np.int64),
         home=np.array([p[0] for p in pairs], dtype=np.uint16),
         away=np.array([p[1] for p in pairs], dtype=np.uint16),
         start_utc=[start + timedelta(hours=i) for i in range(n)],
