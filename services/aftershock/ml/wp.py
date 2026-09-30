@@ -223,10 +223,15 @@ def set_state_rates(rates: dict[str, tuple[float, float]]) -> None:
     _STATE_RATES.update(rates)
 
 
+STATE_MAX_S = 120.0  # a special state without a penalty clock rarely lasts longer
+EVEN_KEY = "5v5|11"
+
+
 def skellam_base(
     score_diff: NDArray[np.float64],
     secs_left: NDArray[np.float64],
     keys: Sequence[str] | None = None,
+    pp_secs_left: NDArray[np.float64] | None = None,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """(P(home does not lose), P(home wins)) in regulation from score, clock, and state.
 
@@ -236,15 +241,24 @@ def skellam_base(
     extremes (a decided game is 0 or 1), which trees alone struggle to reach.
     """
     left = np.clip(secs_left, 0, REG_GAME_S)
-    rate_h = np.full(len(left), BASE_LAM_HOME / REG_GAME_S)
-    rate_a = np.full(len(left), BASE_LAM_AWAY / REG_GAME_S)
+    even_h, even_a = _STATE_RATES.get(
+        EVEN_KEY, (BASE_LAM_HOME / REG_GAME_S, BASE_LAM_AWAY / REG_GAME_S)
+    )
+    mu1 = even_h * left
+    mu2 = even_a * left
     if keys is not None and _STATE_RATES:
+        pp = np.abs(pp_secs_left) if pp_secs_left is not None else np.zeros(len(left))
         for i, k in enumerate(keys):
             r = _STATE_RATES.get(k)
-            if r is not None:
-                rate_h[i], rate_a[i] = r
-    mu1 = np.maximum(rate_h * left, 1e-9)
-    mu2 = np.maximum(rate_a * left, 1e-9)
+            if r is None or k == EVEN_KEY:
+                continue
+            # The special state lasts for the power-play clock if there is
+            # one, otherwise at most two minutes; then play returns to 5v5.
+            dur = min(left[i], pp[i] if pp[i] > 0 else STATE_MAX_S)
+            mu1[i] += (r[0] - even_h) * dur
+            mu2[i] += (r[1] - even_a) * dur
+    mu1 = np.maximum(mu1, 1e-9)
+    mu2 = np.maximum(mu2, 1e-9)
     # P(D + X1 - X2 >= 0) = P(X1 - X2 >= -D); skellam.sf(k) = P(K > k).
     p_a = skellam.sf(-score_diff - 1, mu1, mu2)
     p_b = skellam.sf(-score_diff, mu1, mu2)
@@ -271,13 +285,15 @@ def base_scores(
                 strict=True,
             )
         ]
+        pp = df_or_rows["pp_secs_left"].to_numpy().astype(np.float64)
     else:
         sd = np.array([float(r["score_diff"]) for r in df_or_rows])
         sl = np.array([float(r["secs_left"]) for r in df_or_rows])
         keys = [
             state_key(r["manpower"], r["home_goalie_in"], r["away_goalie_in"]) for r in df_or_rows
         ]
-    pa, pb = skellam_base(sd, sl, keys)
+        pp = np.array([float(r["pp_secs_left"]) for r in df_or_rows])
+    pa, pb = skellam_base(sd, sl, keys, pp)
     return _logit(pa), _logit(pb)
 
 
