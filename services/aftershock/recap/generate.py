@@ -369,7 +369,7 @@ def _anthropic_draft(settings: Settings) -> Draft:
 def _openai_draft(settings: Settings) -> Draft:
     import openai
 
-    client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+    client = openai.AsyncOpenAI(api_key=settings.openai_api_key, max_retries=1)
 
     async def draft(prompt: str) -> str:
         try:
@@ -388,6 +388,9 @@ def _openai_draft(settings: Settings) -> Draft:
                 },
             )
         except openai.RateLimitError as exc:
+            # A 429 is also how OpenAI reports an empty credit balance.
+            if exc.type == "insufficient_quota":
+                raise _GiveUp(str(exc)) from exc
             raise _Retry(str(exc)) from exc
         except openai.APIStatusError as exc:
             if exc.status_code < 500:
