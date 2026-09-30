@@ -43,6 +43,13 @@ v0.1.0 (data layer), v0.2.0 (models), v0.3.0 (simulator).
 
 ## Known issues
 
+- 2026-09-30 16:10 UTC: the disk filled during Docker builds and Docker
+  Desktop's containerd now crashes on start. Postgres and Redis run from
+  Homebrew instead (see DECISIONS). Start them with:
+  `/opt/homebrew/opt/postgresql@16/bin/pg_ctl -D ~/.aftershock/pg16 -o "-p 55432" start`
+  and `redis-server --port 6379 --daemonize yes --dir ~/.aftershock`.
+  The database reload runs as `logs/reload.log`.
+
 - Preseason odds for extreme teams (Carolina 99.9 percent after a Cup run)
   exceed anything in the backtest; ratings include playoff games and the
   strength tuning chose no season-to-season regression.

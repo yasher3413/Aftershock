@@ -302,3 +302,17 @@ Each entry: date, decision, alternatives considered, reason.
 - **Alternatives:** absolute paths.
 - **Reason:** the same database must work on the host and inside containers
   where the data directory is mounted elsewhere.
+
+## 2026-09-30: Fall back to Homebrew Postgres and Redis after a disk-full crash
+
+- **Decision:** after Docker image builds filled the development disk,
+  Docker Desktop's containerd crashed on every start (a corrupted metadata
+  database). Development continued on Homebrew Postgres 16 (data directory
+  `~/.aftershock/pg16`, port 55432) and Redis 7 (port 6379), the same ports
+  as Compose, and the database was reloaded from the raw cache.
+- **Alternatives:** delete Docker's containerd metadata to recover (risking
+  the database volume), or reset Docker Desktop (losing it).
+- **Reason:** the brief names this fallback, the raw cache makes a full
+  reload about an hour, and the Docker volume stays untouched for recovery.
+  The Docker images and `make up` are unchanged; they need a working Docker
+  and about 15 GB free to build.
