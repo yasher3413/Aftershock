@@ -153,3 +153,22 @@ def ratings() -> None:
     from aftershock.jobs.ratings import run_ratings
 
     asyncio.run(run_ratings())
+
+
+@app.command()
+def worker() -> None:
+    """Run the live worker (poll, simulate, persist, publish)."""
+    from aftershock.live.worker import Worker
+
+    asyncio.run(Worker().run())
+
+
+@app.command()
+def recap(night: str) -> None:
+    """Generate the recap for a hockey night (YYYY-MM-DD)."""
+    from datetime import date
+
+    from aftershock.recap.generate import generate_recap
+
+    result = asyncio.run(generate_recap(date.fromisoformat(night)))
+    typer.echo(result["headline"])
