@@ -45,6 +45,9 @@ from aftershock.tremors.compute import magnitude_scale, rooting_guide, stakes
 log = structlog.get_logger(__name__)
 
 LEADER_LOCK = 0x4146_5445  # "AFTE"
+REPLAY_TYPES = frozenset(
+    {"game_update", "tremor", "tremor_updated", "tremor_reversed", "odds_update"}
+)
 DRIFT_S = 10.0
 FULL_RERUN_S = 300.0
 STATE_S = 15.0
@@ -71,6 +74,9 @@ class Worker:
         self._state_dirty = True
         self._last_final_at: datetime | None = None
         self._nightly_done: Any = None
+        # Everything published tonight, kept to write the night's replay bundle.
+        self.night_frames: list[dict[str, Any]] = []
+        self.night_initial: dict[str, Any] | None = None
 
     # ------------------------------------------------------------------
     # Startup
@@ -128,6 +134,8 @@ class Worker:
         await self.persist_run(snap, full=True)
         self.day_start = snap.output
         self.day = hockey_night(datetime.now(UTC))
+        self.night_frames = []
+        self.night_initial = {"odds": [o.model_dump(mode="json") for o in odds_list(snap.output)]}
         await self.refresh_standings()
         await self.publish_whatif()
         await self.publish_odds(snap)
@@ -168,6 +176,11 @@ class Worker:
         self.sim_run_id = run_id
         self._state_dirty = True
         return run_id
+
+    async def publish(self, kind: str, payload: dict[str, Any]) -> None:
+        msg = await self.publisher.publish(kind, payload)
+        if kind in REPLAY_TYPES:
+            self.night_frames.append(msg)
 
     async def publish_odds(self, snap: OddsSnapshot) -> None:
         await self.publisher.publish(
@@ -428,11 +441,9 @@ class Worker:
                 summary.stakes = self.stakes.get(game_id)
                 self.games[game_id] = summary
         if eff.game_updates and game_id in self.games:
-            await self.publisher.publish(
-                "game_update", {"game": self.games[game_id].model_dump(mode="json")}
-            )
+            await self.publish("game_update", {"game": self.games[game_id].model_dump(mode="json")})
         for kind, payload in published:
-            await self.publisher.publish(kind, payload)
+            await self.publish(kind, payload)
         for snap in eff.odds:
             await self.persist_run(snap, full=True)
         if eff.odds:
@@ -487,7 +498,7 @@ class Worker:
             o.p_playoffs = float(probs["p_playoffs"][i])
             o.p_division = float(probs["p_division"][i])
             o.p_cup = float(probs["p_cup"][i])
-        await self.publisher.publish(
+        await self.publish(
             "odds_update",
             {
                 "sim_run_id": self.sim_run_id or 0,
@@ -526,10 +537,84 @@ class Worker:
         if pending:
             return
         self._last_final_at = None
+        await self.write_night_bundle(night)
         from aftershock.recap.generate import generate_recap
 
         await generate_recap(night, self.settings)
         await self.publisher.publish("recap_ready", {"night_date": night.isoformat()})
+
+    async def write_night_bundle(self, night: Any) -> None:
+        """Save tonight's published messages as the night's replay bundle."""
+        import gzip
+
+        from sqlalchemy.dialects.postgresql import insert
+
+        from aftershock.db.models import ReplayBundle
+        from aftershock.jobs.precompute import energy, replay_dir
+
+        async with session_scope() as s:
+            games = await Q.games_on(s, night)
+        if not games or not self.night_frames:
+            return
+        start = min(g.start_utc for g in games)
+        frames: list[dict[str, Any]] = []
+        for m in self.night_frames:
+            t = int((datetime.fromisoformat(m["ts"]) - start).total_seconds() * 1000)
+            frames.append({"t": max(0, t), "message": m})
+        initial_games = [
+            g.model_copy(
+                update={
+                    "state": "FUT",
+                    "period": None,
+                    "period_type": None,
+                    "clock_seconds": None,
+                    "home_score": None,
+                    "away_score": None,
+                    "home_sog": None,
+                    "away_sog": None,
+                    "last_period_type": None,
+                    "wp": None,
+                }
+            )
+            for g in games
+        ]
+        bundle = S.ReplayBundleOut(
+            night_date=night,
+            season=self.season,
+            start_utc=start,
+            duration_ms=max(f["t"] for f in frames) + 60_000,
+            initial=S.ReplayInitial(
+                odds=[S.TeamOdds(**o) for o in (self.night_initial or {}).get("odds", [])],
+                standings=self.standings,
+                games=initial_games,
+            ),
+            frames=[S.ReplayFrame.model_validate(f) for f in frames],
+        )
+        path = replay_dir(self.settings, self.season) / f"{night.isoformat()}.json.gz"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(path.write_bytes, gzip.compress(bundle.model_dump_json().encode()))
+        mags = [
+            f["message"]["tremor"]["magnitude"] for f in frames if f["message"]["type"] == "tremor"
+        ]
+        async with session_scope() as s:
+            stmt = insert(ReplayBundle).values(
+                night_date=night,
+                season=self.season,
+                path=str(path.relative_to(self.settings.data_dir)),
+                total_energy=energy(mags),
+                n_games=len(games),
+                n_tremors=len(mags),
+            )
+            await s.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=["night_date"],
+                    set_={
+                        c: stmt.excluded[c]
+                        for c in ("path", "total_energy", "n_games", "n_tremors")
+                    },
+                )
+            )
+        log.info("worker.night_bundle", night=str(night), frames=len(frames))
 
     async def periodic(self) -> None:
         last_state = 0.0
