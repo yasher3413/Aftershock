@@ -1,5 +1,41 @@
 {
   "$defs": {
+    "ClinchOut": {
+      "properties": {
+        "magic_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Magic Number"
+        },
+        "max_points": {
+          "title": "Max Points",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "clinched",
+            "eliminated",
+            "alive"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "magic_number",
+        "max_points"
+      ],
+      "title": "ClinchOut",
+      "type": "object"
+    },
     "EventMsg": {
       "properties": {
         "event_id": {
@@ -1876,6 +1912,17 @@
     },
     "TeamResponse": {
       "properties": {
+        "clinch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClinchOut"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "history": {
           "additionalProperties": {
             "items": {
@@ -1953,6 +2000,7 @@
       },
       "required": [
         "team",
+        "clinch",
         "odds",
         "history",
         "points_hist",

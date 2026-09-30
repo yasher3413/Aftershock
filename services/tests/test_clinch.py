@@ -10,7 +10,8 @@ from aftershock.tremors.clinch import clinch_status
 
 def final_rows(season: int) -> tuple[list[S.StandingsRow], set[str]]:
     path = REPO_ROOT / "tests" / "fixtures" / "gold" / f"{season}.json.gz"
-    gold = json.load(gzip.open(path, "rt"))
+    with gzip.open(path, "rt") as fh:
+        gold = json.load(fh)
     teams = {t["abbrev"]: t for t in gold["teams"]}
     rows = []
     for o in gold["official"]:

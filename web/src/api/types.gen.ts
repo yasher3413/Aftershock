@@ -524,6 +524,7 @@ export interface JobRunOut {
  * via the `definition` "TeamResponse".
  */
 export interface TeamResponse {
+  clinch: ClinchOut | null;
   history: {
     [k: string]: OddsPoint[];
   };
@@ -538,6 +539,15 @@ export interface TeamResponse {
   team: TeamInfo;
   tremors_against: Tremor[];
   tremors_for: Tremor[];
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "ClinchOut".
+ */
+export interface ClinchOut {
+  magic_number: number | null;
+  max_points: number;
+  status: "clinched" | "eliminated" | "alive";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema

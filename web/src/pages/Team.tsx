@@ -124,6 +124,19 @@ export default function TeamPage() {
               points
             </div>
           )}
+          {data.clinch && (
+            <div className="mt-1 text-[13px] font-semibold">
+              {data.clinch.status === "clinched"
+                ? "Clinched a playoff spot"
+                : data.clinch.status === "eliminated"
+                  ? "Eliminated from the playoffs"
+                  : data.clinch.magic_number != null && (
+                      <span title="Points this team earns plus points its fifth-closest rival fails to earn, needed to guarantee a spot">
+                        Magic number {data.clinch.magic_number}
+                      </span>
+                    )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setTeam(myTeam === abbrev ? null : abbrev)}
