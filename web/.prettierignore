@@ -6,3 +6,4 @@ public/geo
 playwright-report
 test-results
 pnpm-lock.yaml
+src/api/schema.json

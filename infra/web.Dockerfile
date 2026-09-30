@@ -1,6 +1,6 @@
 # Web image: build the WASM simulator and the Vite app, serve with nginx.
 FROM rust:1-slim-bookworm AS wasm
-RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends curl binaryen \
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* && rustup target add wasm32-unknown-unknown \
     && curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
 WORKDIR /src
