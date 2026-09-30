@@ -41,6 +41,11 @@ from aftershock.nhl.parse import ParsedGame, parse_play_by_play
 log = structlog.get_logger(__name__)
 
 MODEL_VERSION = "xg-1.0.0"
+# Trained only on seasons before the 2021-22 to 2025-26 backtest window, so
+# the strength and win-probability backtests never see xG fit on their games.
+BACKTEST_VERSION = "xg-bt-1.0.0"
+BACKTEST_TRAIN = tuple(range(2015, 2020))
+BACKTEST_VAL = 2020
 TRAIN_SEASONS = tuple(range(2015, 2024))
 VAL_SEASON = 2024
 TEST_SEASON = 2025
@@ -238,6 +243,49 @@ def train(settings: Settings | None = None) -> dict[str, Any]:
         "xg.trained", **{k: v for k, v in report["test"]["lightgbm"].items() if k != "reliability"}
     )
     return report
+
+
+def train_backtest_variant(settings: Settings | None = None) -> None:
+    """Fit the xG variant used for backtests (train 2015-16 to 2019-20, stop on 2020-21)."""
+    s = settings or get_settings()
+    df = load_features([*BACKTEST_TRAIN, BACKTEST_VAL], s).filter(pl.col("penalty_shot") == 0)
+    ps = load_features(BACKTEST_TRAIN, s).filter(pl.col("penalty_shot") == 1)
+    start_year = pl.col("season") // 10000
+    tr = df.filter(start_year.is_in(list(BACKTEST_TRAIN)))
+    va = df.filter(start_year == BACKTEST_VAL)
+    cat_idx = [FEATURES.index(c) for c in CATEGORICAL]
+    dtrain = lgb.Dataset(
+        encode(tr),
+        tr["is_goal"].to_numpy().astype(float),
+        feature_name=list(FEATURES),
+        categorical_feature=cat_idx,
+    )
+    dval = lgb.Dataset(encode(va), va["is_goal"].to_numpy().astype(float), reference=dtrain)
+    booster = lgb.train(
+        PARAMS,
+        dtrain,
+        num_boost_round=4000,
+        valid_sets=[dval],
+        callbacks=[lgb.early_stopping(150, verbose=False)],
+    )
+    art = s.ml_dir / "artifacts"
+    booster.save_model(str(art / f"{BACKTEST_VERSION}.txt"), num_iteration=booster.best_iteration)
+    rate = float(ps["is_goal"].cast(pl.Float64).to_numpy().mean()) if len(ps) else 0.0
+    metrics.write_json(
+        art / f"{BACKTEST_VERSION}.json",
+        {
+            "model_version": BACKTEST_VERSION,
+            "features": list(FEATURES),
+            "categorical": list(CATEGORICAL),
+            "levels": {k: list(v) for k, v in LEVELS.items()},
+            "penalty_shot_rate": rate,
+            "trained_on": {
+                "train": [season_id(y) for y in BACKTEST_TRAIN],
+                "validate": season_id(BACKTEST_VAL),
+            },
+        },
+    )
+    log.info("xg.backtest_variant", best_iteration=booster.best_iteration)
 
 
 def _strip(rep: dict[str, Any]) -> dict[str, Any]:

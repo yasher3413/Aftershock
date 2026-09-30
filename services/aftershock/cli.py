@@ -95,3 +95,4 @@ def train_xg(
         for year in (*xg.TRAIN_SEASONS, xg.VAL_SEASON, xg.TEST_SEASON):
             xg.build_season_features(year)
     xg.train()
+    xg.train_backtest_variant()
