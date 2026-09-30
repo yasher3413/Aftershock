@@ -78,3 +78,20 @@ def backfill(
     from aftershock.jobs.backfill import run_backfill
 
     asyncio.run(run_backfill(from_season, to_season))
+
+
+train_app = typer.Typer(help="Train models and write evaluation reports.", no_args_is_help=True)
+app.add_typer(train_app, name="train")
+
+
+@train_app.command("xg")
+def train_xg(
+    build: Annotated[bool, typer.Option(help="Rebuild feature tables first.")] = True,
+) -> None:
+    """Train the expected-goals model."""
+    from aftershock.ml import xg
+
+    if build:
+        for year in (*xg.TRAIN_SEASONS, xg.VAL_SEASON, xg.TEST_SEASON):
+            xg.build_season_features(year)
+    xg.train()
