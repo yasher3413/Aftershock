@@ -440,14 +440,34 @@ async def leaders(
             for i, r in enumerate(rows)
         ]
         return S.LeadersResponse(season=season, kind="team_chaos", rows=out)
-    column, count, order = {
-        "skater": ("ppa", "goals", "DESC"),
-        "assist": ("assist_ppa", "assists", "DESC"),
-        "goalie": ("goalie_ppa_allowed", "goals_allowed", "ASC"),
+    column, count, order, team_sql = {
+        "skater": (
+            "ppa",
+            "goals",
+            "DESC",
+            "SELECT t.team FROM tremors t WHERE t.season = p.season AND t.scorer_id = p.player_id",
+        ),
+        "assist": (
+            "assist_ppa",
+            "assists",
+            "DESC",
+            "SELECT t.team FROM tremors t WHERE t.season = p.season "
+            "AND p.player_id IN (t.assist1_id, t.assist2_id)",
+        ),
+        "goalie": (
+            "goalie_ppa_allowed",
+            "goals_allowed",
+            "ASC",
+            "SELECT t.opponent FROM tremors t WHERE t.season = p.season "
+            "AND t.goalie_id = p.player_id",
+        ),
     }[kind]
+    # The team the player played for that season (most common in his tremors).
     q = text(
         f"""
-        SELECT p.player_id, pl.name, coalesce(pl.current_team, ''), p.{column}, p.{count}
+        SELECT p.player_id, pl.name,
+               coalesce(({team_sql} GROUP BY 1 ORDER BY count(*) DESC LIMIT 1), ''),
+               p.{column}, p.{count}
         FROM player_ppa_season p JOIN players pl ON pl.id = p.player_id
         WHERE p.season = :season AND p.{count} > 0
         ORDER BY p.{column} {order} LIMIT :limit
