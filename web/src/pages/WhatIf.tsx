@@ -26,6 +26,37 @@ const RANGES = [
   { id: "all", label: "Rest of season", days: 400 },
 ];
 
+const HOW: Record<string, string> = {
+  reg: "in regulation",
+  ot: "in overtime",
+  so: "in a shootout",
+};
+
+/** A team code on the pick sheet; a pick is a pen ring around the winner. */
+function PickCode({ code, ringed }: { code: string; ringed: boolean }) {
+  return (
+    <span className="relative inline-flex h-10 w-[4.5rem] items-center justify-center">
+      {ringed && (
+        <svg
+          aria-hidden
+          viewBox="0 0 72 40"
+          className="absolute inset-0 h-full w-full overflow-visible"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M8 22 C 6 8, 40 2, 60 8 C 72 12, 70 32, 48 36 C 26 40, 4 34, 9 18"
+            fill="none"
+            stroke="var(--blue-line)"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+      <span className="display relative text-[26px] font-bold leading-none">{code}</span>
+    </span>
+  );
+}
+
 function outcomeLabel(o: Outcome, home: string, away: string): string {
   const winner = o.startsWith("home") ? home : away;
   const how = o.endsWith("reg")
@@ -232,9 +263,9 @@ export default function WhatIfPage() {
             <p className="text-ink-soft">No games match these filters.</p>
           )}
           {Object.entries(byDay).map(([day, gs]) => (
-            <div key={day} className="mb-3">
-              <h2 className="text-[12px] font-semibold text-ink-soft">{day}</h2>
-              <ul>
+            <div key={day} className="mb-5">
+              <h2 className="display border-b-2 border-ink pb-1 text-[20px] font-bold">{day}</h2>
+              <ul className="divide-y divide-ice-scratch">
                 {gs.map((g) => {
                   const o = scenario[g.game_id];
                   const hw = (g.probs?.[0] ?? 0) + (g.probs?.[1] ?? 0) + (g.probs?.[2] ?? 0);
@@ -251,16 +282,16 @@ export default function WhatIfPage() {
                             return copy;
                           })
                         }
-                        className={`mt-1 flex w-full items-center justify-between rounded-[var(--radius)] border px-3 py-2 text-left text-[14px] ${
-                          o ? "border-blue-line bg-ice-land" : "border-ice-scratch"
-                        }`}
+                        className="grid w-full grid-cols-[4.5rem_1.5rem_4.5rem_1fr] items-center py-2 text-left hover:bg-ice-land focus-visible:bg-ice-land"
                         aria-label={`${g.away} at ${g.home}. ${o ? outcomeLabel(o, g.home, g.away) : "Not decided"}. Click to change.`}
                       >
-                        <span className="display text-[18px] font-bold">
-                          {g.away} <span className="text-[13px] text-ink-soft">at</span> {g.home}
-                        </span>
-                        <span className={o ? "font-semibold" : "text-ink-soft"}>
-                          {o ? outcomeLabel(o, g.home, g.away) : `${g.home} ${pct(hw, 0)}`}
+                        <PickCode code={g.away} ringed={!!o && o.startsWith("away")} />
+                        <span className="text-center text-[13px] text-ink-soft">at</span>
+                        <PickCode code={g.home} ringed={!!o && o.startsWith("home")} />
+                        <span
+                          className={`text-right text-[14px] ${o ? "font-semibold text-blue-line" : "text-ink-soft"}`}
+                        >
+                          {o ? HOW[o.slice(o.indexOf("_") + 1)] : `${g.home} ${pct(hw, 0)} to win`}
                         </span>
                       </button>
                     </li>
@@ -275,7 +306,9 @@ export default function WhatIfPage() {
           <div className="grid gap-6 sm:grid-cols-2">
             {["Eastern", "Western"].map((conf) => (
               <div key={conf}>
-                <h2 className="text-[15px] font-semibold">{conf} bracket, most likely</h2>
+                <h2 className="display border-b-2 border-ink pb-1 text-[20px] font-bold">
+                  {conf} bracket, most likely
+                </h2>
                 <ul className="mt-1 text-[13px]">
                   {bracket(conf).map(([a, b], i) => (
                     <li key={i} className="flex justify-between border-t border-ice-scratch py-1">
