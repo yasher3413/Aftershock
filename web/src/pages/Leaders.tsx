@@ -203,6 +203,8 @@ export default function LeadersPage() {
       <div className="mt-4" role="tabpanel">
         {tab === "tremors" ? (
           <TopTremors season={season} />
+        ) : tab === "lottery" ? (
+          <Lottery />
         ) : (
           <LeaderTable season={season} kind={tab} />
         )}

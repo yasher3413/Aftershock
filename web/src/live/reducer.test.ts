@@ -92,6 +92,7 @@ it("merges odds and applies tremor corrections", () => {
     p_final: 0.07,
     p_cup: 0.03,
     p_last: 0.01,
+    p_bottom3: 0.03,
     exp_points: 95,
   };
   s = applyMessage(s, {
