@@ -47,6 +47,7 @@ export function TremorLine({ t, myTeam }: { t: Tremor; myTeam: string | null }) 
 export function TremorFeed({ limit = 12 }: { limit?: number }) {
   const tremors = useLive((s) => s.tremors);
   const myTeam = useMyTeam((s) => s.team);
+  const replaying = useLive((s) => s.mode === "demo");
   return (
     <section aria-labelledby="feed-h" className="px-4 py-3">
       <h2 id="feed-h" className="text-[15px] font-semibold">
@@ -54,7 +55,9 @@ export function TremorFeed({ limit = 12 }: { limit?: number }) {
       </h2>
       {tremors.length === 0 && (
         <p className="mt-2 text-[13px] text-ink-soft">
-          No goals yet. Every goal tonight will show up here with how far it moved the standings.
+          {replaying
+            ? "No goals yet in this replay. Each one shows up here with how far it moved the standings."
+            : "No goals yet. Every goal tonight will show up here with how far it moved the standings."}
         </p>
       )}
       <ul className="divide-y divide-ice-scratch">

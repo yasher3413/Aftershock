@@ -32,10 +32,22 @@ export function replayInitial(state: StateResponse, bundle: ReplayBundleOut): Li
  * Play a night's bundle through the same reducer as the live socket.
  * Seeking applies messages without animating them.
  */
+const LEAD_MS = 3000;
+
+/** Replay time a few wall-clock seconds before the first goal of magnitude 4+. */
+export function demoStart(frames: { t: number; message: unknown }[], speed: number): number {
+  const tremors = frames.filter((f) => (f.message as { type?: string }).type === "tremor") as {
+    t: number;
+    message: { tremor?: { magnitude?: number } };
+  }[];
+  const big = tremors.find((f) => (f.message.tremor?.magnitude ?? 0) >= 4) ?? tremors[0];
+  return big ? Math.max(0, big.t - LEAD_MS * speed) : 0;
+}
+
 export function startReplay(
   state: StateResponse,
   bundle: ReplayBundleOut,
-  opts: { speed?: number; loop?: boolean; autoplay?: boolean } = {},
+  opts: { speed?: number; loop?: boolean; autoplay?: boolean; openOnGoal?: boolean } = {},
 ): TimelinePlayer {
   const initial = replayInitial(state, bundle);
   const store = useLive.getState();
@@ -54,6 +66,12 @@ export function startReplay(
     },
     onTick: (t) => useClock.getState().tick(t),
   });
+  if (opts.openOnGoal) {
+    // Open a few seconds before the night's first big goal rather than on a
+    // still map at puck drop; earlier goals are applied without animation.
+    const t = demoStart(bundle.frames, player.speed);
+    if (t > 0) player.seek(t);
+  }
   const clock = useClock.getState();
   clock.setReplay(player, start, bundle.duration_ms);
   clock.setSpeed(player.speed);
@@ -80,7 +98,11 @@ export function useLiveBootstrap(): void {
         const bundle = await api<ReplayBundleOut>(`/replay/${state.replay.night_date}`);
         if (cancelled) return;
         useLive.getState().bootstrap(state);
-        player = startReplay(state, bundle, { speed: state.replay.speed, loop: true });
+        player = startReplay(state, bundle, {
+          speed: state.replay.speed,
+          loop: true,
+          openOnGoal: true,
+        });
         useLive.setState({ mode: "demo", replay: state.replay });
       } else {
         useClock.getState().setLive();
