@@ -139,101 +139,104 @@ export function Seismograph() {
             </div>
           </div>
         )}
-        <div
-          ref={boxRef}
-          className={`relative min-w-0 flex-1 ${replay ? "cursor-ew-resize" : ""}`}
-          onPointerDown={(e) => {
-            if (!replay) return;
-            (e.target as Element).setPointerCapture?.(e.pointerId);
-            seek(e.clientX);
-          }}
-          onPointerMove={(e) => {
-            if (replay && e.buttons === 1) seek(e.clientX);
-          }}
-          role={replay ? "slider" : undefined}
-          aria-label={replay ? "Replay position" : undefined}
-          aria-valuemin={replay ? 0 : undefined}
-          aria-valuemax={replay ? Math.round(replayDuration / 60000) : undefined}
-          aria-valuenow={replay ? Math.round(replayT / 60000) : undefined}
-          aria-valuetext={replay ? timeLabel(now) : undefined}
-          tabIndex={replay ? 0 : undefined}
-          onKeyDown={(e) => {
-            if (!replay || !player) return;
-            if (e.key === "ArrowRight") player.seek(replayT + 5 * 60_000);
-            if (e.key === "ArrowLeft") player.seek(replayT - 5 * 60_000);
-          }}
-        >
-          <svg width={plotW} height={HEIGHT} className="block" aria-hidden>
-            {ticks.map((t, i) => (
-              <g key={t}>
-                <line
-                  x1={x(t)}
-                  x2={x(t)}
-                  y1={PAD_TOP}
-                  y2={baseY}
-                  stroke="var(--ice-scratch)"
-                  strokeWidth={1}
-                />
-                {i % labelEvery === 0 && (
-                  <text x={x(t) + 4} y={HEIGHT - 5} fontSize={11} fill="var(--ink-soft)">
-                    {timeLabel(t)}
-                  </text>
-                )}
-              </g>
-            ))}
-            <line x1={0} x2={plotW} y1={baseY} y2={baseY} stroke="var(--ice-scratch)" />
-            {path && (
-              <path
-                d={path}
-                fill="none"
-                stroke="var(--ink)"
-                strokeWidth={1.4}
-                strokeLinejoin="round"
-              />
-            )}
-            {visible.map((s) => {
-              const h = inner * Math.min(1, s.magnitude / 10);
-              return (
-                <g key={s.id}>
+        {/* The slider and the tremor buttons are siblings: a control may not nest another. */}
+        <div className="relative min-w-0 flex-1">
+          <div
+            ref={boxRef}
+            className={replay ? "cursor-ew-resize" : undefined}
+            onPointerDown={(e) => {
+              if (!replay) return;
+              (e.target as Element).setPointerCapture?.(e.pointerId);
+              seek(e.clientX);
+            }}
+            onPointerMove={(e) => {
+              if (replay && e.buttons === 1) seek(e.clientX);
+            }}
+            role={replay ? "slider" : undefined}
+            aria-label={replay ? "Replay position" : undefined}
+            aria-valuemin={replay ? 0 : undefined}
+            aria-valuemax={replay ? Math.round(replayDuration / 60000) : undefined}
+            aria-valuenow={replay ? Math.round(replayT / 60000) : undefined}
+            aria-valuetext={replay ? timeLabel(now) : undefined}
+            tabIndex={replay ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (!replay || !player) return;
+              if (e.key === "ArrowRight") player.seek(replayT + 5 * 60_000);
+              if (e.key === "ArrowLeft") player.seek(replayT - 5 * 60_000);
+            }}
+          >
+            <svg width={plotW} height={HEIGHT} className="block" aria-hidden>
+              {ticks.map((t, i) => (
+                <g key={t}>
                   <line
-                    x1={x(s.at)}
-                    x2={x(s.at)}
-                    y1={baseY}
-                    y2={baseY - h}
-                    stroke="var(--goal)"
-                    strokeWidth={s.magnitude >= 6 ? 2.5 : 1.5}
+                    x1={x(t)}
+                    x2={x(t)}
+                    y1={PAD_TOP}
+                    y2={baseY}
+                    stroke="var(--ice-scratch)"
+                    strokeWidth={1}
                   />
-                  {labelled.has(s.id) && (
-                    <text
-                      x={x(s.at)}
-                      y={baseY - h - 3}
-                      textAnchor="middle"
-                      fontSize={12}
-                      fontWeight={800}
-                      fontFamily="var(--font-display)"
-                      fill="var(--goal)"
-                    >
-                      {s.magnitude.toFixed(1)}
+                  {i % labelEvery === 0 && (
+                    <text x={x(t) + 4} y={HEIGHT - 5} fontSize={11} fill="var(--ink-soft)">
+                      {timeLabel(t)}
                     </text>
                   )}
                 </g>
-              );
-            })}
-            <line
-              x1={x(now)}
-              x2={x(now)}
-              y1={4}
-              y2={baseY}
-              stroke="var(--blue-line)"
-              strokeWidth={1.5}
-            />
-            <circle
-              cx={x(now)}
-              cy={path ? y(trace.at(-1)?.e ?? 0) : baseY}
-              r={3.5}
-              fill="var(--blue-line)"
-            />
-          </svg>
+              ))}
+              <line x1={0} x2={plotW} y1={baseY} y2={baseY} stroke="var(--ice-scratch)" />
+              {path && (
+                <path
+                  d={path}
+                  fill="none"
+                  stroke="var(--ink)"
+                  strokeWidth={1.4}
+                  strokeLinejoin="round"
+                />
+              )}
+              {visible.map((s) => {
+                const h = inner * Math.min(1, s.magnitude / 10);
+                return (
+                  <g key={s.id}>
+                    <line
+                      x1={x(s.at)}
+                      x2={x(s.at)}
+                      y1={baseY}
+                      y2={baseY - h}
+                      stroke="var(--goal)"
+                      strokeWidth={s.magnitude >= 6 ? 2.5 : 1.5}
+                    />
+                    {labelled.has(s.id) && (
+                      <text
+                        x={x(s.at)}
+                        y={baseY - h - 3}
+                        textAnchor="middle"
+                        fontSize={12}
+                        fontWeight={800}
+                        fontFamily="var(--font-display)"
+                        fill="var(--goal)"
+                      >
+                        {s.magnitude.toFixed(1)}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <line
+                x1={x(now)}
+                x2={x(now)}
+                y1={4}
+                y2={baseY}
+                stroke="var(--blue-line)"
+                strokeWidth={1.5}
+              />
+              <circle
+                cx={x(now)}
+                cy={path ? y(trace.at(-1)?.e ?? 0) : baseY}
+                r={3.5}
+                fill="var(--blue-line)"
+              />
+            </svg>
+          </div>
           {visible
             .filter((s) => labelled.has(s.id))
             .map((s) => (
