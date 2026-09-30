@@ -171,10 +171,23 @@ async def live_socket(websocket: WebSocket) -> None:
 
 
 @router.get("/teams/{abbrev}", response_model=S.TeamResponse)
-async def team(abbrev: str, session: Db, season: int | None = None) -> S.TeamResponse:
-    page = await Q.team_page(session, abbrev.upper(), season or current_season())
+async def team(abbrev: str, session: Db, st: State, season: int | None = None) -> S.TeamResponse:
+    season = season or current_season()
+    page = await Q.team_page(session, abbrev.upper(), season)
     if page is None:
         raise HTTPException(404, f"No team {abbrev}")
+    state = await st.publisher.get_state()
+    if state and state.get("season") == season and state.get("standings"):
+        from aftershock.sim.inputs import league_config
+        from aftershock.tremors.clinch import clinch_status
+
+        rows = [S.StandingsRow(**r) for r in state["standings"]]
+        per_team = int(league_config(season, st.settings)["games_per_team"])
+        info = clinch_status(rows, per_team).get(page.team.abbrev)
+        if info is not None:
+            page.clinch = S.ClinchOut(
+                status=info.status, magic_number=info.magic_number, max_points=info.max_points
+            )
     return page
 
 

@@ -238,8 +238,15 @@ class TeamPlayerPpa(Model):
     assist_ppa: float
 
 
+class ClinchOut(Model):
+    status: Literal["clinched", "eliminated", "alive"]
+    magic_number: int | None = None
+    max_points: int
+
+
 class TeamResponse(Model):
     team: TeamInfo
+    clinch: ClinchOut | None = None
     odds: TeamOdds | None
     history: dict[str, list[OddsPoint]]
     points_hist: list[HistBin]
