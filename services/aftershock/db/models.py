@@ -125,7 +125,8 @@ class Play(Base):
     home_score: Mapped[int | None] = mapped_column(SmallInteger)
     away_score: Mapped[int | None] = mapped_column(SmallInteger)
     penalty_minutes: Mapped[int | None] = mapped_column(SmallInteger)
-    raw: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Full event JSON, kept only for live-season games (see docs/DECISIONS.md).
+    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     content_hash: Mapped[str] = mapped_column(String(16))
     deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     first_seen_at: Mapped[datetime] = _now()
