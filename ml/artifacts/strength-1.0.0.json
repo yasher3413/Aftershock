@@ -1,0 +1,19 @@
+{
+  "model_version": "strength-1.0.0",
+  "params": {
+    "blend_w": 0.5,
+    "fatigue": 0.04,
+    "half_life": 22.0,
+    "home_ice": 1.1,
+    "league_alpha": 0.002,
+    "league_goals": 2.7866081703107017,
+    "ot_k": 1.5,
+    "ot_shrink": 0.5,
+    "p_home_so": 0.5301645338208409,
+    "p_so_given_ot": 0.3470812182741117,
+    "regress": 0.0,
+    "smooth": 1.0,
+    "tie_theta": 1.5185956100001925
+  },
+  "xg_version": "xg-1.0.0"
+}
