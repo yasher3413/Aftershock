@@ -679,7 +679,8 @@
             "skater",
             "assist",
             "goalie",
-            "team_chaos"
+            "team_chaos",
+            "on_ice"
           ],
           "title": "Kind",
           "type": "string"

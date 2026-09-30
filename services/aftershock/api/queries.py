@@ -440,6 +440,29 @@ async def leaders(
             for i, r in enumerate(rows)
         ]
         return S.LeadersResponse(season=season, kind="team_chaos", rows=out)
+    if kind == "on_ice":
+        q = text(
+            """
+            SELECT o.player_id, pl.name, o.team, o.on_ice_ppa, o.goals_for
+            FROM player_onice_ppa o JOIN players pl ON pl.id = o.player_id
+            WHERE o.season = :season ORDER BY o.on_ice_ppa DESC LIMIT :limit
+            """
+        )
+        rows = (await session.execute(q, {"season": season, "limit": limit})).all()
+        return S.LeadersResponse(
+            season=season,
+            kind="on_ice",
+            rows=[
+                S.LeaderRow(
+                    rank=i + 1,
+                    player=S.PlayerRef(id=r[0], name=r[1]),
+                    team=r[2],
+                    value=float(r[3]),
+                    count=int(r[4]),
+                )
+                for i, r in enumerate(rows)
+            ],
+        )
     column, count, order, team_sql = {
         "skater": (
             "ppa",

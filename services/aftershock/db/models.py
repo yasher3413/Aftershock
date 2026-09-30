@@ -360,3 +360,15 @@ class PushSubscription(Base):
     team: Mapped[str] = mapped_column(String(3), index=True)
     min_magnitude: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime] = _now()
+
+
+class TremorOnIce(Base):
+    """A skater on the ice for a goal (from shift charts)."""
+
+    __tablename__ = "tremor_on_ice"
+    tremor_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("tremors.id", ondelete="CASCADE"), primary_key=True
+    )
+    player_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String(3))
+    scored: Mapped[bool] = mapped_column(Boolean)

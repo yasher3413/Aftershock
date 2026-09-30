@@ -304,7 +304,7 @@ class LeaderRow(Model):
 
 class LeadersResponse(Model):
     season: int
-    kind: Literal["skater", "assist", "goalie", "team_chaos"]
+    kind: Literal["skater", "assist", "goalie", "team_chaos", "on_ice"]
     rows: list[LeaderRow]
 
 

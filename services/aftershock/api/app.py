@@ -235,7 +235,7 @@ async def tremor(tremor_id: int, session: Db) -> S.Tremor:
 async def leaders(
     session: Db,
     season: int | None = None,
-    kind: Literal["skater", "assist", "goalie", "team_chaos"] = "skater",
+    kind: Literal["skater", "assist", "goalie", "team_chaos", "on_ice"] = "skater",
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> S.LeadersResponse:
     return await Q.leaders(session, season or current_season(), kind, limit)

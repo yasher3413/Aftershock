@@ -197,7 +197,7 @@ export interface HealthResponse {
  * via the `definition` "LeadersResponse".
  */
 export interface LeadersResponse {
-  kind: "skater" | "assist" | "goalie" | "team_chaos";
+  kind: "skater" | "assist" | "goalie" | "team_chaos" | "on_ice";
   rows: LeaderRow[];
   season: number;
 }

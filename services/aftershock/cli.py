@@ -241,3 +241,15 @@ def vapid_keys() -> None:
     )
     typer.echo(f"VAPID_PUBLIC_KEY={b64(public)}")
     typer.echo(f"VAPID_PRIVATE_KEY={b64(private)}")
+
+
+@app.command()
+def onice(season: Annotated[list[int], typer.Option(help="Season id(s).")]) -> None:
+    """Credit on-ice skaters for every goal from shift charts (on-ice PPA)."""
+    from aftershock.jobs.onice import run_on_ice
+
+    async def run() -> None:
+        for s in season:
+            typer.echo(await run_on_ice(s))
+
+    asyncio.run(run())
