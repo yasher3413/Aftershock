@@ -1,8 +1,5 @@
 /* Generated from services/aftershock/api/schemas.py. Do not edit; run `make types`. */
 
-/**
- * Root that references every wire type, for JSON Schema export.
- */
 export interface Schema {
   game: GameResponse;
   health: HealthResponse;
@@ -43,26 +40,26 @@ export interface GameResponse {
  */
 export interface GameSummary {
   away: string;
-  away_score?: number | null;
-  away_sog?: number | null;
-  clock_seconds?: number | null;
+  away_score: number | null;
+  away_sog: number | null;
+  clock_seconds: number | null;
   game_type: number;
   home: string;
-  home_score?: number | null;
-  home_sog?: number | null;
+  home_score: number | null;
+  home_sog: number | null;
   id: number;
-  in_intermission?: boolean;
-  last_period_type?: string | null;
+  in_intermission: boolean;
+  last_period_type: string | null;
   night_date: string;
-  period?: number | null;
-  period_type?: string | null;
-  pregame?: SixWay | null;
+  period: number | null;
+  period_type: string | null;
+  pregame: SixWay | null;
   season: number;
-  stakes?: number | null;
+  stakes: number | null;
   start_utc: string;
   state: string;
   venue: string | null;
-  wp?: SixWay | null;
+  wp: SixWay | null;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -84,8 +81,8 @@ export interface ShotOut {
   event_id: number;
   goal: boolean;
   period: number;
-  shooter?: PlayerRef | null;
-  shot_type?: string | null;
+  shooter: PlayerRef | null;
+  shot_type: string | null;
   t_period_s: number;
   team: string;
   x: number;
@@ -105,29 +102,29 @@ export interface PlayerRef {
  * via the `definition` "Tremor".
  */
 export interface Tremor {
-  assists?: PlayerRef[];
+  assists: PlayerRef[];
   away: string;
   cpa: number;
   created_at: string;
   deltas: TeamDelta[];
   event_id: number;
   game_id: number;
-  goalie?: PlayerRef | null;
+  goalie: PlayerRef | null;
   home: string;
   id: number;
   magnitude: number;
   night_date: string;
   opponent: string;
   origin: Origin;
-  overturned?: boolean;
+  overturned: boolean;
   period: number;
   period_type: string;
   ppa: number;
   score_after: Score;
   score_before: Score;
-  scorer?: PlayerRef | null;
+  scorer: PlayerRef | null;
   season: number;
-  shootout?: boolean;
+  shootout: boolean;
   t_game_s: number;
   t_period_s: number;
   team: string;
@@ -151,10 +148,10 @@ export interface TeamDelta {
  * via the `definition` "Origin".
  */
 export interface Origin {
-  label?: string | null;
+  label: string | null;
   lat: number;
   lon: number;
-  off_map?: boolean;
+  off_map: boolean;
   venue: string | null;
 }
 /**
@@ -206,7 +203,7 @@ export interface LeadersResponse {
  */
 export interface LeaderRow {
   count: number;
-  player?: PlayerRef | null;
+  player: PlayerRef | null;
   rank: number;
   team: string;
   value: number;
@@ -221,7 +218,7 @@ export interface HelloMsg {
   server_time: string;
   state_version: number;
   ts: string;
-  type?: "hello";
+  type: "hello";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -231,7 +228,7 @@ export interface GameUpdateMsg {
   game: GameSummary;
   seq: number;
   ts: string;
-  type?: "game_update";
+  type: "game_update";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -244,11 +241,11 @@ export interface EventMsg {
   period: number;
   seq: number;
   t_period_s: number;
-  team?: string | null;
+  team: string | null;
   ts: string;
-  type?: "event";
-  x?: number | null;
-  y?: number | null;
+  type: "event";
+  x: number | null;
+  y: number | null;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -258,7 +255,7 @@ export interface TremorMsg {
   seq: number;
   tremor: Tremor;
   ts: string;
-  type?: "tremor";
+  type: "tremor";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -271,7 +268,7 @@ export interface TremorUpdatedMsg {
   seq: number;
   tremor_id: number;
   ts: string;
-  type?: "tremor_updated";
+  type: "tremor_updated";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -284,7 +281,7 @@ export interface TremorReversedMsg {
   seq: number;
   tremor_id: number;
   ts: string;
-  type?: "tremor_reversed";
+  type: "tremor_reversed";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -296,7 +293,7 @@ export interface OddsUpdateMsg {
   sim_run_id: number;
   trigger: string;
   ts: string;
-  type?: "odds_update";
+  type: "odds_update";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -325,7 +322,7 @@ export interface StandingsUpdateMsg {
   seq: number;
   standings: StandingsRow[];
   ts: string;
-  type?: "standings_update";
+  type: "standings_update";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -348,7 +345,7 @@ export interface StandingsRow {
   rw: number;
   team: string;
   w: number;
-  wildcard_rank?: number | null;
+  wildcard_rank: number | null;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -358,7 +355,7 @@ export interface RecapReadyMsg {
   night_date: string;
   seq: number;
   ts: string;
-  type?: "recap_ready";
+  type: "recap_ready";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -367,7 +364,7 @@ export interface RecapReadyMsg {
 export interface HeartbeatMsg {
   seq: number;
   ts: string;
-  type?: "heartbeat";
+  type: "heartbeat";
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -397,12 +394,12 @@ export interface RecapResponse {
  * via the `definition` "StateResponse".
  */
 export interface StateResponse {
-  game_of_the_night?: number | null;
+  game_of_the_night: number | null;
   live_games: GameSummary[];
   mode: "live" | "demo";
   odds: TeamOdds[];
-  odds_day_start?: TeamOdds[];
-  replay?: ReplayInfo | null;
+  odds_day_start: TeamOdds[];
+  replay: ReplayInfo | null;
   season: number;
   server_time: string;
   sim_run_id: number | null;
@@ -418,7 +415,7 @@ export interface StateResponse {
  * via the `definition` "ReplayInfo".
  */
 export interface ReplayInfo {
-  next_live_utc?: string | null;
+  next_live_utc: string | null;
   night_date: string;
   season: number;
   speed: number;
@@ -562,5 +559,5 @@ export interface RootingLine {
  */
 export interface TremorPage {
   items: Tremor[];
-  next_cursor?: string | null;
+  next_cursor: string | null;
 }

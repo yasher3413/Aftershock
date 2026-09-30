@@ -77,11 +77,15 @@
       "required": [
         "seq",
         "ts",
+        "type",
         "game_id",
         "event_id",
         "kind",
         "period",
-        "t_period_s"
+        "t_period_s",
+        "team",
+        "x",
+        "y"
       ],
       "title": "EventMsg",
       "type": "object"
@@ -121,14 +125,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "game",
-        "wp",
-        "shots",
-        "xg_home",
-        "xg_away",
-        "tremors"
-      ],
+      "required": ["game", "wp", "shots", "xg_home", "xg_away", "tremors"],
       "title": "GameResponse",
       "type": "object"
     },
@@ -324,7 +321,19 @@
         "home",
         "away",
         "venue",
-        "state"
+        "state",
+        "period",
+        "period_type",
+        "clock_seconds",
+        "in_intermission",
+        "home_score",
+        "away_score",
+        "home_sog",
+        "away_sog",
+        "last_period_type",
+        "pregame",
+        "wp",
+        "stakes"
       ],
       "title": "GameSummary",
       "type": "object"
@@ -350,11 +359,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "game"
-      ],
+      "required": ["seq", "ts", "type", "game"],
       "title": "GameUpdateMsg",
       "type": "object"
     },
@@ -399,10 +404,7 @@
           "title": "Last Sim Ms"
         },
         "mode": {
-          "enum": [
-            "live",
-            "demo"
-          ],
+          "enum": ["live", "demo"],
           "title": "Mode",
           "type": "string"
         },
@@ -457,20 +459,14 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts"
-      ],
+      "required": ["seq", "ts", "type"],
       "title": "HeartbeatMsg",
       "type": "object"
     },
     "HelloMsg": {
       "properties": {
         "mode": {
-          "enum": [
-            "live",
-            "demo"
-          ],
+          "enum": ["live", "demo"],
           "title": "Mode",
           "type": "string"
         },
@@ -499,13 +495,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "mode",
-        "server_time",
-        "state_version"
-      ],
+      "required": ["seq", "ts", "type", "mode", "server_time", "state_version"],
       "title": "HelloMsg",
       "type": "object"
     },
@@ -522,10 +512,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "x",
-        "p"
-      ],
+      "required": ["x", "p"],
       "title": "HistBin",
       "type": "object"
     },
@@ -566,14 +553,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "job",
-        "status",
-        "started_at",
-        "finished_at",
-        "detail"
-      ],
+      "required": ["id", "job", "status", "started_at", "finished_at", "detail"],
       "title": "JobRunOut",
       "type": "object"
     },
@@ -607,24 +587,14 @@
           "type": "number"
         }
       },
-      "required": [
-        "rank",
-        "team",
-        "value",
-        "count"
-      ],
+      "required": ["rank", "player", "team", "value", "count"],
       "title": "LeaderRow",
       "type": "object"
     },
     "LeadersResponse": {
       "properties": {
         "kind": {
-          "enum": [
-            "skater",
-            "assist",
-            "goalie",
-            "team_chaos"
-          ],
+          "enum": ["skater", "assist", "goalie", "team_chaos"],
           "title": "Kind",
           "type": "string"
         },
@@ -640,11 +610,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "season",
-        "kind",
-        "rows"
-      ],
+      "required": ["season", "kind", "rows"],
       "title": "LeadersResponse",
       "type": "object"
     },
@@ -672,13 +638,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "night_date",
-        "season",
-        "total_energy",
-        "n_games",
-        "n_tremors"
-      ],
+      "required": ["night_date", "season", "total_energy", "n_games", "n_tremors"],
       "title": "NightInfo",
       "type": "object"
     },
@@ -704,12 +664,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "t",
-        "sim_run_id",
-        "trigger",
-        "value"
-      ],
+      "required": ["t", "sim_run_id", "trigger", "value"],
       "title": "OddsPoint",
       "type": "object"
     },
@@ -746,13 +701,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "sim_run_id",
-        "trigger",
-        "odds"
-      ],
+      "required": ["seq", "ts", "type", "sim_run_id", "trigger", "odds"],
       "title": "OddsUpdateMsg",
       "type": "object"
     },
@@ -795,11 +744,7 @@
           "title": "Venue"
         }
       },
-      "required": [
-        "venue",
-        "lat",
-        "lon"
-      ],
+      "required": ["venue", "lat", "lon", "off_map", "label"],
       "title": "Origin",
       "type": "object"
     },
@@ -814,10 +759,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "title": "PlayerRef",
       "type": "object"
     },
@@ -844,11 +786,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "night_date"
-      ],
+      "required": ["seq", "ts", "type", "night_date"],
       "title": "RecapReadyMsg",
       "type": "object"
     },
@@ -883,14 +821,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "night_date",
-        "headline",
-        "body",
-        "key_numbers",
-        "model",
-        "validated"
-      ],
+      "required": ["night_date", "headline", "body", "key_numbers", "model", "validated"],
       "title": "RecapResponse",
       "type": "object"
     },
@@ -923,11 +854,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "night_date",
-        "season",
-        "speed"
-      ],
+      "required": ["night_date", "season", "speed", "next_live_utc"],
       "title": "ReplayInfo",
       "type": "object"
     },
@@ -1036,14 +963,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "game_id",
-        "start_utc",
-        "opponent",
-        "home",
-        "p_win",
-        "p_points"
-      ],
+      "required": ["game_id", "start_utc", "opponent", "home", "p_win", "p_points"],
       "title": "ScheduleGame",
       "type": "object"
     },
@@ -1058,10 +978,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "home",
-        "away"
-      ],
+      "required": ["home", "away"],
       "title": "Score",
       "type": "object"
     },
@@ -1131,7 +1048,9 @@
         "x",
         "y",
         "xg",
-        "goal"
+        "goal",
+        "shooter",
+        "shot_type"
       ],
       "title": "ShotOut",
       "type": "object"
@@ -1175,14 +1094,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "home_reg",
-        "home_ot",
-        "home_so",
-        "away_reg",
-        "away_ot",
-        "away_so"
-      ],
+      "required": ["home_reg", "home_ot", "home_so", "away_reg", "away_ot", "away_so"],
       "title": "SixWay",
       "type": "object"
     },
@@ -1281,7 +1193,8 @@
         "ga",
         "division_rank",
         "conference_rank",
-        "league_rank"
+        "league_rank",
+        "wildcard_rank"
       ],
       "title": "StandingsRow",
       "type": "object"
@@ -1311,11 +1224,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "standings"
-      ],
+      "required": ["seq", "ts", "type", "standings"],
       "title": "StandingsUpdateMsg",
       "type": "object"
     },
@@ -1341,10 +1250,7 @@
           "type": "array"
         },
         "mode": {
-          "enum": [
-            "live",
-            "demo"
-          ],
+          "enum": ["live", "demo"],
           "title": "Mode",
           "type": "string"
         },
@@ -1435,6 +1341,7 @@
       },
       "required": [
         "mode",
+        "replay",
         "server_time",
         "state_version",
         "season",
@@ -1443,8 +1350,10 @@
         "venues",
         "standings",
         "odds",
+        "odds_day_start",
         "live_games",
         "tonight",
+        "game_of_the_night",
         "tremors"
       ],
       "title": "StateResponse",
@@ -1479,12 +1388,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "health",
-        "sim_runs",
-        "reconcile",
-        "jobs"
-      ],
+      "required": ["health", "sim_runs", "reconcile", "jobs"],
       "title": "StatusResponse",
       "type": "object"
     },
@@ -1513,13 +1417,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "team",
-        "d_playoffs",
-        "d_division",
-        "d_cup",
-        "p_playoffs_after"
-      ],
+      "required": ["team", "d_playoffs", "d_division", "d_cup", "p_playoffs_after"],
       "title": "TeamDelta",
       "type": "object"
     },
@@ -1693,13 +1591,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "player",
-        "goals",
-        "ppa",
-        "assists",
-        "assist_ppa"
-      ],
+      "required": ["player", "goals", "ppa", "assists", "assist_ppa"],
       "title": "TeamPlayerPpa",
       "type": "object"
     },
@@ -1943,10 +1835,14 @@
         "opponent",
         "home",
         "away",
+        "scorer",
+        "assists",
+        "goalie",
         "period",
         "period_type",
         "t_period_s",
         "t_game_s",
+        "shootout",
         "score_before",
         "score_after",
         "wp_before",
@@ -1957,6 +1853,7 @@
         "ppa",
         "cpa",
         "origin",
+        "overturned",
         "created_at"
       ],
       "title": "Tremor",
@@ -1983,11 +1880,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "tremor"
-      ],
+      "required": ["seq", "ts", "type", "tremor"],
       "title": "TremorMsg",
       "type": "object"
     },
@@ -2013,9 +1906,7 @@
           "title": "Next Cursor"
         }
       },
-      "required": [
-        "items"
-      ],
+      "required": ["items", "next_cursor"],
       "title": "TremorPage",
       "type": "object"
     },
@@ -2055,14 +1946,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "tremor_id",
-        "game_id",
-        "origin",
-        "deltas"
-      ],
+      "required": ["seq", "ts", "type", "tremor_id", "game_id", "origin", "deltas"],
       "title": "TremorReversedMsg",
       "type": "object"
     },
@@ -2093,12 +1977,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "tremor_id",
-        "changes"
-      ],
+      "required": ["seq", "ts", "type", "tremor_id", "changes"],
       "title": "TremorUpdatedMsg",
       "type": "object"
     },
@@ -2125,13 +2004,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "name",
-        "city",
-        "country",
-        "lat",
-        "lon"
-      ],
+      "required": ["name", "city", "country", "lat", "lon"],
       "title": "VenueInfo",
       "type": "object"
     },
@@ -2171,18 +2044,11 @@
           "type": "integer"
         }
       },
-      "required": [
-        "t_game_s",
-        "event_id",
-        "p_home",
-        "p_away",
-        "p_tie"
-      ],
+      "required": ["t_game_s", "event_id", "p_home", "p_away", "p_tie"],
       "title": "WpPoint",
       "type": "object"
     }
   },
-  "description": "Root that references every wire type, for JSON Schema export.",
   "properties": {
     "game": {
       "$ref": "#/$defs/GameResponse"

@@ -17,7 +17,9 @@ Prob = Annotated[float, Field(ge=0.0, le=1.0)]
 
 
 class Model(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, json_schema_serialization_defaults_required=True
+    )
 
 
 class TeamInfo(Model):
@@ -431,6 +433,8 @@ LiveMessage = Annotated[
 
 class Schema(BaseModel):
     """Root that references every wire type, for JSON Schema export."""
+
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
     state: StateResponse
     team: TeamResponse
