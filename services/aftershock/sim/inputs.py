@@ -77,6 +77,8 @@ class SimInputs:
     playoff_p: NDArray[np.float32]
     tie_theta: float
     focus: NDArray[np.uint32]
+    # Per-simulation team strength noise (log-odds scale), tuned by the backtest.
+    team_sigma: float = 0.0
 
     def copy(self) -> SimInputs:
         return replace(
@@ -269,4 +271,5 @@ async def build_inputs(
         playoff_p=playoff_matrix(sim_engine, schedule.teams),
         tie_theta=params.tie_theta,
         focus=np.array(focus, dtype=np.uint32),
+        team_sigma=float(getattr(shrink, "sigma", 0.0)),
     )

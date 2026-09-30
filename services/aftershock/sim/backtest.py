@@ -38,6 +38,7 @@ REPORT_SEASONS = (20212022, 20222023, 20232024, 20242025, 20252026)
 CHECKPOINT_MONTHS = (10, 11, 12, 1, 2, 3, 4)
 RAMP_FRACTION = 0.15  # share of the season after which the mid-season shrink applies
 SHRINK_GRID = (1.0, 0.85, 0.7, 0.6, 0.5, 0.4, 0.3)
+SIGMA_GRID = (0.0, 0.1, 0.15, 0.2, 0.25, 0.3)
 N_SIMS = 4000
 
 # Pulled-goalie overtime losses recorded as regulation losses (see the gold test).
@@ -107,10 +108,12 @@ def build_checkpoints(
 @dataclass(frozen=True)
 class ShrinkSchedule:
     """Rating shrink for simulated games: ``start`` before the season, easing
-    linearly to ``mid`` once RAMP_FRACTION of the season has been played."""
+    linearly to ``mid`` once RAMP_FRACTION of the season has been played.
+    ``sigma`` is the per-simulation team strength noise."""
 
     start: float
     mid: float
+    sigma: float = 0.0
 
     def __call__(self, fraction_played: float) -> float:
         k = min(1.0, max(0.0, fraction_played / RAMP_FRACTION))
@@ -131,9 +134,9 @@ def simulate_checkpoint(
 ) -> tuple[list[str], NDArray[np.float64], set[str]]:
     """(teams, P(playoffs) per team, actual playoff teams)."""
     gold = load_gold(cp.season)
-    if isinstance(shrink, ShrinkSchedule):
-        played = sum(1 for r in gold["results"] if date.fromisoformat(r["date"]) < cp.as_of)
-        shrink = shrink(played / len(gold["results"]))
+    sched = shrink if isinstance(shrink, ShrinkSchedule) else ShrinkSchedule(shrink, shrink)
+    played = sum(1 for r in gold["results"] if date.fromisoformat(r["date"]) < cp.as_of)
+    shrink = sched(played / len(gold["results"]))
     cfg_teams: list[str] = sim_factory.config_teams(config_name(cp.season))
     idx = {t: i for i, t in enumerate(cfg_teams)}
     results = sorted(gold["results"], key=lambda r: (r["date"], r["id"]))
@@ -171,6 +174,7 @@ def simulate_checkpoint(
         N_SIMS,
         seed,
         np.zeros(0, np.uint32),
+        team_sigma=sched.sigma,
     )
     actual = {
         o["abbrev"]
@@ -203,14 +207,29 @@ def run_backtest(settings: Settings | None = None) -> dict[str, Any]:
     tune_cps = build_checkpoints(TUNE_SEASONS, params, s)
     pre = [c for c in tune_cps if c.as_of.month == 10]
     rest = [c for c in tune_cps if c.as_of.month != 10]
-    grid_pre = {k: score(pre, k, aftershock_core)[0] for k in SHRINK_GRID}
-    grid = {k: score(rest, k, aftershock_core)[0] for k in SHRINK_GRID}
-    best = ShrinkSchedule(
-        start=min(grid_pre, key=lambda k: grid_pre[k]), mid=min(grid, key=lambda k: grid[k])
-    )
+    candidates: dict[float, tuple[ShrinkSchedule, float]] = {}
+    grids: dict[float, dict[str, dict[str, float]]] = {}
+    for sigma in SIGMA_GRID:
+        g_pre = {
+            k: score(pre, ShrinkSchedule(k, k, sigma), aftershock_core)[0] for k in SHRINK_GRID
+        }
+        g_in = {
+            k: score(rest, ShrinkSchedule(k, k, sigma), aftershock_core)[0] for k in SHRINK_GRID
+        }
+        sched = ShrinkSchedule(
+            min(g_pre, key=lambda k: g_pre[k]), min(g_in, key=lambda k: g_in[k]), sigma
+        )
+        candidates[sigma] = (sched, score(tune_cps, sched, aftershock_core)[0])
+        grids[sigma] = {
+            "preseason": {str(k): v for k, v in g_pre.items()},
+            "in_season": {str(k): v for k, v in g_in.items()},
+        }
+    best = min(candidates.values(), key=lambda c: c[1])[0]
+    grid_pre = {float(k): v for k, v in grids[best.sigma]["preseason"].items()}
+    grid = {float(k): v for k, v in grids[best.sigma]["in_season"].items()}
     report_cps = build_checkpoints(REPORT_SEASONS, params, s)
     brier, rows = score(report_cps, best, aftershock_core)
-    _, rows_unshrunk = score(report_cps, 1.0, aftershock_core)
+    _, rows_unshrunk = score(report_cps, ShrinkSchedule(1.0, 1.0, 0.0), aftershock_core)
 
     # Baseline: logistic regression of P(playoffs) on points percentage to
     # date and games played, fit on the tuning seasons.
@@ -255,6 +274,8 @@ def run_backtest(settings: Settings | None = None) -> dict[str, Any]:
         "shrink_grid_brier_preseason": {str(k): v for k, v in grid_pre.items()},
         "shrink_grid_brier_in_season": {str(k): v for k, v in grid.items()},
         "shrink": {"start": best.start, "mid": best.mid, "ramp_fraction": RAMP_FRACTION},
+        "team_sigma": best.sigma,
+        "sigma_grid_tune_brier": {str(k): v[1] for k, v in candidates.items()},
         "brier": {
             "sim": brier,
             "sim_unshrunk": float(np.mean((p0 - y) ** 2)),
@@ -284,6 +305,7 @@ def run_backtest(settings: Settings | None = None) -> dict[str, Any]:
             "shrink_start": best.start,
             "shrink_mid": best.mid,
             "ramp_fraction": RAMP_FRACTION,
+            "team_sigma": best.sigma,
             "tuned_on": list(TUNE_SEASONS),
         },
     )
@@ -296,4 +318,6 @@ def load_shrink(settings: Settings | None = None) -> ShrinkSchedule:
     if not path.exists():
         return ShrinkSchedule(1.0, 1.0)
     data = json.loads(path.read_text())
-    return ShrinkSchedule(float(data["shrink_start"]), float(data["shrink_mid"]))
+    return ShrinkSchedule(
+        float(data["shrink_start"]), float(data["shrink_mid"]), float(data.get("team_sigma", 0.0))
+    )

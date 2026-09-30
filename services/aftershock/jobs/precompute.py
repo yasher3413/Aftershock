@@ -167,6 +167,7 @@ class SeasonPrecompute:
             playoff_p=np.zeros((len(schedule.teams),) * 2, np.float32),
             tie_theta=self.params.tie_theta,
             focus=np.zeros(0, np.uint32),
+            team_sigma=self.shrink.sigma,
         )
         by_night: dict[date, list[Game]] = {}
         for g in games:
