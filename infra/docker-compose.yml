@@ -27,5 +27,45 @@ services:
       timeout: 3s
       retries: 20
 
+  api:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aftershock:aftershock@postgres:5432/aftershock
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: infra/worker.Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aftershock:aftershock@postgres:5432/aftershock
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      api: { condition: service_started }
+    restart: unless-stopped
+
+  web:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+
 volumes:
   pgdata:

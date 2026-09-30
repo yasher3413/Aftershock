@@ -1,0 +1,10 @@
+data
+logs
+target
+**/node_modules
+**/.venv
+web/dist
+web/src/wasm/pkg
+.git
+.claude
+**/__pycache__
