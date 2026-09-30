@@ -284,6 +284,8 @@ Each run takes a `SimInput`:
 - `focus_games`: schedule indices whose outcome is recorded per simulation
   (live games plus the next seven days).
 - `n_sims`, `seed`.
+- `team_sigma`: per-simulation team strength noise (see below); 0
+  disables it.
 
 ### Preparation (once per run)
 
@@ -326,6 +328,66 @@ Work is split into chunks of 64 simulations. With the `parallel` feature
 allocates nothing. Tallies are integers merged by addition, so the result
 does not depend on how chunks are scheduled. Without the feature (wasm) the
 same chunk code runs serially.
+
+### Team strength uncertainty
+
+With fixed per-game probabilities, the only randomness in a simulated
+season is the bounce of individual games. Over 84 games those bounces
+mostly cancel out, so a team the model rates as clearly strong makes the
+playoffs in nearly every simulation and preseason odds come out extreme
+(99.9 percent). That overstates what we know: the model's rating of a team
+is itself uncertain, and if a team is really better or worse than rated,
+that error shows up in every one of its games at once, not independently
+game by game.
+
+`team_sigma` adds that uncertainty. In each simulation, every team draws
+one strength shift `delta[t] = team_sigma * Phi^-1(u)`, a normal draw on
+the log-odds scale, where `u` comes from the counter RNG keyed by `(seed,
+sim, team, Stream::TeamStrength)`. That stream is new, so no existing
+outcome, scoreline, live-goal, or playoff draw changes. The inverse normal
+CDF is Acklam's algorithm in `f64` (relative error below 1.2e-9), with `u`
+kept strictly inside (0, 1).
+
+Within that simulation, every future game (not final, not live) is tilted
+by the two teams' shifts. With `ph = p0 + p1 + p2` the home win total, the
+new home win total is `ph' = sigmoid(logit(ph) + delta[home] -
+delta[away])`. The three home outcomes are scaled by `ph' / ph` and the
+three away outcomes by `(1 - ph') / (1 - ph)`, so the split between
+regulation, overtime, and shootout within each side is kept. The same
+`Outcome` uniform is then inverted against the tilted boundaries.
+Scorelines are still sampled inside the sampled class. Playoff games use
+`p' = sigmoid(logit(playoff_p[i][j]) + delta[i] - delta[j])`. Live games
+are not tilted: their probabilities already reflect the game in progress.
+
+In one simulation a team might play like a 0.2 log-odds better team all
+season, in another like a 0.2 worse one, which is what spreads out
+season-long results. In the unit test with sharpened game probabilities
+and `team_sigma = 0.35`, the strongest team's playoff odds fall from
+100.00 to 99.15 percent and the weakest team's rise from 0.00 to 0.20
+percent, and the spread of every team's odds around one half shrinks.
+
+Properties kept:
+
+- `team_sigma = 0` takes the original code path. A fingerprint of a fixed
+  mixed final, live, and future scenario (every count, histogram bin, and
+  per-simulation record), recorded before the feature existed, still
+  matches (`tests/sim_fingerprint.rs`).
+- With noise on, results are identical for any thread count, and changing
+  one game's probabilities still never changes any other game's sampled
+  outcome, because the shifts are keyed by team, not by any game's inputs.
+  A property test recomputes every tilted outcome independently from the
+  uniforms.
+- Reweighting and conditional tables are unchanged. Reweighting stays
+  exact for live games, which are never tilted. For a future focus game
+  with noise on, the recorded "old" probabilities are the untilted ones,
+  so reweighting it is an approximation.
+
+Cost: the shifts are computed once per simulation per team (32 `exp`
+calls), and each tilted game adds one division and a few multiplies. On
+the benchmark below, `team_sigma = 0.15` adds about 9 percent single
+threaded (28.2 to 30.7 microseconds per season) and about 14 percent on 8
+threads (median 132 to 150 ms, p95 161 to 184 ms for 20,000 seasons,
+measured under a load average near 10).
 
 ### Scorelines and live conditioning
 
@@ -408,7 +470,8 @@ Python (`crates/aftershock-py`, module `aftershock_core`, built with
   uint8[n], away_goals uint8[n], end uint8[n] (0 REG, 1 OT, 2 SO, 3 OT
   forfeit), live_home uint8[n], live_away uint8[n], probs float32[n, 6],
   lam float32[n, 2], playoff_p float32[t, t], tie_theta float, n_sims int,
-  seed int, focus uint32[f]) -> SimResult`. The GIL is released while
+  seed int, focus uint32[f], team_sigma: float = 0.0) -> SimResult`
+  (`team_sigma` is keyword with default 0.0). The GIL is released while
   simulating.
 - `SimResult`: `metrics` (dict name -> float64[t]), `points_hist`
   (int64[t, max_points + 1]), `seed_dist` (float64[t, 6]), `seed_slots`,
@@ -426,7 +489,8 @@ Python (`crates/aftershock-py`, module `aftershock_core`, built with
 WASM (`crates/aftershock-wasm`, `wasm-pack build crates/aftershock-wasm
 --release --target web`): `simulate(json_state: string, n_sims: number,
 seed: bigint) -> string`. Input and output JSON are documented at the top
-of `crates/aftershock-wasm/src/lib.rs`; each output team has every metric
+of `crates/aftershock-wasm/src/lib.rs`. The optional input field
+`"team_sigma"` (default 0) turns on team strength noise. Each output team has every metric
 above, `seed_dist` as an object keyed by slot, and `points_hist` (counts
 indexed by points, trailing zeros trimmed). Single threaded. For the same
 input and seed, the native and wasm outputs were checked to be
@@ -479,6 +543,9 @@ full playoffs, 112 focus games.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Native (rayon) | 8 | 20,000 | 1,344 | 105 ms | 123 ms | 5.3 us | `examples/sim_timing.rs`, 50 runs |
 | Native (serial) | 1 | 2,000 | 1,344 | 50 ms | 54 ms | 25 us | same, `RAYON_NUM_THREADS=1` |
+| Native (rayon), `team_sigma = 0` rerun | 8 | 20,000 | 1,344 | 132 ms | 161 ms | 6.6 us | `sim_timing -- 20000 40 0`, load near 10 |
+| Native (rayon), `team_sigma = 0.15` | 8 | 20,000 | 1,344 | 150 ms | 184 ms | 7.5 us | `sim_timing -- 20000 40 0.15`, same session |
+| Native (serial), `team_sigma = 0.15` | 1 | 2,000 | 1,344 | 61 ms | 70 ms | 30.7 us | same session (28.2 us with 0) |
 | WASM (node, proxy) | 1 | 10,000 | 1,344 | 275 ms | 306 ms | 27.5 us | `bench/node_bench.mjs`, 20 runs |
 | WASM (node, proxy) | 1 | 10,000 | 672 (mid-season) | 146 ms | 151 ms | 14.6 us | same |
 
