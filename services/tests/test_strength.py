@@ -96,3 +96,13 @@ def test_new_season_regresses_ratings() -> None:
     engine.team("AAA").off = 0.2
     engine.start_season(20252026)
     assert engine.team("AAA").off == pytest.approx(0.12)
+
+
+def test_reliability_handles_constant_predictions() -> None:
+    import math
+
+    from aftershock.ml.metrics import reliability
+
+    rel = reliability(np.array([0.0, 1.0, 1.0]), np.array([0.5, 0.5, 0.5]))
+    assert not math.isnan(rel["ece"])
+    assert rel["ece"] == pytest.approx(abs(0.5 - 2 / 3))

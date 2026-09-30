@@ -48,6 +48,8 @@ def reliability(y: Array, p: Array, bins: int = 15, strategy: str = "quantile") 
         edges = np.unique(np.quantile(p, np.linspace(0, 1, bins + 1)))
     else:
         edges = np.linspace(0, 1, bins + 1)
+    if len(edges) < 2:  # constant predictions: a single bin
+        edges = np.array([float(p.min()), float(p.max()) + 1e-12])
     idx = np.clip(np.searchsorted(edges, p, side="right") - 1, 0, len(edges) - 2)
     pred, obs, count = [], [], []
     for b in range(len(edges) - 1):
