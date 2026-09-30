@@ -68,3 +68,85 @@ Each entry: date, decision, alternatives considered, reason.
   multiclass, and the brief requires win probability to be monotonic in the
   score. The outcomes are naturally ordered (away win, tie, home win), so a
   cumulative model is both principled and guarantees the property.
+
+## 2026-09-30: Tied subgroups restart the tiebreak chain
+
+- **Decision:** when a tiebreak step separates some but not all clubs in a
+  tied group, each still-tied subgroup goes back to step 1 with only its own
+  members. In practice this only changes the head-to-head step: a three-way
+  tie reduced to two clubs is settled by those two clubs' games against each
+  other.
+- **Alternatives:** continue down the chain from the next step with the
+  remaining clubs.
+- **Reason:** the official NHL text (NHL.com tie-breaking procedure) is
+  silent on this. Restarting is what leagues that spell it out do (MLB, the
+  NFL) and keeps "points earned in games against each other among the tied
+  clubs" literal. No validated season has a case that distinguishes the
+  two readings, so the gold test cannot arbitrate.
+
+## 2026-09-30: Each standings grouping is tiebroken on its own
+
+- **Decision:** division order, wild-card order (clubs outside the division
+  top three), conference order, and league order are each sorted
+  separately, with head-to-head computed among the clubs tied inside that
+  grouping.
+- **Alternatives:** sort the conference once and derive division and
+  wild-card order by filtering it.
+- **Reason:** the rule compares "games among the tied clubs", and which
+  clubs are tied depends on the grouping. Every validated season matches
+  the official division, wild-card, conference, and league order this way.
+
+## 2026-09-30: The `nhl-2010` chain has four steps
+
+- **Decision:** the pre-2019-20 chain is points percentage, ROW,
+  head-to-head, goal differential, with no total-wins or goals-for step.
+- **Alternatives:** the 2019 chain minus the RW step (which would keep
+  total wins and goals for).
+- **Reason:** that is the official text served with the NHL.com standings
+  in April 2018 (archived on the Wayback Machine, cited in
+  `docs/SIMULATOR.md`).
+
+## 2026-09-30: Deterministic fallbacks where the official procedure ends
+
+- **Decision:** if every step of the chain is equal, clubs keep config
+  order. In a multi-club head-to-head, a club with no counted games against
+  the others counts as 50 percent.
+- **Alternatives:** a seeded coin flip; treating no games as 0 percent.
+- **Reason:** the official procedure ends in a draw or a tiebreak game,
+  which a deterministic engine cannot reproduce. Both cases are
+  vanishingly rare and never occur in the validated seasons; a fixed rule
+  keeps results reproducible and independent of feed order.
+
+## 2026-09-30: Odd games are fixed from the schedule
+
+- **Decision:** `Schedule::new` marks each pair's odd game once, from the
+  schedule order: if a pair meets an odd number of times, the first game
+  hosted by the club with more home meetings is excluded from head-to-head.
+  The gold test orders games by date, then game id. Pairs with an even
+  number of meetings keep every game.
+- **Alternatives:** determine the odd game from results as they arrive.
+- **Reason:** the whole schedule is known before the season, so a
+  precomputed flag keeps `apply` branch-light and makes standings
+  independent of the order in which results are fed. The pre-2019 wording
+  ("not played an equal number of home games") and the current wording
+  ("not played an even number of games") agree whenever the meeting count
+  is odd, and in the validated seasons every pair with unequal hosting met
+  an odd number of times.
+
+## 2026-09-30: Division winner seeding uses the conference standings
+
+- **Decision:** the division winner placed higher in the conference
+  standings meets WC2. Home ice in each series still uses the pairwise
+  `better_record` comparison.
+- **Alternatives:** use `better_record` between the two division winners.
+- **Reason:** the two agree except in a points tie involving a third club,
+  where the standings are the reference the NHL publishes. Matches all
+  validated first rounds.
+
+## 2026-09-30: League configs are embedded in the core crate
+
+- **Decision:** `LeagueConfig::builtin(name)` returns configs embedded with
+  `include_str!` from `config/leagues/`; tests also read the files from disk.
+- **Alternatives:** read files at runtime only.
+- **Reason:** the wasm32 build has no filesystem, and embedding keeps one
+  source of truth.
