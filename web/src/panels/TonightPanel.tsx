@@ -50,6 +50,7 @@ export function TonightPanel() {
   const games = useLive((s) => s.games);
   const tonight = useLive((s) => s.tonight);
   const got = useLive((s) => s.gameOfTheNight);
+  const scenarios = useLive((s) => s.clinchScenarios);
   const mode = useClock((s) => s.mode);
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -79,6 +80,15 @@ export function TonightPanel() {
         )}
       </div>
       {list.length === 0 && <p className="mt-2 text-[13px] text-ink-soft">No games tonight.</p>}
+      {scenarios.length > 0 && (
+        <ul className="mt-2 text-[13px]">
+          {scenarios.map((s) => (
+            <li key={s} className="font-semibold">
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
       <ul className="mt-2 divide-y divide-ice-scratch">
         {sorted.map((g) => {
           const p = homeWin(g);

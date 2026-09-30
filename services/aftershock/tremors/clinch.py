@@ -62,3 +62,47 @@ def clinch_status(rows: list[S.StandingsRow], games_per_team: int) -> dict[str, 
             magic = max(0, rivals_max[4] + 1 - r.points)
         out[r.team] = ClinchInfo(r.team, status, magic, mx)
     return out
+
+
+def tonight_scenarios(
+    rows: list[S.StandingsRow], games_per_team: int, tonight: list[tuple[str, str]]
+) -> list[str]:
+    """Plain-language clinch scenarios for teams playing tonight.
+
+    For each team not yet clinched: does a win clinch? If not, does a win
+    plus regulation losses by the rivals who play tonight clinch?
+    """
+    by_team = {r.team: r for r in rows}
+    playing = {t for g in tonight for t in g}
+    base = clinch_status(rows, games_per_team)
+    out: list[str] = []
+    for team in sorted(playing):
+        r = by_team.get(team)
+        if r is None or base[team].status != "alive":
+            continue
+
+        def after(win: bool, losers: set[str], team: str = team) -> Status:
+            upd = []
+            for o in rows:
+                if o.team == team and win:
+                    o = o.model_copy(update={"points": o.points + 2, "gp": o.gp + 1})
+                elif o.team in losers:
+                    o = o.model_copy(update={"gp": o.gp + 1})
+                upd.append(o)
+            return clinch_status(upd, games_per_team)[team].status
+
+        if after(True, set()) == "clinched":
+            out.append(f"{team} clinches a playoff spot with a win.")
+            continue
+        rivals = {
+            t
+            for t in playing
+            if t != team and by_team.get(t) is not None and by_team[t].conference == r.conference
+        }
+        opponent = next((a if b == team else b for a, b in tonight if team in (a, b)), None)
+        rivals.discard(opponent or "")
+        if rivals and after(True, rivals) == "clinched":
+            out.append(
+                f"{team} clinches with a win and regulation losses by {', '.join(sorted(rivals))}."
+            )
+    return out

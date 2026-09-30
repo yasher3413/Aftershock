@@ -169,8 +169,17 @@ async def build_state(
                 speed=20,
                 next_live_utc=await next_live_start(session, now),
             )
+    scenarios: list[str] = []
+    if standings:
+        from aftershock.sim.inputs import league_config
+        from aftershock.tremors.clinch import tonight_scenarios
+
+        per_team = int(league_config(season)["games_per_team"])
+        upcoming = [(g.away, g.home) for g in tonight if g.state in ("FUT", "PRE")]
+        scenarios = tonight_scenarios(standings, per_team, upcoming)
     return S.StateResponse(
         mode=mode,
+        clinch_scenarios=scenarios,
         replay=replay,
         server_time=now,
         state_version=state_version,

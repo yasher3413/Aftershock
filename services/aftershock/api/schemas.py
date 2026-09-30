@@ -191,6 +191,7 @@ class StateResponse(Model):
     live_games: list[GameSummary]
     tonight: list[GameSummary]
     game_of_the_night: int | None = None
+    clinch_scenarios: list[str] = Field(default_factory=list)
     tremors: list[Tremor]
 
 

@@ -63,3 +63,18 @@ def test_opening_day_everyone_is_alive_with_a_magic_number() -> None:
     info = clinch_status(start, games_per_team=82)
     assert all(i.status == "alive" for i in info.values())
     assert all(i.magic_number == 165 for i in info.values())
+
+
+def test_tonight_scenarios_find_a_win_that_clinches() -> None:
+    rows, _ = final_rows(20252026)
+    # Rewind every team by two games; the best team's win would then clinch.
+    rewound = [r.model_copy(update={"gp": r.gp - 2, "points": max(0, r.points - 2)}) for r in rows]
+    best = max(rewound, key=lambda r: r.points)
+    from aftershock.tremors.clinch import tonight_scenarios
+
+    lines = tonight_scenarios(rewound, 82, [(best.team, "XXX")])
+    info = clinch_status(rewound, 82)[best.team]
+    if info.status == "alive":
+        assert lines and lines[0].startswith(best.team)
+    else:
+        assert lines == []

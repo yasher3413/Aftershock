@@ -439,6 +439,7 @@ export interface ReplayInitial {
  * via the `definition` "StateResponse".
  */
 export interface StateResponse {
+  clinch_scenarios: string[];
   game_of_the_night: number | null;
   live_games: GameSummary[];
   mode: "live" | "demo";

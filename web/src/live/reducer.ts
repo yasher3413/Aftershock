@@ -32,6 +32,7 @@ export interface LiveData {
   games: Record<number, GameSummary>;
   tonight: number[];
   gameOfTheNight: number | null;
+  clinchScenarios: string[];
   tremors: Tremor[];
   quakes: Quake[];
   lastSeq: number;
@@ -53,6 +54,7 @@ export const emptyLiveData: LiveData = {
   games: {},
   tonight: [],
   gameOfTheNight: null,
+  clinchScenarios: [],
   tremors: [],
   quakes: [],
   lastSeq: 0,
@@ -83,6 +85,7 @@ export function fromState(s: StateResponse): LiveData {
     games,
     tonight: s.tonight.map((g) => g.id),
     gameOfTheNight: s.game_of_the_night ?? null,
+    clinchScenarios: s.clinch_scenarios ?? [],
     tremors: s.tremors,
   };
 }

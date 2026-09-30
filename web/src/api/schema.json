@@ -1525,6 +1525,13 @@
     },
     "StateResponse": {
       "properties": {
+        "clinch_scenarios": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Clinch Scenarios",
+          "type": "array"
+        },
         "game_of_the_night": {
           "anyOf": [
             {
@@ -1652,6 +1659,7 @@
         "live_games",
         "tonight",
         "game_of_the_night",
+        "clinch_scenarios",
         "tremors"
       ],
       "title": "StateResponse",
