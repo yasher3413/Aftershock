@@ -22,4 +22,8 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["src/routes.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
 );
