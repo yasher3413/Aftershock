@@ -1,0 +1,10 @@
+{
+  "ramp_fraction": 0.15,
+  "shrink_mid": 0.7,
+  "shrink_start": 0.5,
+  "tuned_on": [
+    20162017,
+    20172018,
+    20182019
+  ]
+}
