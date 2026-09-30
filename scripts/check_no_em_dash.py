@@ -26,6 +26,7 @@ SKIP_PATTERNS = (
     "data/*",
     "ml/artifacts/*",
     "web/public/geo/*",
+    "web/e2e/fixtures/*",
     "*.lock",
     "uv.lock",
     "Cargo.lock",
