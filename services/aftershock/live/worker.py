@@ -563,6 +563,12 @@ class Worker:
         await run_ratings(self.settings)
         await self.boot()
         await self.reconcile(self.standings)
+        from aftershock.jobs.onice import run_on_ice
+
+        try:
+            await run_on_ice(self.season)
+        except Exception as exc:
+            log.warning("worker.onice_failed", error=str(exc))
 
     async def maybe_recap(self) -> None:
         """Fifteen minutes after the night's last game goes final."""
