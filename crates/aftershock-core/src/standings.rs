@@ -17,6 +17,13 @@ pub enum EndType {
     Overtime,
     /// Decided by shootout.
     Shootout,
+    /// Decided in overtime while the losing club had pulled its goalkeeper
+    /// for an extra attacker. Under the NHL regular-season overtime rule the
+    /// loser forfeits the point it earned by reaching overtime, and the
+    /// official standings record the game as a regulation loss (L, 0 points)
+    /// for it. The winner is credited with an overtime win (ROW, not RW).
+    /// The NHL feed reports these games as plain `OT`.
+    OvertimeForfeit,
 }
 
 impl EndType {
@@ -203,6 +210,11 @@ impl SeasonAccumulator {
                 self.otl[lose] += 1;
                 ps.otl
             }
+            EndType::OvertimeForfeit => {
+                self.row[win] += 1;
+                self.l[lose] += 1;
+                ps.loss
+            }
         };
         self.points[lose] += lose_pts;
         if game.counts_h2h {
@@ -280,6 +292,18 @@ mod tests {
         assert_eq!(acc.h2h_games[1], 2);
         assert_eq!(acc.h2h_points[1], 2); // team 0: OTL + OTL
         assert_eq!(acc.h2h_points[2], 4); // team 1: two wins
+    }
+
+    #[test]
+    fn overtime_forfeit_charges_a_regulation_loss() {
+        // Two meetings, so game 0 counts for head-to-head.
+        let s = Schedule::new(2, &[(0, 1), (1, 0)]).unwrap();
+        let mut acc = SeasonAccumulator::with_points(2, ps());
+        acc.apply_indexed(&s, 0, &res(1, 2, EndType::OvertimeForfeit));
+        let (home, away) = (acc.record(0), acc.record(1));
+        assert_eq!((home.l, home.otl, home.points), (1, 0, 0));
+        assert_eq!((away.w, away.rw, away.row, away.points), (1, 0, 1, 2));
+        assert_eq!((acc.h2h_points[1], acc.h2h_points[2]), (0, 2));
     }
 
     #[test]
