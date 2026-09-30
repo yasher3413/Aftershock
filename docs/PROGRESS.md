@@ -70,6 +70,12 @@ UTC) to verify live mode end to end.
   and `redis-server --port 6379 --daemonize yes --dir ~/.aftershock`.
   The database reload runs as `logs/reload.log`.
 
-- Preseason odds for extreme teams (Carolina 99.9 percent after a Cup run)
-  exceed anything in the backtest; ratings include playoff games and the
-  strength tuning chose no season-to-season regression.
+- Fixed 2026-09-30 21:15 UTC: live preseason odds were overconfident
+  (Carolina 99.9 percent, Toronto 0.5 percent). The worker simulated future
+  games with the stored, unshrunk pregame odds instead of the shrunk ratings
+  the season backtest tuned, so a season of games compounded their
+  confidence. After the fix: Carolina 95.4, Toronto 7.8, inside the range
+  the backtest found calibrated on October 1 (1.5 to 96.5 percent across
+  2021-22 to 2025-26). A grid over the start shrink and team noise scored
+  on October 1 log loss confirmed the tuned values (0.5 and 0.1) are best
+  on both tuning and test seasons.

@@ -20,7 +20,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from aftershock.config import Settings, get_settings
-from aftershock.db.models import Game, GamePregame, Play
+from aftershock.db.models import Game, Play
 from aftershock.ml.strength import OUTCOMES, RatingEngine, StrengthParams, six_way
 from aftershock.nhl.parse import FINISHED_STATES
 
@@ -190,6 +190,27 @@ def playoff_matrix(engine: RatingEngine, teams: list[str]) -> NDArray[np.float32
     return m
 
 
+def fill_future(
+    schedule: SeasonSchedule,
+    status: NDArray[np.uint8],
+    engine: RatingEngine,
+    probs: NDArray[np.float32],
+    lam: NDArray[np.float32],
+) -> None:
+    """Outcome probabilities and scoring rates for every unplayed game, from
+    the (shrunk) simulation ratings. The stored pregame odds are the unshrunk
+    headline numbers; simulating a season on them compounds their confidence.
+    """
+    for i in range(schedule.n):
+        if status[i] == STATUS_FINAL:
+            continue
+        pre = engine.predict(
+            schedule.teams[schedule.home[i]], schedule.teams[schedule.away[i]], None
+        )
+        probs[i] = pre.p
+        lam[i] = (pre.lam_home, pre.lam_away)
+
+
 async def build_inputs(
     session: AsyncSession,
     schedule: SeasonSchedule,
@@ -212,13 +233,15 @@ async def build_inputs(
     probs = np.zeros((n, 6), dtype=np.float32)
     lam = np.zeros((n, 2), dtype=np.float32)
     rows = (
-        await session.execute(
-            select(Game, GamePregame)
-            .outerjoin(GamePregame, GamePregame.game_id == Game.id)
-            .where(Game.season == schedule.season, Game.game_type == 2)
+        (
+            await session.execute(
+                select(Game).where(Game.season == schedule.season, Game.game_type == 2)
+            )
         )
-    ).all()
-    n_final = sum(1 for g, _ in rows if g.state in FINISHED_STATES)
+        .scalars()
+        .all()
+    )
+    n_final = sum(1 for g in rows if g.state in FINISHED_STATES)
     factor = shrink(n_final / max(n, 1)) if shrink else 1.0
     sim_engine = engine
     if factor != 1.0:
@@ -226,7 +249,7 @@ async def build_inputs(
 
         sim_engine = shrunk(engine, factor)
     finals: list[Game] = []
-    for g, pg in rows:
+    for g in rows:
         i = schedule.index.get(g.id)
         if i is None:
             continue
@@ -235,21 +258,7 @@ async def build_inputs(
             status[i] = STATUS_FINAL
             hg[i], ag[i] = g.home_score, g.away_score
             end[i] = END_CODES.get(g.last_period_type or "REG", END_REG)
-        if pg is not None:
-            probs[i] = [
-                pg.p_home_reg,
-                pg.p_home_ot,
-                pg.p_home_so,
-                pg.p_away_reg,
-                pg.p_away_ot,
-                pg.p_away_so,
-            ]
-            lam[i] = [pg.exp_home_goals, pg.exp_away_goals]
-        else:
-            home, away = schedule.teams[schedule.home[i]], schedule.teams[schedule.away[i]]
-            pre = engine.predict(home, away, None)
-            probs[i] = pre.p
-            lam[i] = [pre.lam_home, pre.lam_away]
+    fill_future(schedule, status, sim_engine, probs, lam)
     for gid in await overtime_forfeits(
         session, [g.id for g in finals if g.last_period_type == "OT"]
     ):
