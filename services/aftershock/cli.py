@@ -182,3 +182,22 @@ def backtest() -> None:
 
     rep = run_backtest()
     typer.echo(json.dumps({"shrink": rep["shrink"], "brier": rep["brier"]}, indent=2))
+
+
+@app.command()
+def precompute(
+    season: Annotated[list[int], typer.Option(help="Season id(s), e.g. 20252026.")],
+    calibrate: Annotated[bool, typer.Option(help="Refit magnitude afterwards.")] = True,
+) -> None:
+    """Replay past seasons through the live pipeline: tremors, odds, replay bundles."""
+    from aftershock.jobs.precompute import SeasonPrecompute, calibrate_magnitude, rewrite_bundles
+
+    async def run() -> None:
+        for s in season:
+            await SeasonPrecompute(s).run()
+        if calibrate:
+            await calibrate_magnitude(tuple(season))
+            for s in season:
+                await rewrite_bundles(s)
+
+    asyncio.run(run())
