@@ -103,7 +103,7 @@ export default function TremorPage() {
             </a>
           </div>
         </div>
-        <div ref={ref}>
+        <div ref={ref} className="min-w-0">
           {state.data && <MiniMap tremor={t} teams={state.data.teams} width={width} />}
         </div>
       </div>
