@@ -30,6 +30,36 @@ body {
   outline-offset: 2px;
 }
 
+/* Browser surfaces carry the palette too. */
+::selection {
+  background: color-mix(in srgb, var(--blue-line) 22%, transparent);
+  color: var(--ink);
+}
+
+html {
+  caret-color: var(--blue-line);
+  accent-color: var(--blue-line);
+  scrollbar-color: var(--ice-scratch) transparent;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+select {
+  appearance: none;
+  padding-right: 1.6rem !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 55%,
+    calc(100% - 7px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
