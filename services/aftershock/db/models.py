@@ -349,3 +349,14 @@ class ReconcileEvent(Base):
     created_at: Mapped[datetime] = _now()
     kind: Mapped[str] = mapped_column(String(32))
     detail: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class PushSubscription(Base):
+    """A browser that asked to be told about big tremors involving a team."""
+
+    __tablename__ = "push_subscriptions"
+    endpoint: Mapped[str] = mapped_column(Text, primary_key=True)
+    keys: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    team: Mapped[str] = mapped_column(String(3), index=True)
+    min_magnitude: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[datetime] = _now()

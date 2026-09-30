@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     public_base_url: str = "http://localhost:8080"
     repo_url: str = "https://github.com/yasher3413/Aftershock"
     log_level: str = "INFO"
+    # Web push (optional). Generate with `aftershock vapid-keys`.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:aftershock@example.com"
+    # Discord webhook for magnitude 6+ tremors (optional).
+    discord_webhook_url: str = ""
 
     data_dir: Path = REPO_ROOT / "data"
     config_dir: Path = REPO_ROOT / "config"

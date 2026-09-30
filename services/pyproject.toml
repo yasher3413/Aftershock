@@ -24,6 +24,7 @@ dependencies = [
     "cairosvg>=2.7",
     "anthropic>=0.40",
     "tzdata>=2024.2",
+    "pywebpush>=2.5.0",
 ]
 
 [project.scripts]
