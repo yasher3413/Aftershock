@@ -125,14 +125,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "game",
-        "wp",
-        "shots",
-        "xg_home",
-        "xg_away",
-        "tremors"
-      ],
+      "required": ["game", "wp", "shots", "xg_home", "xg_away", "tremors"],
       "title": "GameResponse",
       "type": "object"
     },
@@ -366,12 +359,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "game"
-      ],
+      "required": ["seq", "ts", "type", "game"],
       "title": "GameUpdateMsg",
       "type": "object"
     },
@@ -416,10 +404,7 @@
           "title": "Last Sim Ms"
         },
         "mode": {
-          "enum": [
-            "live",
-            "demo"
-          ],
+          "enum": ["live", "demo"],
           "title": "Mode",
           "type": "string"
         },
@@ -474,21 +459,14 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type"
-      ],
+      "required": ["seq", "ts", "type"],
       "title": "HeartbeatMsg",
       "type": "object"
     },
     "HelloMsg": {
       "properties": {
         "mode": {
-          "enum": [
-            "live",
-            "demo"
-          ],
+          "enum": ["live", "demo"],
           "title": "Mode",
           "type": "string"
         },
@@ -517,14 +495,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "mode",
-        "server_time",
-        "state_version"
-      ],
+      "required": ["seq", "ts", "type", "mode", "server_time", "state_version"],
       "title": "HelloMsg",
       "type": "object"
     },
@@ -541,10 +512,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "x",
-        "p"
-      ],
+      "required": ["x", "p"],
       "title": "HistBin",
       "type": "object"
     },
@@ -585,14 +553,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "job",
-        "status",
-        "started_at",
-        "finished_at",
-        "detail"
-      ],
+      "required": ["id", "job", "status", "started_at", "finished_at", "detail"],
       "title": "JobRunOut",
       "type": "object"
     },
@@ -626,25 +587,14 @@
           "type": "number"
         }
       },
-      "required": [
-        "rank",
-        "player",
-        "team",
-        "value",
-        "count"
-      ],
+      "required": ["rank", "player", "team", "value", "count"],
       "title": "LeaderRow",
       "type": "object"
     },
     "LeadersResponse": {
       "properties": {
         "kind": {
-          "enum": [
-            "skater",
-            "assist",
-            "goalie",
-            "team_chaos"
-          ],
+          "enum": ["skater", "assist", "goalie", "team_chaos"],
           "title": "Kind",
           "type": "string"
         },
@@ -660,11 +610,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "season",
-        "kind",
-        "rows"
-      ],
+      "required": ["season", "kind", "rows"],
       "title": "LeadersResponse",
       "type": "object"
     },
@@ -692,13 +638,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "night_date",
-        "season",
-        "total_energy",
-        "n_games",
-        "n_tremors"
-      ],
+      "required": ["night_date", "season", "total_energy", "n_games", "n_tremors"],
       "title": "NightInfo",
       "type": "object"
     },
@@ -724,12 +664,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "t",
-        "sim_run_id",
-        "trigger",
-        "value"
-      ],
+      "required": ["t", "sim_run_id", "trigger", "value"],
       "title": "OddsPoint",
       "type": "object"
     },
@@ -766,14 +701,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "sim_run_id",
-        "trigger",
-        "odds"
-      ],
+      "required": ["seq", "ts", "type", "sim_run_id", "trigger", "odds"],
       "title": "OddsUpdateMsg",
       "type": "object"
     },
@@ -816,13 +744,7 @@
           "title": "Venue"
         }
       },
-      "required": [
-        "venue",
-        "lat",
-        "lon",
-        "off_map",
-        "label"
-      ],
+      "required": ["venue", "lat", "lon", "off_map", "label"],
       "title": "Origin",
       "type": "object"
     },
@@ -837,10 +759,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "title": "PlayerRef",
       "type": "object"
     },
@@ -867,12 +786,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "night_date"
-      ],
+      "required": ["seq", "ts", "type", "night_date"],
       "title": "RecapReadyMsg",
       "type": "object"
     },
@@ -907,14 +821,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "night_date",
-        "headline",
-        "body",
-        "key_numbers",
-        "model",
-        "validated"
-      ],
+      "required": ["night_date", "headline", "body", "key_numbers", "model", "validated"],
       "title": "RecapResponse",
       "type": "object"
     },
@@ -950,14 +857,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "night_date",
-        "season",
-        "start_utc",
-        "duration_ms",
-        "initial",
-        "frames"
-      ],
+      "required": ["night_date", "season", "start_utc", "duration_ms", "initial", "frames"],
       "title": "ReplayBundleOut",
       "type": "object"
     },
@@ -1018,10 +918,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "t",
-        "message"
-      ],
+      "required": ["t", "message"],
       "title": "ReplayFrame",
       "type": "object"
     },
@@ -1054,12 +951,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "night_date",
-        "season",
-        "speed",
-        "next_live_utc"
-      ],
+      "required": ["night_date", "season", "speed", "next_live_utc"],
       "title": "ReplayInfo",
       "type": "object"
     },
@@ -1087,11 +979,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "odds",
-        "standings",
-        "games"
-      ],
+      "required": ["odds", "standings", "games"],
       "title": "ReplayInitial",
       "type": "object"
     },
@@ -1200,14 +1088,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "game_id",
-        "start_utc",
-        "opponent",
-        "home",
-        "p_win",
-        "p_points"
-      ],
+      "required": ["game_id", "start_utc", "opponent", "home", "p_win", "p_points"],
       "title": "ScheduleGame",
       "type": "object"
     },
@@ -1222,10 +1103,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "home",
-        "away"
-      ],
+      "required": ["home", "away"],
       "title": "Score",
       "type": "object"
     },
@@ -1341,14 +1219,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "home_reg",
-        "home_ot",
-        "home_so",
-        "away_reg",
-        "away_ot",
-        "away_so"
-      ],
+      "required": ["home_reg", "home_ot", "home_so", "away_reg", "away_ot", "away_so"],
       "title": "SixWay",
       "type": "object"
     },
@@ -1478,12 +1349,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "standings"
-      ],
+      "required": ["seq", "ts", "type", "standings"],
       "title": "StandingsUpdateMsg",
       "type": "object"
     },
@@ -1509,10 +1375,7 @@
           "type": "array"
         },
         "mode": {
-          "enum": [
-            "live",
-            "demo"
-          ],
+          "enum": ["live", "demo"],
           "title": "Mode",
           "type": "string"
         },
@@ -1650,12 +1513,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "health",
-        "sim_runs",
-        "reconcile",
-        "jobs"
-      ],
+      "required": ["health", "sim_runs", "reconcile", "jobs"],
       "title": "StatusResponse",
       "type": "object"
     },
@@ -1684,13 +1542,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "team",
-        "d_playoffs",
-        "d_division",
-        "d_cup",
-        "p_playoffs_after"
-      ],
+      "required": ["team", "d_playoffs", "d_division", "d_cup", "p_playoffs_after"],
       "title": "TeamDelta",
       "type": "object"
     },
@@ -1864,13 +1716,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "player",
-        "goals",
-        "ppa",
-        "assists",
-        "assist_ppa"
-      ],
+      "required": ["player", "goals", "ppa", "assists", "assist_ppa"],
       "title": "TeamPlayerPpa",
       "type": "object"
     },
@@ -2159,12 +2005,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "tremor"
-      ],
+      "required": ["seq", "ts", "type", "tremor"],
       "title": "TremorMsg",
       "type": "object"
     },
@@ -2190,10 +2031,7 @@
           "title": "Next Cursor"
         }
       },
-      "required": [
-        "items",
-        "next_cursor"
-      ],
+      "required": ["items", "next_cursor"],
       "title": "TremorPage",
       "type": "object"
     },
@@ -2233,15 +2071,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "tremor_id",
-        "game_id",
-        "origin",
-        "deltas"
-      ],
+      "required": ["seq", "ts", "type", "tremor_id", "game_id", "origin", "deltas"],
       "title": "TremorReversedMsg",
       "type": "object"
     },
@@ -2272,13 +2102,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "seq",
-        "ts",
-        "type",
-        "tremor_id",
-        "changes"
-      ],
+      "required": ["seq", "ts", "type", "tremor_id", "changes"],
       "title": "TremorUpdatedMsg",
       "type": "object"
     },
@@ -2305,13 +2129,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "name",
-        "city",
-        "country",
-        "lat",
-        "lon"
-      ],
+      "required": ["name", "city", "country", "lat", "lon"],
       "title": "VenueInfo",
       "type": "object"
     },
@@ -2351,13 +2169,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "t_game_s",
-        "event_id",
-        "p_home",
-        "p_away",
-        "p_tie"
-      ],
+      "required": ["t_game_s", "event_id", "p_home", "p_away", "p_tie"],
       "title": "WpPoint",
       "type": "object"
     }
