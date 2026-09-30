@@ -1,0 +1,1 @@
+"""Nightly recap generation."""
