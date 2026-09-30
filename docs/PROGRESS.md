@@ -36,12 +36,24 @@ UTC) to verify live mode end to end.
 
 ## Next
 
-- After the precompute rerun: recheck the magnitude scale and the month
-  profile, update the methodology copy with the measured numbers, capture
-  README media, refresh e2e fixtures.
-- Tonight: watch the worker on real games; record tremor latency; turn the
-  recorded live sequences into live-engine test fixtures.
-- Tag v1.0.0 after the live night (v0.4.0 to v0.6.0 are tagged).
+Tonight (2026-09-30, first puck drop 23:30 UTC: PIT at PHI, NYI at TOR,
+then LAK at COL at 02:00 UTC). The worker runs on its own; these checks
+work from logs and recordings afterwards:
+
+1. `grep worker.tremor_latency logs/worker.log`: goal detection to broadcast
+   should be under 2000 ms.
+2. Watch for `tremor_reversed` / attribution changes in the worker log and
+   that the map showed them.
+3. After the last final: recap stored for 2026-09-30 (OpenAI key is set,
+   model gpt-6.1-sol), night bundle written, `/night/2026-09-30` plays.
+4. `uv run python ../scripts/make_live_fixtures.py` (from services/), then add
+   live-engine tests on the recorded sequences.
+5. Final PROGRESS summary, then tag v1.0.0.
+
+Later (UI, from the impeccable critique in .impeccable/critique/): replace
+the flagged body face and widen the type scale; redesign Leaders, Method,
+and Status like the team page; smaller notes (ring meaning inline, pp and M
+inline, mobile tap targets, magnitude color).
 
 ## Background jobs
 
