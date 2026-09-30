@@ -81,6 +81,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Build the WASM simulator
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq binaryen
           curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
           wasm-pack build ../crates/aftershock-wasm --release --target web --out-dir ../../web/src/wasm/pkg
       - uses: astral-sh/setup-uv@v5
