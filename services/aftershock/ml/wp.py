@@ -32,6 +32,7 @@ import numpy as np
 import polars as pl
 import structlog
 from numpy.typing import NDArray
+from scipy.stats import skellam
 from sklearn.linear_model import LogisticRegression
 
 from aftershock.config import Settings, get_settings
@@ -201,6 +202,49 @@ def combine(pa: NDArray[np.float64], pb: NDArray[np.float64]) -> NDArray[np.floa
 
 
 # ----------------------------------------------------------------------
+# Analytic baseline: the boosting starts from it
+
+BASE_LAM_HOME = 3.0  # league-typical regulation goals per 60 minutes
+BASE_LAM_AWAY = 2.8
+
+
+def skellam_base(
+    score_diff: NDArray[np.float64], secs_left: NDArray[np.float64]
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """(P(home does not lose), P(home wins)) in regulation from score and clock only.
+
+    Remaining goals are Poisson for each side, so the final margin is the
+    current margin plus a Skellam variable. Exact at the extremes (a decided
+    game is 0 or 1), which trees alone struggle to reach.
+    """
+    frac = np.clip(secs_left, 0, REG_GAME_S) / REG_GAME_S
+    mu1 = np.maximum(BASE_LAM_HOME * frac, 1e-9)
+    mu2 = np.maximum(BASE_LAM_AWAY * frac, 1e-9)
+    # P(D + X1 - X2 >= 0) = P(X1 - X2 >= -D); skellam.sf(k) = P(K > k).
+    p_a = skellam.sf(-score_diff - 1, mu1, mu2)
+    p_b = skellam.sf(-score_diff, mu1, mu2)
+    return np.asarray(p_a, dtype=np.float64), np.asarray(p_b, dtype=np.float64)
+
+
+def _logit(p: NDArray[np.float64]) -> NDArray[np.float64]:
+    p = np.clip(p, 1e-6, 1 - 1e-6)
+    return np.asarray(np.log(p / (1 - p)), dtype=np.float64)
+
+
+def base_scores(
+    df_or_rows: pl.DataFrame | Sequence[dict[str, Any]],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    if isinstance(df_or_rows, pl.DataFrame):
+        sd = df_or_rows["score_diff"].to_numpy().astype(np.float64)
+        sl = df_or_rows["secs_left"].to_numpy().astype(np.float64)
+    else:
+        sd = np.array([float(r["score_diff"]) for r in df_or_rows])
+        sl = np.array([float(r["secs_left"]) for r in df_or_rows])
+    pa, pb = skellam_base(sd, sl)
+    return _logit(pa), _logit(pb)
+
+
+# ----------------------------------------------------------------------
 # Training
 
 
@@ -247,12 +291,20 @@ def _fit_pair(
     return boosters[0], boosters[1]
 
 
-def _predict_pair(
-    a: lgb.Booster, b: lgb.Booster, X: NDArray[np.float32]
+def _sigmoid(z: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.asarray(1.0 / (1.0 + np.exp(-z)), dtype=np.float64)
+
+
+def predict_pair(
+    a: lgb.Booster,
+    b: lgb.Booster,
+    X: NDArray[np.float32],
+    base: tuple[NDArray[np.float64], NDArray[np.float64]],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    pa = np.asarray(a.predict(X, num_iteration=a.best_iteration), dtype=np.float64)
-    pb = np.asarray(b.predict(X, num_iteration=b.best_iteration), dtype=np.float64)
-    return pa, pb
+    """Probabilities from the baseline logit plus the trees' raw correction."""
+    ra = np.asarray(a.predict(X, raw_score=True, num_iteration=a.best_iteration or None))
+    rb = np.asarray(b.predict(X, raw_score=True, num_iteration=b.best_iteration or None))
+    return _sigmoid(base[0] + ra), _sigmoid(base[1] + rb)
 
 
 def _eval_3way(df: pl.DataFrame, p: NDArray[np.float64]) -> dict[str, Any]:
@@ -335,7 +387,7 @@ def train(ot_stats: dict[str, float], settings: Settings | None = None) -> dict[
     for use_xg in (False, True):
         names = feature_names(use_xg)
         a, b = _fit_pair(tr, va, names)
-        pa, pb = _predict_pair(a, b, encode(va, names))
+        pa, pb = predict_pair(a, b, encode(va, names), base_scores(va))
         y_va = va["target"].to_numpy()
         w_va = va["weight"].to_numpy().astype(np.float64)
         cal_a = fit_platt(pa, (y_va != 1).astype(float), w_va)
@@ -354,7 +406,7 @@ def train(ot_stats: dict[str, float], settings: Settings | None = None) -> dict[
     use_xg = variants[True]["val_ll"] < variants[False]["val_ll"]
     chosen = variants[use_xg]
     names = chosen["names"]
-    pa, pb = _predict_pair(chosen["a"], chosen["b"], encode(te, names))
+    pa, pb = predict_pair(chosen["a"], chosen["b"], encode(te, names), base_scores(te))
     p_te = combine(chosen["cal_a"](pa), chosen["cal_b"](pb))
 
     report: dict[str, Any] = {
@@ -529,8 +581,7 @@ class WinProbModel:
         """(home, away, tie) at end of regulation for each state."""
         rows = [st.features(_pre3(pg)) for st, pg in zip(states, pregame, strict=True)]
         X = encode_states(rows, self.names)
-        pa = np.asarray(self.a.predict(X), dtype=np.float64)
-        pb = np.asarray(self.b.predict(X), dtype=np.float64)
+        pa, pb = predict_pair(self.a, self.b, X, base_scores(rows))
         return combine(self.cal_a(pa), self.cal_b(pb))
 
     def six_way(

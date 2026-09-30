@@ -123,6 +123,15 @@ class GameStateTracker:
         self._xg = xg or {}
         self._shooter_team = shooter_team or {}
 
+    def set_xg(self, xg: dict[int, float], shooter_team: dict[int, int]) -> None:
+        """Provide per-event xG (and the shooting team) for the cumulative xG feature."""
+        self._xg = xg
+        self._shooter_team = shooter_team
+
+    @property
+    def xg_maps(self) -> tuple[dict[int, float], dict[int, int]]:
+        return self._xg, self._shooter_team
+
     def _expire(self, t: float) -> None:
         self._penalties = [p for p in self._penalties if p.ends_s > t]
 
