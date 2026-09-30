@@ -37,6 +37,7 @@ export function LineChart({
   width,
   yMax = 1,
   formatX,
+  xTicks,
   ariaLabel,
 }: Props) {
   const id = useId();
