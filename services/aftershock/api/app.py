@@ -16,7 +16,7 @@ import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, Response
 from redis.asyncio import Redis
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocketDisconnect
 
@@ -249,6 +249,39 @@ async def odds_history(
         return await Q.odds_history(session, team.upper(), metric, season or current_season())
     except ValueError as exc:
         raise HTTPException(422, f"Unknown metric {metric}") from exc
+
+
+@router.get("/energy", response_model=list[S.EnergySeries])
+async def energy(
+    session: Db, seasons: Annotated[list[int] | None, Query()] = None
+) -> list[S.EnergySeries]:
+    """League energy by day of season: the nightly sum of every goal's total shift."""
+    wanted = seasons or [current_season() - 20002, current_season() - 10001, current_season()]
+    rows = (
+        await session.execute(
+            text(
+                """
+        SELECT t.season, t.night_date, sum(t.total_shift)
+        FROM tremors t JOIN games g ON g.id = t.game_id
+        WHERE t.season = ANY(:s) AND g.game_type = 2 AND NOT t.overturned
+        GROUP BY 1, 2 ORDER BY 1, 2
+        """
+            ),
+            {"s": wanted},
+        )
+    ).all()
+    out: dict[int, list[S.EnergyPoint]] = {s: [] for s in wanted}
+    first: dict[int, date] = {}
+    total: dict[int, float] = {}
+    for season, night, shift in rows:
+        first.setdefault(season, night)
+        total[season] = total.get(season, 0.0) + float(shift)
+        out[season].append(
+            S.EnergyPoint(
+                day=(night - first[season]).days, shift=float(shift), cumulative=total[season]
+            )
+        )
+    return [S.EnergySeries(season=s, points=p) for s, p in out.items()]
 
 
 @router.get("/replay/nights", response_model=list[S.NightInfo])

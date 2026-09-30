@@ -1,5 +1,6 @@
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import type {
+  EnergySeries,
   GameResponse,
   LeadersResponse,
   NightInfo,
@@ -74,6 +75,13 @@ export const useMethodology = () =>
   useQuery({
     queryKey: ["methodology"],
     queryFn: () => api<Methodology>("/methodology"),
+    staleTime: 600_000,
+  });
+
+export const useEnergy = () =>
+  useQuery({
+    queryKey: ["energy"],
+    queryFn: () => api<EnergySeries[]>("/energy"),
     staleTime: 600_000,
   });
 

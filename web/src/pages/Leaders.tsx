@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useLeaders, useStateQuery, useTremors } from "../api/client";
+import { useEnergy, useLeaders, useStateQuery, useTremors } from "../api/client";
+import { LineChart } from "../charts/LineChart";
+import { useWidth } from "../charts/useWidth";
 import type { LeadersResponse } from "../api/types.gen";
 import { pct, pp } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
@@ -13,7 +15,7 @@ const SEASONS = [
   { id: 20242025, label: "2024-25" },
 ];
 
-type Tab = LeadersResponse["kind"] | "tremors" | "lottery";
+type Tab = LeadersResponse["kind"] | "tremors" | "lottery" | "energy";
 const TABS: { id: Tab; label: string; blurb: string }[] = [
   {
     id: "skater",
@@ -38,6 +40,12 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
     blurb: "How much a team's goals moved everyone else's playoff odds.",
   },
   { id: "tremors", label: "Top 100 tremors", blurb: "The season's biggest goals by magnitude." },
+  {
+    id: "energy",
+    label: "Season energy",
+    blurb:
+      "How much every goal has shaken the standings, added up night by night, this season against the last two. Steeper means more violent.",
+  },
   {
     id: "lottery",
     label: "Lottery watch",
@@ -100,6 +108,36 @@ function LeaderTable({ season, kind }: { season: number; kind: LeadersResponse["
         ))}
       </tbody>
     </table>
+  );
+}
+
+const SEASON_COLORS = ["var(--ink-soft)", "var(--blue-line)", "var(--goal)"];
+
+function Energy() {
+  const { data } = useEnergy();
+  const [ref, width] = useWidth<HTMLDivElement>(700);
+  if (!data) return <p className="text-ink-soft">Loading</p>;
+  const series = data.map((s, i) => ({
+    name: `${Math.floor(s.season / 10000)}-${String((s.season % 10000) % 100).padStart(2, "0")}`,
+    color: SEASON_COLORS[i] ?? "var(--ink)",
+    points: s.points.map((p) => ({ t: p.day, v: p.cumulative * 100 })),
+  }));
+  const yMax = Math.max(1, ...series.flatMap((s) => s.points.map((p) => p.v)));
+  return (
+    <div ref={ref}>
+      <LineChart
+        width={width}
+        height={260}
+        yMax={yMax}
+        series={series}
+        formatX={(t) => `Day ${Math.round(t)}`}
+        formatY={(v) => v.toFixed(0)}
+        ariaLabel="Cumulative league energy by day of season, in percentage points of playoff odds moved"
+      />
+      <p className="mt-2 text-[12px] text-ink-soft">
+        Percentage points of playoff odds moved by all goals, cumulative.
+      </p>
+    </div>
   );
 }
 
@@ -205,6 +243,8 @@ export default function LeadersPage() {
           <TopTremors season={season} />
         ) : tab === "lottery" ? (
           <Lottery />
+        ) : tab === "energy" ? (
+          <Energy />
         ) : (
           <LeaderTable season={season} kind={tab} />
         )}

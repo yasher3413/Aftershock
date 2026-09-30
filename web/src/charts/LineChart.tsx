@@ -26,6 +26,7 @@ interface Props {
   yMax?: number;
   formatX?: (t: number) => string;
   xTicks?: number[];
+  formatY?: (v: number) => string;
   ariaLabel: string;
 }
 
@@ -38,6 +39,7 @@ export function LineChart({
   yMax = 1,
   formatX,
   xTicks,
+  formatY,
   ariaLabel,
 }: Props) {
   const id = useId();
@@ -86,7 +88,7 @@ export function LineChart({
           <g key={v}>
             <line x1={pad.l} x2={width - pad.r} y1={y(v)} y2={y(v)} stroke="var(--ice-scratch)" />
             <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-soft)">
-              {Math.round((v / 1) * 100)}%
+              {formatY ? formatY(v) : `${Math.round(v * 100)}%`}
             </text>
           </g>
         ))}
@@ -145,7 +147,10 @@ export function LineChart({
           return (
             <span key={s.name} className="inline-flex items-center gap-1.5">
               <span className="inline-block h-0.5 w-4" style={{ background: s.color }} />
-              {s.name} <span className="tabular-nums text-ink-soft">{at ? pct(at.v) : ""}</span>
+              {s.name}{" "}
+              <span className="tabular-nums text-ink-soft">
+                {at ? (formatY ? formatY(at.v) : pct(at.v)) : ""}
+              </span>
             </span>
           );
         })}

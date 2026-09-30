@@ -309,6 +309,17 @@ class LeadersResponse(Model):
     rows: list[LeaderRow]
 
 
+class EnergyPoint(Model):
+    day: int  # days since the season's first night
+    shift: float  # total playoff-odds shift that night, summed over goals
+    cumulative: float
+
+
+class EnergySeries(Model):
+    season: int
+    points: list[EnergyPoint]
+
+
 class NightInfo(Model):
     night_date: date
     season: int
@@ -489,6 +500,7 @@ class Schema(BaseModel):
     tremor_page: TremorPage
     leaders: LeadersResponse
     nights: list[NightInfo]
+    energy: list[EnergySeries]
     health: HealthResponse
     status: StatusResponse
     recap: RecapResponse

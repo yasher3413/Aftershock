@@ -36,6 +36,50 @@
       "title": "ClinchOut",
       "type": "object"
     },
+    "EnergyPoint": {
+      "properties": {
+        "cumulative": {
+          "title": "Cumulative",
+          "type": "number"
+        },
+        "day": {
+          "title": "Day",
+          "type": "integer"
+        },
+        "shift": {
+          "title": "Shift",
+          "type": "number"
+        }
+      },
+      "required": [
+        "day",
+        "shift",
+        "cumulative"
+      ],
+      "title": "EnergyPoint",
+      "type": "object"
+    },
+    "EnergySeries": {
+      "properties": {
+        "points": {
+          "items": {
+            "$ref": "#/$defs/EnergyPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "season",
+        "points"
+      ],
+      "title": "EnergySeries",
+      "type": "object"
+    },
     "EventMsg": {
       "properties": {
         "event_id": {
@@ -2429,6 +2473,13 @@
   },
   "description": "Root that references every wire type, for JSON Schema export.",
   "properties": {
+    "energy": {
+      "items": {
+        "$ref": "#/$defs/EnergySeries"
+      },
+      "title": "Energy",
+      "type": "array"
+    },
     "game": {
       "$ref": "#/$defs/GameResponse"
     },
@@ -2521,6 +2572,7 @@
     "tremor_page",
     "leaders",
     "nights",
+    "energy",
     "health",
     "status",
     "recap",

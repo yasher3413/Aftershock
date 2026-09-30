@@ -4,6 +4,7 @@
  * Root that references every wire type, for JSON Schema export.
  */
 export interface Schema {
+  energy: EnergySeries[];
   game: GameResponse;
   health: HealthResponse;
   leaders: LeadersResponse;
@@ -25,6 +26,23 @@ export interface Schema {
   status: StatusResponse;
   team: TeamResponse;
   tremor_page: TremorPage;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "EnergySeries".
+ */
+export interface EnergySeries {
+  points: EnergyPoint[];
+  season: number;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "EnergyPoint".
+ */
+export interface EnergyPoint {
+  cumulative: number;
+  day: number;
+  shift: number;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
