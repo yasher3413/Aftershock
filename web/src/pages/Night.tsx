@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router";
 import { api, useRecap } from "../api/client";
-import type { ReplayBundleOut, StateResponse } from "../api/types.gen";
+import type { GameSummary, ReplayBundleOut, StateResponse } from "../api/types.gen";
 import { startReplay } from "../live/bootstrap";
 import { useClock } from "../live/clock";
 import { useLive } from "../live/store";
@@ -10,7 +11,7 @@ import { Seismograph } from "../seismo/Seismograph";
 import { TonightPanel } from "../panels/TonightPanel";
 import { TremorFeed } from "../panels/TremorFeed";
 import { StandingsPanel } from "../panels/StandingsPanel";
-import { longDate } from "../lib/format";
+import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 
 function todayEastern(): string {
@@ -24,6 +25,84 @@ function todayEastern(): string {
 }
 
 type Status = "loading" | "ready" | "missing";
+
+const FINISHED = new Set(["FINAL", "OFF"]);
+
+function homeWin(g: GameSummary): number | null {
+  const p = g.pregame;
+  return p ? p.home_reg + p.home_ot + p.home_so : null;
+}
+
+/** The night's games before its replay exists: times, odds, and scores so far. */
+function NightSchedule({ date }: { date: string }) {
+  const games = useQuery({
+    queryKey: ["games", date],
+    queryFn: () => api<GameSummary[]>(`/games?date=${date}`),
+    refetchInterval: 60_000,
+  });
+  const list = [...(games.data ?? [])].sort(
+    (a, b) => Date.parse(a.start_utc) - Date.parse(b.start_utc),
+  );
+  const started = list.some((g) => g.state !== "FUT" && g.state !== "PRE");
+  return (
+    <div className="mx-auto w-full max-w-xl px-4 py-12">
+      <h1 className="display text-[38px] font-bold">{longDate(date)}</h1>
+      {games.isLoading ? (
+        <p className="mt-3 text-ink-soft">Loading the schedule</p>
+      ) : list.length === 0 ? (
+        <p className="mt-3 text-ink-soft">
+          No games this night. Replays exist for every night of the 2024-25 and 2025-26 seasons.
+        </p>
+      ) : (
+        <>
+          <p className="mt-3 text-ink-soft">
+            {started
+              ? "Games are under way. Follow them on the live map; the full replay appears here once every game is final."
+              : "The replay appears here once every game is final. Until then, the live map shows each goal as it happens."}
+          </p>
+          <ul className="mt-6 divide-y divide-ice-scratch border-y border-ice-scratch">
+            {list.map((g) => {
+              const p = homeWin(g);
+              const live = !FINISHED.has(g.state) && g.state !== "FUT" && g.state !== "PRE";
+              return (
+                <li key={g.id}>
+                  <Link
+                    to={`/game/${g.id}`}
+                    className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-3"
+                  >
+                    <span className="display text-[20px] font-bold">
+                      {g.away} <span className="text-[14px] font-normal text-ink-soft">at</span>{" "}
+                      {g.home}
+                    </span>
+                    <span className="text-right tabular-nums">
+                      {g.home_score != null && g.away_score != null
+                        ? `${g.away_score}-${g.home_score}${FINISHED.has(g.state) ? " final" : ""}`
+                        : localTime(g.start_utc)}
+                    </span>
+                    <span className="text-[13px] text-ink-soft">{g.venue}</span>
+                    <span className="text-right text-[13px] text-ink-soft tabular-nums">
+                      {live
+                        ? "Live"
+                        : p != null && !FINISHED.has(g.state)
+                          ? `${g.home} ${pct(p, 0)} to win`
+                          : ""}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      <Link
+        to="/"
+        className="mt-6 inline-block font-semibold text-blue-line underline underline-offset-4"
+      >
+        Go to the live map
+      </Link>
+    </div>
+  );
+}
 
 export default function NightPage() {
   const params = useParams();
@@ -62,23 +141,7 @@ export default function NightPage() {
     };
   }, [date]);
 
-  if (status === "missing") {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-12">
-        <h1 className="display text-[38px] font-bold">{longDate(date)}</h1>
-        <p className="mt-3 text-ink-soft">
-          There is no replay for this night yet. Replays exist for every night of the 2024-25 and
-          2025-26 seasons, and for this season's nights once their games are final.
-        </p>
-        <Link
-          to="/"
-          className="mt-6 inline-block font-semibold text-blue-line underline underline-offset-4"
-        >
-          Back to tonight
-        </Link>
-      </div>
-    );
-  }
+  if (status === "missing") return <NightSchedule date={date} />;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

@@ -43,6 +43,8 @@ def main() -> None:
         "team-MTL": get("/api/teams/MTL"),
         "whatif": get("/api/whatif/bootstrap"),
         "methodology": get("/api/methodology"),
+        # A night with no replay yet shows its schedule instead.
+        "games-2026-09-30": get("/api/games?date=2026-09-30"),
     }
     for name, body in fixtures.items():
         path = OUT / f"{name}.json.gz"

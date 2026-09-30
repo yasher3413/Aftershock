@@ -68,3 +68,11 @@ test("reduced motion shows no rings or shake", async ({ browser }) => {
   expect(animations).toBe(0);
   await context.close();
 });
+
+test("a night without a replay shows its schedule", async ({ page }) => {
+  await page.goto("/night/2026-09-30");
+  await expect(page.getByRole("heading", { name: "September 30, 2026" })).toBeVisible();
+  await expect(page.getByText("The replay appears here once every game is final")).toBeVisible();
+  await expect(page.locator('a[href^="/game/"]')).toHaveCount(3);
+  await expect(page.getByText("PHI 55% to win")).toBeVisible();
+});
