@@ -286,6 +286,24 @@ class SeasonPrecompute:
                     )
                 ).all()
             ]
+        # The bundle starts before puck drop: no scores, no outcomes yet.
+        initial_games = [
+            g.model_copy(
+                update={
+                    "state": "FUT",
+                    "period": None,
+                    "period_type": None,
+                    "clock_seconds": None,
+                    "in_intermission": False,
+                    "home_score": None,
+                    "away_score": None,
+                    "home_sog": None,
+                    "away_sog": None,
+                    "last_period_type": None,
+                }
+            )
+            for g in initial_games
+        ]
         initial_by_id = {g.id: g for g in initial_games}
         # Every game's snapshots in wall-clock order across the night.
         events: list[tuple[datetime, int, int]] = []
@@ -403,8 +421,6 @@ class SeasonPrecompute:
 
         sch = inputs.schedule
         done = np.flatnonzero(inputs.status == STATUS_FINAL)
-        if len(done) == 0:
-            return []
         res = aftershock_core.standings(
             sch.config,
             sch.home[done],
