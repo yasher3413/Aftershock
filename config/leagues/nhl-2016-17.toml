@@ -1,0 +1,53 @@
+# NHL 2016-17 regular season and playoff rules.
+# Generated once from the gold fixture team list.
+name = "NHL 2016-17"
+season = 20162017
+games_per_team = 82
+tiebreak = "nhl-2010"
+teams = [
+  "ANA", "ARI", "BOS", "BUF", "CAR", "CBJ", "CGY", "CHI",
+  "COL", "DAL", "DET", "EDM", "FLA", "LAK", "MIN", "MTL",
+  "NJD", "NSH", "NYI", "NYR", "OTT", "PHI", "PIT", "SJS",
+  "STL", "TBL", "TOR", "VAN", "WPG", "WSH",
+]
+
+[points]
+win = 2
+otl = 1
+loss = 0
+
+[overtime]
+ot_minutes = 5
+ot_skaters = 3
+shootout = true
+
+[playoffs]
+format = "division-wildcard"
+division_top = 3
+wildcards_per_conference = 2
+series_length = 7
+home_pattern = "HHAAHAH"
+
+[[conferences]]
+name = "Eastern"
+divisions = ["Atlantic", "Metropolitan"]
+
+[[conferences]]
+name = "Western"
+divisions = ["Central", "Pacific"]
+
+[[divisions]]
+name = "Atlantic"
+teams = ["BOS", "BUF", "DET", "FLA", "MTL", "OTT", "TBL", "TOR"]
+
+[[divisions]]
+name = "Metropolitan"
+teams = ["CAR", "CBJ", "NJD", "NYI", "NYR", "PHI", "PIT", "WSH"]
+
+[[divisions]]
+name = "Central"
+teams = ["CHI", "COL", "DAL", "MIN", "NSH", "STL", "WPG"]
+
+[[divisions]]
+name = "Pacific"
+teams = ["ANA", "ARI", "CGY", "EDM", "LAK", "SJS", "VAN"]

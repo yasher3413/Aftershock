@@ -18,6 +18,18 @@ const VALIDATED: &[u32] = &[
     20152016, 20162017, 20172018, 20182019, 20212022, 20222023, 20232024, 20242025, 20252026,
 ];
 
+/// Overtime losses where the loser had pulled its goalkeeper, so the NHL
+/// took away its overtime-loss point and recorded a regulation loss. The
+/// feed marks these games as plain `OT`, so they are listed here by game id.
+///
+/// - 2023021166, 2024-03-30, VGK 2 at MIN 1 (OT): Minnesota pulled Filip
+///   Gustavsson for an extra attacker in overtime and Jonathan Marchessault
+///   scored into the empty net. Official 2023-24 standings: MIN 87 points,
+///   34 L, 9 OTL. Sources:
+///   <https://www.startribune.com/minnesota-wild-vegas-golden-knights-overtime-empty-net-nhl-filip-gustavsson/600355226>,
+///   <https://thehockeynews.com/nhl/minnesota-wild/game-day/wild-fall-2-1-to-vegas-in-overtime-forfeit-point-for-pulling-goalie>.
+const OVERTIME_FORFEITS: &[u64] = &[2023021166];
+
 #[derive(Deserialize)]
 struct Fixture {
     season: u32,
@@ -135,10 +147,15 @@ fn check_season(fx: &Fixture) -> SeasonReport {
     let schedule = Schedule::new(cfg.n_teams(), &pairs).unwrap();
     let mut acc = SeasonAccumulator::new(&cfg);
     for (i, g) in games.iter().enumerate() {
+        let mut end = EndType::from_code(&g.end).expect("end code");
+        if OVERTIME_FORFEITS.contains(&g.id) {
+            assert_eq!(end, EndType::Overtime, "forfeit game {} not OT", g.id);
+            end = EndType::OvertimeForfeit;
+        }
         let r = GameResult {
             home_goals: g.home_goals,
             away_goals: g.away_goals,
-            end: EndType::from_code(&g.end).expect("end code"),
+            end,
         };
         acc.apply_indexed(&schedule, i, &r);
     }
@@ -285,10 +302,7 @@ fn gold_seasons_match_official_standings() {
             eprintln!("{}: {e}", r.season);
         }
     }
-    if !missing.is_empty() {
-        eprintln!("missing fixtures: {missing:?}");
-    }
-    assert!(!reports.is_empty(), "no gold fixtures found");
+    assert!(missing.is_empty(), "missing gold fixtures: {missing:?}");
     assert!(
         reports.iter().all(|r| r.errors.is_empty()),
         "gold mismatches, see stderr"

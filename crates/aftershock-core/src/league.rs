@@ -358,6 +358,34 @@ impl LeagueConfig {
 /// (e.g. `nhl-2025-26`). Embedded at compile time so they work on wasm32.
 pub const BUILTIN_CONFIGS: &[(&str, &str)] = &[
     (
+        "nhl-2015-16",
+        include_str!("../../../config/leagues/nhl-2015-16.toml"),
+    ),
+    (
+        "nhl-2016-17",
+        include_str!("../../../config/leagues/nhl-2016-17.toml"),
+    ),
+    (
+        "nhl-2017-18",
+        include_str!("../../../config/leagues/nhl-2017-18.toml"),
+    ),
+    (
+        "nhl-2018-19",
+        include_str!("../../../config/leagues/nhl-2018-19.toml"),
+    ),
+    (
+        "nhl-2021-22",
+        include_str!("../../../config/leagues/nhl-2021-22.toml"),
+    ),
+    (
+        "nhl-2022-23",
+        include_str!("../../../config/leagues/nhl-2022-23.toml"),
+    ),
+    (
+        "nhl-2023-24",
+        include_str!("../../../config/leagues/nhl-2023-24.toml"),
+    ),
+    (
         "nhl-2024-25",
         include_str!("../../../config/leagues/nhl-2024-25.toml"),
     ),
