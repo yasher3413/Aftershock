@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { useClock } from "../live/clock";
 import { useLive } from "../live/store";
 import { SPEEDS } from "../live/timeline";
-import { energyTrace, nightWindow, type Spike } from "./trace";
+import { energyTrace, type Spike } from "./trace";
 
 const LIVE_SPAN_MS = 3 * 3600_000;
 const HEIGHT = 92;
@@ -41,8 +41,6 @@ function timeLabel(ms: number): string {
 export function Seismograph() {
   const navigate = useNavigate();
   const tremors = useLive((s) => s.tremors);
-  const games = useLive((s) => s.games);
-  const tonight = useLive((s) => s.tonight);
   const mode = useClock((s) => s.mode);
   const replayStart = useClock((s) => s.replayStart);
   const replayDuration = useClock((s) => s.replayDuration);
@@ -55,15 +53,9 @@ export function Seismograph() {
 
   const replay = mode === "replay";
   const now = replay ? replayStart + replayT : wallNow;
-  const starts = tonight
-    .map((id) => Date.parse(games[id]?.start_utc ?? ""))
-    .filter(Number.isFinite);
   const win = replay
     ? { from: replayStart, to: replayStart + replayDuration }
-    : (() => {
-        const night = nightWindow(starts, now);
-        return { from: Math.max(night.from, now - LIVE_SPAN_MS), to: now + 2 * 60_000 };
-      })();
+    : { from: now - LIVE_SPAN_MS, to: now + 2 * 60_000 };
 
   const spikes: Spike[] = useMemo(
     () =>

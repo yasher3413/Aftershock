@@ -522,11 +522,13 @@ export class MapController {
       if (sweep > 0.001) {
         const color =
           n.tint === "up" ? this.pal.blue : n.tint === "down" ? this.pal.goal : this.pal.ink;
-        g.arc(p.x, p.y, r, -Math.PI / 2, -Math.PI / 2 + sweep).stroke({
-          width: 3,
-          color,
-          cap: "butt",
-        });
+        g.moveTo(p.x, p.y - r)
+          .arc(p.x, p.y, r, -Math.PI / 2, -Math.PI / 2 + sweep)
+          .stroke({
+            width: 3,
+            color,
+            cap: "butt",
+          });
       }
       // Team color tick under the node.
       g.moveTo(p.x - 4, p.y + r + 5)

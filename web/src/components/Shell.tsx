@@ -1,4 +1,4 @@
-import { NavLink, Outlet, Link } from "react-router";
+import { NavLink, Outlet, Link, useLocation } from "react-router";
 import { useLive } from "../live/store";
 import { longDate } from "../lib/format";
 
@@ -10,27 +10,32 @@ const NAV = [
 ];
 
 export function Shell() {
+  // The home view is an app-like screen pinned to the viewport on desktop.
+  const home = useLocation().pathname === "/";
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className={`flex flex-col ${home ? "min-h-dvh lg:h-dvh" : "min-h-dvh"}`}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2"
       >
         Skip to content
       </a>
-      <header className="flex items-center gap-6 border-b border-ice-scratch px-4 py-2 md:px-6">
+      <header className="flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-ice-scratch px-4 py-2 md:px-6">
         <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
           Aftershock
         </Link>
         <ModeChip />
-        <nav aria-label="Main" className="ml-auto flex gap-1 text-[14px]">
+        <nav
+          aria-label="Main"
+          className="-mx-2 flex w-full justify-between text-[14px] sm:mx-0 sm:ml-auto sm:w-auto sm:justify-start sm:gap-1"
+        >
           {NAV.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
               end={n.end}
               className={({ isActive }) =>
-                `rounded-[var(--radius)] px-2.5 py-1.5 transition-colors ${
+                `whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors sm:px-2.5 sm:py-1.5 ${
                   isActive ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"
                 }`
               }
