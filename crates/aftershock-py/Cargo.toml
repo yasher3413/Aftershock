@@ -1,0 +1,13 @@
+[package]
+name = "aftershock-py"
+description = "Python bindings for aftershock-core"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+name = "aftershock_py"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aftershock-core = { path = "../aftershock-core" }

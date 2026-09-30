@@ -1,0 +1,12 @@
+[package]
+name = "aftershock-wasm"
+description = "WebAssembly build of aftershock-core for the What-If Lab"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aftershock-core = { path = "../aftershock-core", default-features = false }
