@@ -339,6 +339,68 @@ async def status(st: State, session: Db) -> S.StatusResponse:
     )
 
 
+# ----------------------------------------------------------------------
+# Share images
+
+OG_CACHE = {"Cache-Control": "public, max-age=3600"}
+
+
+async def _png(svg: str) -> Response:
+    from aftershock.share.cards import CairoUnavailable, render_png
+
+    try:
+        data = await asyncio.to_thread(render_png, svg)
+    except CairoUnavailable as exc:
+        raise HTTPException(503, str(exc)) from exc
+    return Response(data, media_type="image/png", headers=OG_CACHE)
+
+
+async def _teams(session: AsyncSession) -> list[S.TeamInfo]:
+    from aftershock.db.models import Team
+
+    return [S.TeamInfo.model_validate(t) for t in (await session.execute(select(Team))).scalars()]
+
+
+@router.get("/og/tremor/{tremor_id}.png")
+async def og_tremor(tremor_id: int, session: Db, size: Literal["og", "card"] = "og") -> Response:
+    from aftershock.share.cards import tremor_card, tremor_og
+
+    row = await session.get(Tremor, tremor_id)
+    if row is None:
+        raise HTTPException(404, f"No tremor {tremor_id}")
+    t = (await Q.tremors_out(session, [row]))[0]
+    teams = await _teams(session)
+    return await _png(tremor_card(t, teams) if size == "card" else tremor_og(t, teams))
+
+
+@router.get("/og/team/{abbrev}.png")
+async def og_team(abbrev: str, session: Db) -> Response:
+    from aftershock.db.models import Team, TeamOdds
+    from aftershock.share.cards import team_og
+
+    team = await session.get(Team, abbrev.upper())
+    if team is None:
+        raise HTTPException(404, f"No team {abbrev}")
+    run = await Q.latest_run(session, current_season())
+    odds = await session.get(TeamOdds, (run.id, team.abbrev)) if run else None
+    return await _png(team_og(S.TeamInfo.model_validate(team), Q.odds_out(odds) if odds else None))
+
+
+@router.get("/og/night/{night}.png")
+async def og_night(night: date, session: Db) -> Response:
+    from aftershock.share.cards import night_og
+
+    rows = list(
+        (
+            await session.execute(
+                select(Tremor).where(Tremor.night_date == night, Tremor.overturned.is_(False))
+            )
+        ).scalars()
+    )
+    games = await Q.games_on(session, night)
+    return await _png(night_og(night, await Q.tremors_out(session, rows), len(games)))
+
+
 def _read_bytes(path: Path) -> bytes | None:
     return path.read_bytes() if path.exists() else None
 
