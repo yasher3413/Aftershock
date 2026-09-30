@@ -14,6 +14,9 @@ pub enum Stream {
     LiveGoals = 3,
     Playoff = 4,
     Chaos = 5,
+    /// Per-simulation team strength noise, keyed by team index in the
+    /// `game` slot of the key.
+    TeamStrength = 6,
 }
 
 const GOLDEN: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -164,6 +167,7 @@ mod tests {
                 Stream::LiveGoals,
                 Stream::Playoff,
                 Stream::Chaos,
+                Stream::TeamStrength,
             ] {
                 assert_eq!(g.bits(s), hash4(seed, sim, game, s as u64));
             }

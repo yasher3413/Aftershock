@@ -22,6 +22,7 @@
 //! Playoff series use a [`KeyedRng`] keyed by `(seed, sim, series slot,
 //! Stream::Playoff)`, independent of regular-season game indices.
 
+pub mod noise;
 pub mod records;
 pub mod tables;
 
