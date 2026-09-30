@@ -37,3 +37,4 @@ web/src/wasm/pkg/
 
 # OS
 .DS_Store
+docs/media/raw/

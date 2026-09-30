@@ -107,5 +107,5 @@ e2e: ## Playwright end-to-end tests
 	cd web && pnpm e2e
 
 screenshots: ## Capture README screenshots and the hero GIF
-	cd web && pnpm exec playwright test e2e/screenshots.spec.ts
+	cd web && SCREENSHOTS=1 pnpm exec playwright test e2e/screenshots.spec.ts
 	bash scripts/make_gif.sh
