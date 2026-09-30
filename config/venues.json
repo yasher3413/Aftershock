@@ -9,6 +9,14 @@
       "home_team": null
     },
     {
+      "name": "Amalie Arena",
+      "city": "Tampa, FL",
+      "country": "US",
+      "lat": 27.943,
+      "lon": -82.452,
+      "home_team": "TBL"
+    },
+    {
       "name": "Amerant Bank Arena",
       "city": "Sunrise, FL",
       "country": "US",
@@ -23,6 +31,14 @@
       "lat": 32.79,
       "lon": -96.81,
       "home_team": "DAL"
+    },
+    {
+      "name": "Avicii Arena",
+      "city": "Stockholm, Sweden",
+      "country": "SE",
+      "lat": 59.2936,
+      "lon": 18.0833,
+      "home_team": null
     },
     {
       "name": "Ball Arena",
@@ -169,6 +185,30 @@
       "home_team": "CBJ"
     },
     {
+      "name": "Nokia Arena",
+      "city": "Tampere, Finland",
+      "country": "FI",
+      "lat": 61.4938,
+      "lon": 23.7753,
+      "home_team": null
+    },
+    {
+      "name": "O2 Czech Republic",
+      "city": "Prague, Czechia",
+      "country": "CZ",
+      "lat": 50.1047,
+      "lon": 14.4938,
+      "home_team": null
+    },
+    {
+      "name": "Ohio Stadium",
+      "city": "Columbus, OH",
+      "country": "US",
+      "lat": 40.0017,
+      "lon": -83.0197,
+      "home_team": null
+    },
+    {
       "name": "PPG Paints Arena",
       "city": "Pittsburgh, PA",
       "country": "US",
@@ -199,6 +239,14 @@
       "lat": 40.733,
       "lon": -74.171,
       "home_team": "NJD"
+    },
+    {
+      "name": "Raymond James Stadium",
+      "city": "Tampa, FL",
+      "country": "US",
+      "lat": 27.9759,
+      "lon": -82.5033,
+      "home_team": null
     },
     {
       "name": "Rice-Eccles Stadium",
@@ -289,12 +337,44 @@
       "home_team": null
     },
     {
+      "name": "Wells Fargo Center",
+      "city": "Philadelphia, PA",
+      "country": "US",
+      "lat": 39.901,
+      "lon": -75.172,
+      "home_team": "PHI"
+    },
+    {
+      "name": "Wrigley Field",
+      "city": "Chicago, IL",
+      "country": "US",
+      "lat": 41.9484,
+      "lon": -87.6553,
+      "home_team": null
+    },
+    {
+      "name": "Xcel Energy Center",
+      "city": "St. Paul, MN",
+      "country": "US",
+      "lat": 44.945,
+      "lon": -93.101,
+      "home_team": "MIN"
+    },
+    {
       "name": "Xfinity Mobile Arena",
       "city": "Philadelphia, PA",
       "country": "US",
       "lat": 39.901,
       "lon": -75.172,
       "home_team": "PHI"
+    },
+    {
+      "name": "loanDepot park",
+      "city": "Miami, FL",
+      "country": "US",
+      "lat": 25.7781,
+      "lon": -80.2197,
+      "home_team": null
     }
   ]
 }
