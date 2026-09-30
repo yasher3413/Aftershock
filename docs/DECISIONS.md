@@ -219,3 +219,30 @@ Each entry: date, decision, alternatives considered, reason.
   crate's output file; `cargo test --workspace` cannot link test binaries
   with `extension-module` on. The extras cost nothing and let callers
   compute their own conditional views and handle live games in the lab.
+
+## 2026-09-30: Per-simulation team strength noise
+
+- **Decision:** a new input `team_sigma` draws one normal log-odds shift
+  per team per simulation, `delta[t] = team_sigma * Phi^-1(u)`, with `u`
+  from a new counter-RNG stream `TeamStrength` keyed by `(seed, sim,
+  team)`. Future games are tilted by `delta[home] - delta[away]` on the
+  home-win log odds, with the three home and three away outcomes rescaled
+  proportionally; playoff games are tilted the same way. Live and final
+  games are not tilted. `team_sigma = 0` skips the feature entirely.
+  Acklam's inverse normal CDF in `f64` (relative error below 1.2e-9) with
+  `u` kept strictly inside (0, 1).
+- **Alternatives:** widen each game's probabilities independently (does
+  not correlate a team's games, so it barely changes season totals); draw
+  shifts from the Outcome stream or key them by game (would change
+  existing draws or break per-game independence); Wichura AS241 (more
+  accurate than needed at higher cost).
+- **Reason:** season-long uncertainty comes from not knowing each team's
+  true strength, which moves all of its games together. A new stream
+  keeps every existing draw unchanged, so `team_sigma = 0` is bit
+  identical to before (checked against a fingerprint recorded before the
+  change), and keying by team keeps every common-random-numbers property.
+  Live games already reflect the game state, so they keep their given
+  probabilities, which also keeps live-game reweighting exact. The tilt is
+  computed as a ratio of odds (`p r / (p r + 1 - p)` with `r = exp(delta
+  difference)`), which needs no `exp` per game; cost at `team_sigma =
+  0.15` is about 9 percent single threaded.
