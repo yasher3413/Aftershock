@@ -15,7 +15,9 @@ from aftershock.sim.inputs import END_OT, END_SO, STATUS_FINAL, SimInputs
 END_NAMES = {END_OT: "OT", END_SO: "SO"}
 
 
-def whatif_payload(inputs: SimInputs, season: int) -> dict[str, Any]:
+def whatif_payload(
+    inputs: SimInputs, season: int, stakes: dict[int, float] | None = None
+) -> dict[str, Any]:
     sch = inputs.schedule
     games = []
     for i in range(sch.n):
@@ -37,6 +39,8 @@ def whatif_payload(inputs: SimInputs, season: int) -> dict[str, Any]:
             g["status"] = "future"
             g["probs"] = [round(float(p), 5) for p in inputs.probs[i]]
             g["lam"] = [round(float(x), 4) for x in inputs.lam[i]]
+            if stakes and int(sch.game_ids[i]) in stakes:
+                g["stakes"] = round(float(stakes[int(sch.game_ids[i])]), 4)
         games.append(g)
     return {
         "season": season,
@@ -46,4 +50,5 @@ def whatif_payload(inputs: SimInputs, season: int) -> dict[str, Any]:
         "games": games,
         "playoff_p": [[round(float(v), 5) for v in row] for row in inputs.playoff_p],
         "tie_theta": float(inputs.tie_theta),
+        "team_sigma": float(inputs.team_sigma),
     }

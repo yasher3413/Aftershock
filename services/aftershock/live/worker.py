@@ -181,7 +181,7 @@ class Worker:
 
     async def publish_whatif(self) -> None:
         assert self.engine is not None
-        payload = whatif_payload(self.engine.inputs, self.season)
+        payload = whatif_payload(self.engine.inputs, self.season, self.stakes)
         await self.redis.set(WHATIF_KEY, json.dumps(payload, separators=(",", ":")))
 
     async def refresh_standings(self) -> None:
