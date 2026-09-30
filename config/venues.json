@@ -1,0 +1,300 @@
+{
+  "venues": [
+    {
+      "name": "AT&T Stadium",
+      "city": "Arlington, TX",
+      "country": "US",
+      "lat": 32.7473,
+      "lon": -97.0945,
+      "home_team": null
+    },
+    {
+      "name": "Amerant Bank Arena",
+      "city": "Sunrise, FL",
+      "country": "US",
+      "lat": 26.158,
+      "lon": -80.326,
+      "home_team": "FLA"
+    },
+    {
+      "name": "American Airlines Center",
+      "city": "Dallas, TX",
+      "country": "US",
+      "lat": 32.79,
+      "lon": -96.81,
+      "home_team": "DAL"
+    },
+    {
+      "name": "Ball Arena",
+      "city": "Denver, CO",
+      "country": "US",
+      "lat": 39.749,
+      "lon": -105.008,
+      "home_team": "COL"
+    },
+    {
+      "name": "Benchmark International Arena",
+      "city": "Tampa, FL",
+      "country": "US",
+      "lat": 27.943,
+      "lon": -82.452,
+      "home_team": "TBL"
+    },
+    {
+      "name": "Bridgestone Arena",
+      "city": "Nashville, TN",
+      "country": "US",
+      "lat": 36.159,
+      "lon": -86.779,
+      "home_team": "NSH"
+    },
+    {
+      "name": "Canada Life Centre",
+      "city": "Winnipeg, MB",
+      "country": "CA",
+      "lat": 49.893,
+      "lon": -97.144,
+      "home_team": "WPG"
+    },
+    {
+      "name": "Canadian Tire Centre",
+      "city": "Ottawa, ON",
+      "country": "CA",
+      "lat": 45.297,
+      "lon": -75.927,
+      "home_team": "OTT"
+    },
+    {
+      "name": "Capital One Arena",
+      "city": "Washington, DC",
+      "country": "US",
+      "lat": 38.898,
+      "lon": -77.021,
+      "home_team": "WSH"
+    },
+    {
+      "name": "Centre Bell",
+      "city": "Montreal, QC",
+      "country": "CA",
+      "lat": 45.496,
+      "lon": -73.569,
+      "home_team": "MTL"
+    },
+    {
+      "name": "Climate Pledge Arena",
+      "city": "Seattle, WA",
+      "country": "US",
+      "lat": 47.622,
+      "lon": -122.354,
+      "home_team": "SEA"
+    },
+    {
+      "name": "Crypto.com Arena",
+      "city": "Los Angeles, CA",
+      "country": "US",
+      "lat": 34.043,
+      "lon": -118.267,
+      "home_team": "LAK"
+    },
+    {
+      "name": "Delta Center",
+      "city": "Salt Lake City, UT",
+      "country": "US",
+      "lat": 40.768,
+      "lon": -111.901,
+      "home_team": "UTA"
+    },
+    {
+      "name": "Enterprise Center",
+      "city": "St. Louis, MO",
+      "country": "US",
+      "lat": 38.627,
+      "lon": -90.203,
+      "home_team": "STL"
+    },
+    {
+      "name": "Grand Casino Arena",
+      "city": "St. Paul, MN",
+      "country": "US",
+      "lat": 44.945,
+      "lon": -93.101,
+      "home_team": "MIN"
+    },
+    {
+      "name": "Honda Center",
+      "city": "Anaheim, CA",
+      "country": "US",
+      "lat": 33.808,
+      "lon": -117.877,
+      "home_team": "ANA"
+    },
+    {
+      "name": "KeyBank Center",
+      "city": "Buffalo, NY",
+      "country": "US",
+      "lat": 42.875,
+      "lon": -78.876,
+      "home_team": "BUF"
+    },
+    {
+      "name": "Lenovo Center",
+      "city": "Raleigh, NC",
+      "country": "US",
+      "lat": 35.803,
+      "lon": -78.722,
+      "home_team": "CAR"
+    },
+    {
+      "name": "Little Caesars Arena",
+      "city": "Detroit, MI",
+      "country": "US",
+      "lat": 42.341,
+      "lon": -83.055,
+      "home_team": "DET"
+    },
+    {
+      "name": "Madison Square Garden",
+      "city": "New York, NY",
+      "country": "US",
+      "lat": 40.75,
+      "lon": -73.993,
+      "home_team": "NYR"
+    },
+    {
+      "name": "Nationwide Arena",
+      "city": "Columbus, OH",
+      "country": "US",
+      "lat": 39.969,
+      "lon": -83.006,
+      "home_team": "CBJ"
+    },
+    {
+      "name": "PPG Paints Arena",
+      "city": "Pittsburgh, PA",
+      "country": "US",
+      "lat": 40.439,
+      "lon": -79.989,
+      "home_team": "PIT"
+    },
+    {
+      "name": "PSD Bank Dome",
+      "city": "Dusseldorf, Germany",
+      "country": "DE",
+      "lat": 51.2689,
+      "lon": 6.7353,
+      "home_team": null
+    },
+    {
+      "name": "Princess Auto Stadium",
+      "city": "Winnipeg, MB",
+      "country": "CA",
+      "lat": 49.8076,
+      "lon": -97.1435,
+      "home_team": null
+    },
+    {
+      "name": "Prudential Center",
+      "city": "Newark, NJ",
+      "country": "US",
+      "lat": 40.733,
+      "lon": -74.171,
+      "home_team": "NJD"
+    },
+    {
+      "name": "Rice-Eccles Stadium",
+      "city": "Salt Lake City, UT",
+      "country": "US",
+      "lat": 40.76,
+      "lon": -111.8488,
+      "home_team": null
+    },
+    {
+      "name": "Rogers Arena",
+      "city": "Vancouver, BC",
+      "country": "CA",
+      "lat": 49.278,
+      "lon": -123.109,
+      "home_team": "VAN"
+    },
+    {
+      "name": "Rogers Place",
+      "city": "Edmonton, AB",
+      "country": "CA",
+      "lat": 53.547,
+      "lon": -113.498,
+      "home_team": "EDM"
+    },
+    {
+      "name": "SAP Center at San Jose",
+      "city": "San Jose, CA",
+      "country": "US",
+      "lat": 37.333,
+      "lon": -121.901,
+      "home_team": "SJS"
+    },
+    {
+      "name": "Scotiabank Arena",
+      "city": "Toronto, ON",
+      "country": "CA",
+      "lat": 43.643,
+      "lon": -79.379,
+      "home_team": "TOR"
+    },
+    {
+      "name": "Scotiabank Saddledome",
+      "city": "Calgary, AB",
+      "country": "CA",
+      "lat": 51.037,
+      "lon": -114.052,
+      "home_team": "CGY"
+    },
+    {
+      "name": "T-Mobile Arena",
+      "city": "Paradise, NV",
+      "country": "US",
+      "lat": 36.103,
+      "lon": -115.178,
+      "home_team": "VGK"
+    },
+    {
+      "name": "TD Garden",
+      "city": "Boston, MA",
+      "country": "US",
+      "lat": 42.366,
+      "lon": -71.062,
+      "home_team": "BOS"
+    },
+    {
+      "name": "UBS Arena",
+      "city": "Elmont, NY",
+      "country": "US",
+      "lat": 40.711,
+      "lon": -73.726,
+      "home_team": "NYI"
+    },
+    {
+      "name": "United Center",
+      "city": "Chicago, IL",
+      "country": "US",
+      "lat": 41.881,
+      "lon": -87.674,
+      "home_team": "CHI"
+    },
+    {
+      "name": "Veikkaus Arena",
+      "city": "Helsinki, Finland",
+      "country": "FI",
+      "lat": 60.2048,
+      "lon": 24.9283,
+      "home_team": null
+    },
+    {
+      "name": "Xfinity Mobile Arena",
+      "city": "Philadelphia, PA",
+      "country": "US",
+      "lat": 39.901,
+      "lon": -75.172,
+      "home_team": "PHI"
+    }
+  ]
+}
