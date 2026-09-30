@@ -27,6 +27,7 @@ from aftershock.db.models import Game, Tremor
 from aftershock.db.session import get_engine, session_scope
 from aftershock.jobs.ratings import all_game_rows, replay, run_ratings
 from aftershock.live import persist as P
+from aftershock.live.diff import NewPlay
 from aftershock.live.engine import Effects, OddsSnapshot, SeasonEngine
 from aftershock.live.publish import Publisher
 from aftershock.live.source import LiveSource
@@ -445,9 +446,9 @@ class Worker:
             meta = eff.diff.meta
             abbrev = {meta.home.id: meta.home.abbrev, meta.away.id: meta.away.abbrev}
             for c in eff.diff.changes:
-                p = getattr(c, "play", None)
-                if type(c).__name__ != "NewPlay" or p is None or p.type not in EVENT_TYPES:
+                if not isinstance(c, NewPlay) or c.play.type not in EVENT_TYPES:
                     continue
+                p = c.play
                 await self.publisher.publish(
                     "event",
                     {
