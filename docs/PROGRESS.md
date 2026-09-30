@@ -5,32 +5,42 @@ Resume point for the Aftershock build. Read this, `docs/DECISIONS.md`, and
 
 ## Current phase
 
-Phase 1: NHL client and ground truth (Phase 0 complete, CI green).
+Phases 1 to 6 in progress in parallel (client, data, rules engine, models).
+Phase 3 (Rust rules engine) is being built by a subagent in a separate clone
+and will be rebased onto main.
 
 ## Done
 
-- Git safeguards: local commit-msg and pre-commit hooks installed and
-  verified (attribution trailer stripped, em dash blocked).
-- `scripts/check_no_em_dash.py` committed.
-
-- Monorepo scaffolding: cargo workspace, uv project (`services/`), Vite app
-  (`web/`), Makefile, Docker Compose (Postgres on host port 55432, Redis on
-  6379), CI (style, rust, python, web).
-- Typed async NHL client with rate limiting, retries, ETag, disk cache.
+- Phase 0: git safeguards (local commit-msg and pre-commit hooks, verified),
+  monorepo scaffolding, Makefile, Compose (Postgres on host port 55432,
+  Redis 6379), CI (style, rust, python with Postgres, web, stale types).
+- Phase 1: typed NHL client (rate limit, retries, ETag, disk cache),
+  parsers, trimmed real fixtures, `docs/DATA.md`, live recorder running.
+- Phase 2: schema and migrations, loader, resumable backfill. Raw cache
+  holds every game 2015-16 to now (14,513 games, 179 MB).
+- Models: xG features and trainer, games table, team strength with tuning
+  and backtest, win-probability tracker and ordinal model, OT and shootout
+  math. All coded and unit tested; training running (see below).
+- Live engine foundations: differ and event sources (live and replay).
+- Web foundation: design plan (`docs/DESIGN.md`), tokens, formatters, live
+  reducer and store, socket client, timeline player, shell and routes.
+- API wire types in pydantic with generated TypeScript types.
 
 ## Next
 
-- Parsers for play-by-play, schedule, standings; fixtures; `docs/DATA.md`.
-- Database schema and loader from the raw cache.
+- Integrate the rules engine branch; then the Monte Carlo simulator
+  (Phase 7), PyO3 and WASM bindings.
+- Tremor pipeline, worker, API endpoints, map.
 
 ## Background jobs
 
 - **Live recorder**: `aftershock record-live --hours 96`, started
   2026-09-30 05:41 UTC. Log: `logs/recorder.log`. Output:
-  `data/recordings/{gameId}/`. Check with `tail logs/recorder.log`.
-- **Raw fetch**: `aftershock fetch-raw --from-season 20152016`, started
-  2026-09-30 05:42 UTC. Log: `logs/fetch-raw.log`. Resumable: rerun the same
-  command to continue.
+  `data/recordings/{gameId}/`.
+- **Training**: `aftershock train all`, started 06:16 UTC. Log:
+  `logs/train-all.log`. Writes `ml/artifacts/` and `ml/reports/`.
+- **DB backfill**: `aftershock backfill --from-season 20152016`, started
+  06:16 UTC. Log: `logs/backfill.log`. Resumable: rerun the same command.
 
 ## Known issues
 
