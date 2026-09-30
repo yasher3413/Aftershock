@@ -1,13 +1,15 @@
 # Worker image: the Python service plus the compiled Rust simulator.
-FROM rust:1-slim-bookworm AS core
-RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 python3-dev python3-venv \
-    && rm -rf /var/lib/apt/lists/*
-RUN python3 -m venv /tools && /tools/bin/pip install -q maturin==1.*
+FROM python:3.12-slim-bookworm AS core
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends curl build-essential \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+ENV PATH="/root/.cargo/bin:$PATH"
+RUN python -m venv /tools && /tools/bin/pip install -q "maturin>=1.7,<2"
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
 COPY config config
-RUN /tools/bin/maturin build --release -m crates/aftershock-py/Cargo.toml -o /wheels -i python3
+RUN /tools/bin/maturin build --release -m crates/aftershock-py/Cargo.toml -o /wheels -i python3.12
 
 FROM python:3.12-slim-bookworm AS app
 ENV PYTHONUNBUFFERED=1 UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
