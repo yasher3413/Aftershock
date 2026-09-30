@@ -179,22 +179,34 @@ impl SeasonAccumulator {
     #[inline]
     pub fn apply(&mut self, game: &ScheduledGame, r: &GameResult) {
         debug_assert_ne!(r.home_goals, r.away_goals, "games cannot end tied");
+        self.apply_outcome(game, r.home_goals > r.away_goals, r.end);
+        self.add_goals(game, r.home_goals, r.away_goals);
+    }
+
+    /// Add a game's goals to GF and GA only. Together with
+    /// [`SeasonAccumulator::apply_outcome`] this equals
+    /// [`SeasonAccumulator::apply`].
+    #[inline(always)]
+    pub fn add_goals(&mut self, game: &ScheduledGame, home_goals: u8, away_goals: u8) {
         let (h, a) = (game.home as usize, game.away as usize);
-        let (win, lose) = if r.home_goals > r.away_goals {
-            (h, a)
-        } else {
-            (a, h)
-        };
+        self.gf[h] += home_goals as u16;
+        self.ga[h] += away_goals as u16;
+        self.gf[a] += away_goals as u16;
+        self.ga[a] += home_goals as u16;
+    }
+
+    /// Record everything about a result except goals: games played, wins,
+    /// losses, points, RW, ROW, and head-to-head points.
+    #[inline(always)]
+    pub fn apply_outcome(&mut self, game: &ScheduledGame, home_wins: bool, end: EndType) {
+        let (h, a) = (game.home as usize, game.away as usize);
+        let (win, lose) = if home_wins { (h, a) } else { (a, h) };
         let ps = self.points_system;
         self.gp[h] += 1;
         self.gp[a] += 1;
-        self.gf[h] += r.home_goals as u16;
-        self.ga[h] += r.away_goals as u16;
-        self.gf[a] += r.away_goals as u16;
-        self.ga[a] += r.home_goals as u16;
         self.w[win] += 1;
         self.points[win] += ps.win;
-        let lose_pts = match r.end {
+        let lose_pts = match end {
             EndType::Regulation => {
                 self.rw[win] += 1;
                 self.row[win] += 1;
