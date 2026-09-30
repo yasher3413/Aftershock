@@ -1,0 +1,44 @@
+/* Design tokens. See docs/DESIGN.md. */
+:root {
+  color-scheme: light;
+  --ice: #eef3f6;
+  --ice-land: #dde7ed;
+  --ice-scratch: #c9d6df;
+  --ink: #14212b;
+  --ink-soft: #5d707e;
+  --goal: #c8102e;
+  --blue-line: #0b4fa8;
+  --surface: #f7fafc;
+  --glow: 0;
+  --radius: 6px;
+  --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --font-text: "Instrument Sans", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ice: #0d1822;
+    --ice-land: #16242f;
+    --ice-scratch: #233543;
+    --ink: #e3ebf0;
+    --ink-soft: #8ea2b0;
+    --goal: #ff4a57;
+    --blue-line: #5aa2ff;
+    --surface: #111e29;
+    --glow: 1;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ice: #0d1822;
+  --ice-land: #16242f;
+  --ice-scratch: #233543;
+  --ink: #e3ebf0;
+  --ink-soft: #8ea2b0;
+  --goal: #ff4a57;
+  --blue-line: #5aa2ff;
+  --surface: #111e29;
+  --glow: 1;
+}

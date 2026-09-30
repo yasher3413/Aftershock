@@ -1,1 +1,58 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+
+@theme {
+  --color-ice: var(--ice);
+  --color-ice-land: var(--ice-land);
+  --color-ice-scratch: var(--ice-scratch);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-goal: var(--goal);
+  --color-blue-line: var(--blue-line);
+  --color-surface: var(--surface);
+  --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --font-text: "Instrument Sans", system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--ice);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue-line);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font-family: var(--font-display);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+.up {
+  color: var(--blue-line);
+}
+
+.down {
+  color: var(--goal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
