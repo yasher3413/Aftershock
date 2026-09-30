@@ -8,6 +8,7 @@ import { ReplayBanner } from "../panels/ReplayBanner";
 import { FirstVisit } from "../panels/FirstVisit";
 import { MyTeamPicker } from "../panels/MyTeamPicker";
 import { ConnectionNote } from "../panels/ConnectionNote";
+import { RecapCard } from "../panels/RecapCard";
 import { useLiveBootstrap } from "../live/bootstrap";
 import { useLive } from "../live/store";
 import { useMedia } from "../lib/useMedia";
@@ -40,6 +41,7 @@ export default function HomePage() {
               <MyTeamPicker />
             </div>
             <div className="divide-y divide-ice-scratch">
+              <RecapCard />
               <TonightPanel />
               <TremorFeed limit={6} />
               <StandingsPanel />
@@ -73,7 +75,12 @@ export default function HomePage() {
             <div className="px-4 pt-3">
               <MyTeamPicker />
             </div>
-            {tab === "Tonight" && <TonightPanel />}
+            {tab === "Tonight" && (
+              <>
+                <RecapCard />
+                <TonightPanel />
+              </>
+            )}
             {tab === "Standings" && <StandingsPanel />}
             {tab === "Tremors" && <TremorFeed />}
           </div>
