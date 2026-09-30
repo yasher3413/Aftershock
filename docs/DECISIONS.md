@@ -165,3 +165,57 @@ Each entry: date, decision, alternatives considered, reason.
   small, keeps W/L/OTL/RW/ROW and head-to-head points consistent, and lets
   live ingestion pass the case through once it detects it from
   play-by-play. The adjustment names a game, not a team.
+
+## 2026-09-30: Scorelines are sampled only when goals can matter
+
+- **Decision:** each simulation samples every game's outcome, but samples
+  scorelines (GF and GA) only when two clubs are level in points and in
+  every non-head-to-head chain step before the first goals step. Otherwise
+  goals cannot reach any standings or home-ice comparison.
+- **Alternatives:** always sample scorelines; skip goals entirely.
+- **Reason:** scoreline tables are most of the per-game cost and only
+  about 4 percent of simulated seasons reach a goals tiebreak. The
+  scoreline uniform is keyed by game, so sampling later gives exactly the
+  same goals; a unit test proves lazy and eager runs are identical.
+  Single-thread cost fell from 57 to about 25 microseconds per season.
+
+## 2026-09-30: `tie_theta` applies to cells ending in a regulation tie
+
+- **Decision:** for future games `tie_theta` multiplies the diagonal; for
+  live games it multiplies the added-goal cells whose final regulation
+  score is level. The engine documents that `tie_theta` does not change
+  sampled results today, because the outcome class comes from the 6-way
+  probabilities and `tie_theta` scales a whole class uniformly.
+- **Alternatives:** drop the parameter; use it to re-derive class
+  probabilities.
+- **Reason:** the brief specifies the table construction and the 6-way
+  probabilities as the source of the class. Keeping the parameter makes
+  the tables match the scoreline model if they are later used for class
+  probabilities.
+
+## 2026-09-30: Playoff series RNG slots
+
+- **Decision:** series slots per simulation are round 1 `0..8` (bracket
+  order, four per conference), round 2 `8..12`, conference finals
+  `12..14`, final `14`, each keyed as `(seed, sim, slot, Stream::Playoff)`.
+- **Alternatives:** key by the two team indices.
+- **Reason:** a slot is fixed by bracket position, so the same series
+  position uses the same random numbers across before/after runs even when
+  different teams reach it, which keeps playoff noise low in comparisons.
+
+## 2026-09-30: Binding details beyond the brief
+
+- **Decision:** the Python crate keeps the Rust lib name `aftershock_py`
+  and names the Python module `aftershock_core` in `#[pymodule]`; PyO3's
+  `extension-module` feature is enabled only by maturin (via
+  `pyproject.toml`). `SimResult` also exposes the per-simulation records
+  (`focus_outcomes`, `playoff_mask`, `division_mask`, `cup_winner`),
+  `prob(name)`, and a `config_teams(config)` helper. The WASM JSON input
+  also accepts `"status": "live"` with `"score": [h, a]` and the end code
+  `"OTF"` (pulled-goalie overtime forfeit); the output adds `n_sims` and a
+  trimmed `points_hist` per team.
+- **Alternatives:** exactly the listed API only.
+- **Reason:** a lib named `aftershock_core` would collide with the core
+  crate's output file; `cargo test --workspace` cannot link test binaries
+  with `extension-module` on. The extras cost nothing and let callers
+  compute their own conditional views and handle live games in the lab.
