@@ -19,7 +19,7 @@ NIGHT = "2025-10-16"
 
 
 def get(path: str) -> object:
-    with urllib.request.urlopen(f"{BASE}{path}") as resp:  # noqa: S310 - local API
+    with urllib.request.urlopen(f"{BASE}{path}") as resp:
         raw = resp.read()
         if resp.headers.get("Content-Encoding") == "gzip":
             raw = gzip.decompress(raw)
@@ -31,8 +31,12 @@ def main() -> None:
     state = get("/api/state")
     assert isinstance(state, dict)
     state["mode"] = "demo"
-    state["replay"] = {"night_date": NIGHT, "season": 20252026, "speed": 20,
-                       "next_live_utc": None}
+    state["replay"] = {
+        "night_date": NIGHT,
+        "season": 20252026,
+        "speed": 20,
+        "next_live_utc": None,
+    }
     fixtures = {
         "state": state,
         "replay": get(f"/api/replay/{NIGHT}"),
@@ -41,8 +45,10 @@ def main() -> None:
         "methodology": get("/api/methodology"),
     }
     for name, body in fixtures.items():
-        (OUT / f"{name}.json").write_text(json.dumps(body, separators=(",", ":")))
-        print(name, (OUT / f"{name}.json").stat().st_size)
+        path = OUT / f"{name}.json.gz"
+        with gzip.open(path, "wt", encoding="utf-8") as fh:
+            fh.write(json.dumps(body, separators=(",", ":")))
+        print(name, path.stat().st_size)
 
 
 if __name__ == "__main__":
