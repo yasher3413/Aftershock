@@ -208,18 +208,43 @@ BASE_LAM_HOME = 3.0  # league-typical regulation goals per 60 minutes
 BASE_LAM_AWAY = 2.8
 
 
-def skellam_base(
-    score_diff: NDArray[np.float64], secs_left: NDArray[np.float64]
-) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """(P(home does not lose), P(home wins)) in regulation from score and clock only.
+# Goals per second by (manpower, goalies) state, home and away. Measured by
+# ``measure_state_rates`` and stored in the model metadata; these defaults
+# only apply before the first training run.
+_STATE_RATES: dict[str, tuple[float, float]] = {}
 
-    Remaining goals are Poisson for each side, so the final margin is the
-    current margin plus a Skellam variable. Exact at the extremes (a decided
-    game is 0 or 1), which trees alone struggle to reach.
+
+def state_key(manpower: str, home_goalie: float, away_goalie: float) -> str:
+    return f"{manpower}|{int(home_goalie)}{int(away_goalie)}"
+
+
+def set_state_rates(rates: dict[str, tuple[float, float]]) -> None:
+    _STATE_RATES.clear()
+    _STATE_RATES.update(rates)
+
+
+def skellam_base(
+    score_diff: NDArray[np.float64],
+    secs_left: NDArray[np.float64],
+    keys: Sequence[str] | None = None,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """(P(home does not lose), P(home wins)) in regulation from score, clock, and state.
+
+    Remaining goals are Poisson for each side at the scoring rates of the
+    current manpower and goalie state (measured from data), so the final
+    margin is the current margin plus a Skellam variable. Exact at the
+    extremes (a decided game is 0 or 1), which trees alone struggle to reach.
     """
-    frac = np.clip(secs_left, 0, REG_GAME_S) / REG_GAME_S
-    mu1 = np.maximum(BASE_LAM_HOME * frac, 1e-9)
-    mu2 = np.maximum(BASE_LAM_AWAY * frac, 1e-9)
+    left = np.clip(secs_left, 0, REG_GAME_S)
+    rate_h = np.full(len(left), BASE_LAM_HOME / REG_GAME_S)
+    rate_a = np.full(len(left), BASE_LAM_AWAY / REG_GAME_S)
+    if keys is not None and _STATE_RATES:
+        for i, k in enumerate(keys):
+            r = _STATE_RATES.get(k)
+            if r is not None:
+                rate_h[i], rate_a[i] = r
+    mu1 = np.maximum(rate_h * left, 1e-9)
+    mu2 = np.maximum(rate_a * left, 1e-9)
     # P(D + X1 - X2 >= 0) = P(X1 - X2 >= -D); skellam.sf(k) = P(K > k).
     p_a = skellam.sf(-score_diff - 1, mu1, mu2)
     p_b = skellam.sf(-score_diff, mu1, mu2)
@@ -237,10 +262,22 @@ def base_scores(
     if isinstance(df_or_rows, pl.DataFrame):
         sd = df_or_rows["score_diff"].to_numpy().astype(np.float64)
         sl = df_or_rows["secs_left"].to_numpy().astype(np.float64)
+        keys = [
+            state_key(m, h, a)
+            for m, h, a in zip(
+                df_or_rows["manpower"].to_list(),
+                df_or_rows["home_goalie_in"].to_list(),
+                df_or_rows["away_goalie_in"].to_list(),
+                strict=True,
+            )
+        ]
     else:
         sd = np.array([float(r["score_diff"]) for r in df_or_rows])
         sl = np.array([float(r["secs_left"]) for r in df_or_rows])
-    pa, pb = skellam_base(sd, sl)
+        keys = [
+            state_key(r["manpower"], r["home_goalie_in"], r["away_goalie_in"]) for r in df_or_rows
+        ]
+    pa, pb = skellam_base(sd, sl, keys)
     return _logit(pa), _logit(pb)
 
 
@@ -379,6 +416,8 @@ def _logistic_baseline(tr: pl.DataFrame, te: pl.DataFrame) -> NDArray[np.float64
 def train(ot_stats: dict[str, float], settings: Settings | None = None) -> dict[str, Any]:
     s = settings or get_settings()
     started = time.monotonic()
+    rates = measure_state_rates(TRAIN_SEASONS, s)
+    set_state_rates(rates)
     tr = load_features(TRAIN_SEASONS, s)
     va = load_features([VAL_SEASON], s)
     te = load_features([TEST_SEASON], s)
@@ -429,6 +468,9 @@ def train(ot_stats: dict[str, float], settings: Settings | None = None) -> dict[
             "lookup_table": _eval_3way(te, _lookup_baseline(tr, te)),
         },
         "overtime": ot_stats,
+        "state_rates_per60": {
+            k: [round(h * 3600, 3), round(a * 3600, 3)] for k, (h, a) in sorted(rates.items())
+        },
         "seconds": round(time.monotonic() - started, 1),
     }
     art = s.ml_dir / "artifacts"
@@ -478,6 +520,62 @@ def train(ot_stats: dict[str, float], settings: Settings | None = None) -> dict[
         "Log loss (lower is better)",
     )
     return report
+
+
+# ----------------------------------------------------------------------
+# Scoring rates by game state
+
+
+def _state_time_goals(path: str) -> dict[str, list[float]]:
+    """Seconds spent and goals by each side in every regulation state of one game."""
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        raw = json.load(fh)
+    if raw.get("gameState") not in FINISHED_STATES:
+        return {}
+    game = parse_play_by_play(raw)
+    home_id = game.meta.home.id
+    out: dict[str, list[float]] = {}
+    plays = [p for p in game.plays if p.period <= 3]
+    for cur, nxt in zip(plays, [*plays[1:], None], strict=True):
+        sit = cur.situation
+        if sit is None:
+            continue
+        key = state_key(
+            MANPOWER_STATES[MANPOWER_STATES.index(f"{sit.home_skaters}v{sit.away_skaters}")]
+            if f"{sit.home_skaters}v{sit.away_skaters}" in MANPOWER_STATES
+            else "other",
+            sit.home_goalie,
+            sit.away_goalie,
+        )
+        acc = out.setdefault(key, [0.0, 0.0, 0.0])
+        if nxt is not None and nxt.period == cur.period:
+            acc[0] += max(0, nxt.t_game_s - cur.t_game_s)
+        if cur.type == "goal":
+            acc[1 if cur.owner_team_id == home_id else 2] += 1
+    return out
+
+
+def measure_state_rates(
+    years: Sequence[int],
+    settings: Settings | None = None,
+    workers: int = 6,
+    min_seconds: float = 3600.0,
+) -> dict[str, tuple[float, float]]:
+    """Goals per second for home and away in each (manpower, goalies) state."""
+    s = settings or get_settings()
+    files = [
+        str(f)
+        for y in years
+        for f in sorted((s.raw_cache_dir / "play-by-play").glob(f"{y}0[23]*.json.gz"))
+    ]
+    tot: dict[str, list[float]] = {}
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        for part in pool.map(_state_time_goals, files, chunksize=32):
+            for k, v in part.items():
+                acc = tot.setdefault(k, [0.0, 0.0, 0.0])
+                for i in range(3):
+                    acc[i] += v[i]
+    return {k: (v[1] / v[0], v[2] / v[0]) for k, v in tot.items() if v[0] >= min_seconds}
 
 
 # ----------------------------------------------------------------------
@@ -560,6 +658,9 @@ class WinProbModel:
         self.so_conv = float(ot["so_conversion"])
         self.params = params
         self.version = str(meta["model_version"])
+        set_state_rates(
+            {k: (float(v[0]), float(v[1])) for k, v in meta.get("state_rates", {}).items()}
+        )
 
     @classmethod
     def load(cls, settings: Settings | None = None) -> WinProbModel:
