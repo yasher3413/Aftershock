@@ -45,6 +45,7 @@ from aftershock.tremors.compute import magnitude_scale, rooting_guide, stakes
 log = structlog.get_logger(__name__)
 
 LEADER_LOCK = 0x4146_5445  # "AFTE"
+EVENT_TYPES = frozenset({"goal", "penalty"})
 REPLAY_TYPES = frozenset(
     {"game_update", "tremor", "tremor_updated", "tremor_reversed", "odds_update"}
 )
@@ -440,6 +441,26 @@ class Worker:
                     summary.wp = S.SixWay(**lg.wp)
                 summary.stakes = self.stakes.get(game_id)
                 self.games[game_id] = summary
+        if eff.diff is not None:
+            meta = eff.diff.meta
+            abbrev = {meta.home.id: meta.home.abbrev, meta.away.id: meta.away.abbrev}
+            for c in eff.diff.changes:
+                p = getattr(c, "play", None)
+                if type(c).__name__ != "NewPlay" or p is None or p.type not in EVENT_TYPES:
+                    continue
+                await self.publisher.publish(
+                    "event",
+                    {
+                        "game_id": game_id,
+                        "event_id": p.event_id,
+                        "kind": p.type,
+                        "period": p.period,
+                        "t_period_s": p.t_period_s,
+                        "team": abbrev.get(p.owner_team_id) if p.owner_team_id else None,
+                        "x": p.x_norm,
+                        "y": p.y_norm,
+                    },
+                )
         if eff.game_updates and game_id in self.games:
             await self.publish("game_update", {"game": self.games[game_id].model_dump(mode="json")})
         for kind, payload in published:
