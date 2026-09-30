@@ -212,7 +212,11 @@ def _fit_pair(
     tr: pl.DataFrame, va: pl.DataFrame, names: list[str]
 ) -> tuple[lgb.Booster, lgb.Booster]:
     X_tr, X_va = encode(tr, names), encode(va, names)
-    w_tr, w_va = tr["weight"].to_numpy(), va["weight"].to_numpy()
+    # Per-game weights are about 1/450 per row. Rescale to mean 1 so the L2
+    # penalty and hessian thresholds act at their intended scale; the relative
+    # weighting (each game counts equally) is unchanged.
+    w_tr = tr["weight"].to_numpy() / tr["weight"].to_numpy().mean()
+    w_va = va["weight"].to_numpy() / va["weight"].to_numpy().mean()
     t_tr, t_va = tr["target"].to_numpy(), va["target"].to_numpy()
     cat = [names.index(c) for c in CATEGORICAL if c in names]
     params = {
