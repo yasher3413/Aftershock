@@ -85,6 +85,8 @@ export function Seismograph() {
   const ticks: number[] = [];
   const hour = 3600_000;
   for (let t = Math.ceil(win.from / hour) * hour; t < win.to; t += hour) ticks.push(t);
+  // Label only as many hours as fit; every hour keeps its gridline.
+  const labelEvery = Math.max(1, Math.ceil(64 / Math.max(1, (plotW * hour) / (win.to - win.from))));
 
   const seek = (clientX: number) => {
     const el = boxRef.current;
@@ -162,7 +164,7 @@ export function Seismograph() {
           }}
         >
           <svg width={plotW} height={HEIGHT} className="block" aria-hidden>
-            {ticks.map((t) => (
+            {ticks.map((t, i) => (
               <g key={t}>
                 <line
                   x1={x(t)}
@@ -172,9 +174,11 @@ export function Seismograph() {
                   stroke="var(--ice-scratch)"
                   strokeWidth={1}
                 />
-                <text x={x(t) + 4} y={HEIGHT - 5} fontSize={11} fill="var(--ink-soft)">
-                  {timeLabel(t)}
-                </text>
+                {i % labelEvery === 0 && (
+                  <text x={x(t) + 4} y={HEIGHT - 5} fontSize={11} fill="var(--ink-soft)">
+                    {timeLabel(t)}
+                  </text>
+                )}
               </g>
             ))}
             <line x1={0} x2={plotW} y1={baseY} y2={baseY} stroke="var(--ice-scratch)" />

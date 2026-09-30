@@ -57,12 +57,18 @@ def test_final_standings_never_contradict_reality() -> None:
         assert len(clinched) + len(eliminated) >= 20, season
 
 
-def test_opening_day_everyone_is_alive_with_a_magic_number() -> None:
+def test_magic_number_appears_only_once_reachable() -> None:
     rows, _ = final_rows(20252026)
+    # Opening day: 165 is more than the 164 points left, so no magic number.
     start = [r.model_copy(update={"gp": 0, "points": 0}) for r in rows]
     info = clinch_status(start, games_per_team=82)
     assert all(i.status == "alive" for i in info.values())
-    assert all(i.magic_number == 165 for i in info.values())
+    assert all(i.magic_number is None for i in info.values())
+    # Ten games from the end, alive teams that can still get there have one.
+    late = [r.model_copy(update={"gp": r.gp - 10, "points": max(0, r.points - 12)}) for r in rows]
+    late_info = clinch_status(late, games_per_team=82)
+    shown = [i.magic_number for i in late_info.values() if i.magic_number is not None]
+    assert shown and max(shown) <= 20
 
 
 def test_tonight_scenarios_find_a_win_that_clinches() -> None:

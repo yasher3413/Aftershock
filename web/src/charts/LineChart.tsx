@@ -59,10 +59,13 @@ export function LineChart({
     .x((p) => x(p.t))
     .y((p) => y(p.v));
   const ticks = y.ticks(4);
-  const xticks = xTicks ?? x.ticks(Math.max(2, Math.floor(width / 130))).map(Number);
   const fx =
     formatX ??
     ((t: number) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
+  // Over a short span several ticks share a date; label each date once.
+  const xticks = (xTicks ?? x.ticks(Math.max(2, Math.floor(width / 130))).map(Number)).filter(
+    (t, i, all) => i === 0 || fx(t) !== fx(all[i - 1]!),
+  );
   const nearest = (px: number) => {
     const t = x.invert(px).getTime();
     return all.reduce(

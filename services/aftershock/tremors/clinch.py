@@ -17,7 +17,8 @@ above it, so it cannot be a wild card.
 
 Magic number: the combination of the team's own points and rivals' lost
 points that clinches, i.e. one more than the fifth-highest maximum among
-conference rivals, minus the team's current points.
+conference rivals, minus the team's current points. It is reported only when
+the team's remaining games alone could cover it.
 """
 
 from __future__ import annotations
@@ -60,6 +61,9 @@ def clinch_status(rows: list[S.StandingsRow], games_per_team: int) -> dict[str, 
         magic = None
         if status == "alive" and len(rivals_max) >= 5:
             magic = max(0, rivals_max[4] + 1 - r.points)
+            # Only meaningful once the team's own wins could get there.
+            if magic > mx - r.points:
+                magic = None
         out[r.team] = ClinchInfo(r.team, status, magic, mx)
     return out
 

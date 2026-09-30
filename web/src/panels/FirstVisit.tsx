@@ -18,7 +18,7 @@ export function FirstVisit() {
       <span>Every goal changes every team's playoff odds. Watch it spread.</span>
       <button
         type="button"
-        className="text-[13px] font-semibold text-blue-line"
+        className="shrink-0 whitespace-nowrap text-[13px] font-semibold text-blue-line"
         onClick={() => {
           try {
             localStorage.setItem(KEY, "1");
