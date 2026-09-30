@@ -3,10 +3,12 @@ SHELL := /bin/bash
 UV ?= uv
 COMPOSE := docker compose -f infra/docker-compose.yml --env-file .env
 PY := cd services && $(UV) run
+# macOS: Homebrew's Cairo is not on the default library path (share images).
+export DYLD_FALLBACK_LIBRARY_PATH := $(DYLD_FALLBACK_LIBRARY_PATH):/opt/homebrew/lib
 SEASON ?= 20252026
 
 .PHONY: help setup env up down dev db-up migrate native wasm types test test-rust test-py test-web \
-	lint fmt bench bootstrap-lite backfill train precompute screenshots e2e style
+	lint fmt bench bootstrap-lite backfill train precompute screenshots e2e style geo
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -85,17 +87,21 @@ style: ## Check for em dashes in tracked files
 bench: ## Run simulator benchmarks
 	cargo bench -p aftershock-core
 
-bootstrap-lite: db-up migrate ## Load 2025-26 and 2026-27, precompute tremors, build replays
+bootstrap-lite: db-up migrate ## Load 2024-25 onward, precompute 2025-26 tremors and replays
 	$(PY) aftershock bootstrap-lite
 
 backfill: db-up migrate ## Full historical backfill (2015-16 onward)
 	$(PY) aftershock backfill --from-season 20152016
 
-train: ## Train all models and write eval reports
+train: ## Train all models and write eval reports, then the season backtest
 	$(PY) aftershock train all
+	$(PY) aftershock backtest
 
-precompute: ## Precompute tremors for SEASON (default 20252026)
+precompute: ## Precompute tremors for SEASON (default 20252026), refitting magnitude
 	$(PY) aftershock precompute --season $(SEASON)
+
+geo: ## Rebuild the basemap from Natural Earth
+	bash scripts/build_geo.sh
 
 e2e: ## Playwright end-to-end tests
 	cd web && pnpm e2e

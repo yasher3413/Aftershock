@@ -201,3 +201,22 @@ def precompute(
                 await rewrite_bundles(s)
 
     asyncio.run(run())
+
+
+@app.command("bootstrap-lite")
+def bootstrap_lite() -> None:
+    """Load 2024-25 onward, compute ratings, and precompute 2025-26 with replays.
+
+    Uses the committed model artifacts and magnitude scale, so no training
+    is needed. Takes under two hours on a laptop.
+    """
+    from aftershock.jobs.backfill import run_backfill
+    from aftershock.jobs.precompute import SeasonPrecompute
+    from aftershock.jobs.ratings import run_ratings
+
+    async def run() -> None:
+        await run_backfill(20242025)
+        await run_ratings()
+        await SeasonPrecompute(20252026).run()
+
+    asyncio.run(run())
