@@ -1,0 +1,39 @@
+# Assistant-specific files
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+aftershock-build-prompt.md
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Data and logs
+data/
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+*.so
+
+# Rust
+target/
+
+# Web
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+web/src/wasm/pkg/
+.vite/
+
+# OS
+.DS_Store
