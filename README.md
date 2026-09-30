@@ -2,7 +2,7 @@
 
 **Every goal in the NHL is an earthquake. Aftershock shows how far it travels.**
 
-![A goal in Sunrise sends a shockwave across the continent; every team's playoff odds shift as it passes.](docs/media/hero.gif)
+![A Detroit goal on April 5, 2026 sends a shockwave across the continent; every team's playoff odds shift as it passes.](docs/media/hero.gif)
 
 A live map of North America holds all 32 arenas. When a goal is scored
 anywhere in the league, a shockwave radiates out from that arena, and every

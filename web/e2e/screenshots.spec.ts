@@ -57,7 +57,7 @@ for (const [name, path, size] of pages) {
   test(`page ${name}`, async ({ browser }) => {
     const page = await browser.newPage({ viewport: { width: size.w, height: size.h } });
     await page.goto(`${BASE}${path}`);
-    await page.waitForLoadState("networkidle").catch(() => undefined);
+    await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => undefined);
     if (name === "what-if")
       await expect(page.getByText(/seasons in/)).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(1500);
