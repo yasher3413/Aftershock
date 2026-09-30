@@ -94,5 +94,6 @@ pub fn future_input(cfg: &LeagueConfig, schedule: &Schedule, n_sims: u32, seed: 
         focus_games: Vec::new(),
         n_sims,
         seed,
+        team_sigma: 0.0,
     }
 }

@@ -12,8 +12,12 @@
 //!            {"home": "BOS", "away": "BUF", "status": "future",
 //!             "probs": [0.4, 0.07, 0.04, 0.37, 0.07, 0.05], "lam": [3.1, 2.9]}],
 //!  "playoff_p": [[0.5, ...], ...],
-//!  "tie_theta": 1.2}
+//!  "tie_theta": 1.2,
+//!  "team_sigma": 0.15}
 //! ```
+//!
+//! `team_sigma` (optional, default 0) is the per-simulation team strength
+//! noise on the log-odds scale; 0 disables it.
 //!
 //! Games are in chronological order. `status` is `final`, `future`, or
 //! `live` (a live game adds `"score": [home, away]` and its `lam` is the
@@ -42,6 +46,10 @@ pub struct State {
     /// Regulation tie multiplier for scoreline tables.
     #[serde(default = "one")]
     pub tie_theta: f32,
+    /// Per-simulation team strength noise (log-odds standard deviation);
+    /// 0 disables it.
+    #[serde(default)]
+    pub team_sigma: f32,
 }
 
 fn one() -> f32 {
@@ -162,6 +170,7 @@ pub fn simulate_state(
         focus_games: Vec::new(),
         n_sims,
         seed,
+        team_sigma: state.team_sigma,
     };
     let res = sim.run(&input).map_err(|e| e.to_string())?;
 

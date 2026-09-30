@@ -84,10 +84,12 @@ impl Simulator {
     }
 
     /// Run `n_sims` simulations. See the module docs in
-    /// `docs/SIMULATOR.md` for array meanings. Releases the GIL.
+    /// `docs/SIMULATOR.md` for array meanings. `team_sigma` (keyword,
+    /// default 0.0) is the per-simulation team strength noise on the
+    /// log-odds scale. Releases the GIL.
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (status, home_goals, away_goals, end, live_home, live_away, probs, lam,
-                        playoff_p, tie_theta, n_sims, seed, focus))]
+                        playoff_p, tie_theta, n_sims, seed, focus, team_sigma=0.0))]
     fn run(
         &self,
         py: Python<'_>,
@@ -104,6 +106,7 @@ impl Simulator {
         n_sims: u32,
         seed: u64,
         focus: PyReadonlyArray1<'_, u32>,
+        team_sigma: f32,
     ) -> PyResult<SimResult> {
         let n = self.inner.schedule().len();
         let t = self.inner.config().n_teams();
@@ -181,6 +184,7 @@ impl Simulator {
             tie_theta,
             playoff_p: pp.iter().copied().collect(),
             focus_games: focus.as_slice()?.to_vec(),
+            team_sigma,
             n_sims,
             seed,
         };

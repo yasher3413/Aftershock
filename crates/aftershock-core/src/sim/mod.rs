@@ -83,6 +83,12 @@ pub struct SimInput {
     pub n_sims: u32,
     /// Seed of the counter RNG.
     pub seed: u64,
+    /// Standard deviation of per-simulation team strength noise on the
+    /// log-odds scale. Each simulation draws `delta[t] = team_sigma *
+    /// Phi^-1(u)` per team and tilts future games and playoff games by
+    /// `delta[home] - delta[away]`. Zero disables it (results are then
+    /// bit-identical to a simulator without the feature).
+    pub team_sigma: f32,
 }
 
 /// Errors building or running a simulation.
@@ -128,6 +134,9 @@ pub enum SimError {
     /// `n_sims` is zero.
     #[error("n_sims must be positive")]
     NoSims,
+    /// `team_sigma` is negative or not finite.
+    #[error("team_sigma must be finite and non-negative")]
+    BadSigma,
 }
 
 /// Probability metrics reported per team (in [`METRICS`] order).
@@ -246,6 +255,15 @@ struct Pending {
     a: u8,
     /// 1 when the game counts for head-to-head, else 0.
     h2h: u16,
+    /// Future game with a home win probability strictly inside (0, 1):
+    /// team strength noise applies.
+    tiltable: bool,
+    /// Home win probability `p0 + p1 + p2` (normalized).
+    ph: f64,
+    /// Normalized outcome probabilities.
+    np: [f64; 6],
+    /// Last outcome with positive probability.
+    last: u8,
     sg: ScheduledGame,
     cdf: OutcomeCdf,
     base: (u8, u8),
@@ -276,6 +294,8 @@ struct Prepared<'a> {
     pre_goal_steps: Option<Vec<TiebreakStep>>,
     /// Sample scorelines only when a goals tiebreak is reachable.
     lazy_goals: bool,
+    /// Team strength noise; 0 disables it.
+    team_sigma: f64,
     /// Per outcome: home and away deltas `[gp, w, l, otl, rw, row, pts, 0]`
     /// (games played is prefilled in the base, so its delta is 0).
     delta: [[[u16; 8]; 2]; 6],
@@ -290,6 +310,9 @@ struct Worker {
     keys: Vec<u64>,
     local: Box<[[u16; 8]; 32]>,
     h2h: Box<[u16; 1024]>,
+    /// Per team `exp(delta[t])` for the current simulation (all 1 when
+    /// team strength noise is off).
+    ratio: [f64; 32],
 }
 
 /// Per-thread integer tallies. Integer sums make the merged result
@@ -404,6 +427,9 @@ impl Simulator {
         if input.n_sims == 0 {
             return Err(SimError::NoSims);
         }
+        if !(input.team_sigma.is_finite() && input.team_sigma >= 0.0) {
+            return Err(SimError::BadSigma);
+        }
         if input.status.len() != games.len() {
             return Err(SimError::StatusLength {
                 expected: games.len(),
@@ -459,6 +485,11 @@ impl Simulator {
                 } => (probs, (0, 0), lam_home, lam_away, Stream::Scoreline),
             };
             let cdf = OutcomeCdf::new(&probs).map_err(|e| game_err(i, e))?;
+            let total: f64 = probs.iter().map(|&x| x as f64).sum();
+            let np = probs.map(|x| x as f64 / total);
+            let ph = np[0] + np[1] + np[2];
+            let is_future = matches!(st, GameStatus::Future { .. });
+            let last = probs.iter().rposition(|&x| x > 0.0).unwrap_or(5) as u8;
             let table =
                 ScoreTable::new(base_score, lh, la, input.tie_theta).map_err(|e| game_err(i, e))?;
             pending_of[i] = pending.len() as u32;
@@ -474,6 +505,10 @@ impl Simulator {
                 h: g.home as u8,
                 a: g.away as u8,
                 h2h: g.counts_h2h as u16,
+                tiltable: is_future && ph > 0.0 && ph < 1.0,
+                ph,
+                np,
+                last,
                 sg: *g,
                 cdf,
                 base: base_score,
@@ -516,6 +551,7 @@ impl Simulator {
             pre_goal_steps: pre_goal_steps(cfg),
             delta: outcome_deltas(cfg),
             lazy_goals: true,
+            team_sigma: input.team_sigma as f64,
         })
     }
 }
@@ -548,6 +584,29 @@ fn pre_goal_steps(cfg: &LeagueConfig) -> Option<Vec<TiebreakStep>> {
             .filter(|&s| s != TiebreakStep::HeadToHead)
             .collect(),
     )
+}
+
+/// Outcome of a future game tilted by team strength noise: the home win
+/// probability becomes `tilt(ph, ratio)`, the three home outcomes are
+/// scaled by `ph' / ph` and the three away outcomes by `(1 - ph') /
+/// (1 - ph)`, and the same uniform is inverted. Boundaries at or after the
+/// last positive outcome are 1.0, as in [`OutcomeCdf`].
+#[inline(always)]
+fn tilted_sample(p: &Pending, ratio: f64, u: f32) -> u8 {
+    let ph2 = noise::tilt(p.ph, ratio);
+    let (sh, sa) = (ph2 / p.ph, (1.0 - ph2) / (1.0 - p.ph));
+    let np = &p.np;
+    let mut c = [0.0f64; 5];
+    c[0] = np[0] * sh;
+    c[1] = c[0] + np[1] * sh;
+    c[2] = c[1] + np[2] * sh;
+    c[3] = c[2] + np[3] * sa;
+    c[4] = c[3] + np[4] * sa;
+    for b in c.iter_mut().skip(p.last as usize) {
+        *b = 1.0;
+    }
+    let u = u as f64;
+    c.iter().map(|&b| (u >= b) as u8).sum()
 }
 
 /// Index of points in an outcome delta vector.
@@ -597,6 +656,7 @@ impl Prepared<'_> {
             keys: Vec::with_capacity(self.cfg.n_teams()),
             local: Box::new([[0; 8]; 32]),
             h2h: Box::new([0; 1024]),
+            ratio: [1.0; 32],
         }
     }
 
@@ -619,14 +679,24 @@ impl Prepared<'_> {
     #[inline]
     fn sample_season(&self, sim: u64, w: &mut Worker) {
         let key = SimKey::new(self.seed, sim);
+        let noisy = self.team_sigma > 0.0;
+        if noisy {
+            for (t, r) in w.ratio.iter_mut().enumerate().take(self.cfg.n_teams()) {
+                *r = noise::team_delta(self.seed, sim, t as u64, self.team_sigma).exp();
+            }
+        }
+        let ratio = &w.ratio;
         let local = &mut *w.local;
         let h2h = &mut *w.h2h;
         local.fill([0; 8]);
         h2h.fill(0);
         for (pi, p) in self.pending.iter().enumerate() {
-            let k = p
-                .cdf
-                .sample(key.game(p.game as u64).uniform_f32(Stream::Outcome));
+            let u = key.game(p.game as u64).uniform_f32(Stream::Outcome);
+            let k = if noisy && p.tiltable {
+                tilted_sample(p, ratio[p.h as usize & 31] / ratio[p.a as usize & 31], u)
+            } else {
+                p.cdf.sample(u)
+            };
             let d = &self.delta[k as usize % 6];
             let (h, a) = (p.h as usize & 31, p.a as usize & 31);
             for j in 0..8 {
@@ -700,6 +770,7 @@ impl Prepared<'_> {
         slot: u64,
         a: TeamIdx,
         b: TeamIdx,
+        ratio: &[f64; 32],
     ) -> TeamIdx {
         let cfg = self.cfg;
         let n = cfg.n_teams();
@@ -709,7 +780,10 @@ impl Prepared<'_> {
         let mut rng = KeyedRng::new(self.seed, sim, slot, Stream::Playoff);
         for &h_hosts in &cfg.playoffs.home_pattern {
             let (host, guest) = if h_hosts { (h, v) } else { (v, h) };
-            let p = self.playoff_p[host as usize * n + guest as usize] as f64;
+            let mut p = self.playoff_p[host as usize * n + guest as usize] as f64;
+            if self.team_sigma > 0.0 {
+                p = noise::tilt(p, ratio[host as usize & 31] / ratio[guest as usize & 31]);
+            }
             let host_wins = rng.next_f64() < p;
             if host_wins == h_hosts {
                 wh += 1;
@@ -732,6 +806,7 @@ impl Prepared<'_> {
         let cfg = self.cfg;
         let n = cfg.n_teams();
         let acc = &w.acc;
+        let ratio = &w.ratio;
         let r = rank_league(acc, cfg, &mut w.ranking);
         playoff_bracket(r, acc, cfg, &mut w.bracket);
 
@@ -785,7 +860,7 @@ impl Prepared<'_> {
         let n_conf = cfg.conferences.len();
         let mut r1 = [0 as TeamIdx; 32];
         for (s, m) in w.bracket.round1.iter().enumerate() {
-            r1[s] = self.series(acc, sim, s as u64, m.high_seed, m.low_seed);
+            r1[s] = self.series(acc, sim, s as u64, m.high_seed, m.low_seed, ratio);
             c[Metric::Round2 as usize * n + r1[s] as usize] += 1;
         }
         let mut champs = [0 as TeamIdx; 16];
@@ -797,6 +872,7 @@ impl Prepared<'_> {
                 (4 * n_conf + 2 * conf) as u64,
                 r1[base],
                 r1[base + 1],
+                ratio,
             );
             let b = self.series(
                 acc,
@@ -804,15 +880,16 @@ impl Prepared<'_> {
                 (4 * n_conf + 2 * conf + 1) as u64,
                 r1[base + 2],
                 r1[base + 3],
+                ratio,
             );
             c[Metric::ConfFinal as usize * n + a as usize] += 1;
             c[Metric::ConfFinal as usize * n + b as usize] += 1;
-            let champ = self.series(acc, sim, (6 * n_conf + conf) as u64, a, b);
+            let champ = self.series(acc, sim, (6 * n_conf + conf) as u64, a, b, ratio);
             c[Metric::Final as usize * n + champ as usize] += 1;
             *champ_slot = champ;
         }
         // Conference champions meet in the final (two conferences).
-        let cup = self.series(acc, sim, (7 * n_conf) as u64, champs[0], champs[1]);
+        let cup = self.series(acc, sim, (7 * n_conf) as u64, champs[0], champs[1], ratio);
         c[Metric::Cup as usize * n + cup as usize] += 1;
 
         out.playoff_mask[j] = playoff_mask;

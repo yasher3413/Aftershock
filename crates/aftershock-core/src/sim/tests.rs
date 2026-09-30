@@ -249,3 +249,116 @@ fn final_outcome_classes() {
     assert_eq!(final_outcome(&r(1, 2, EndType::OvertimeForfeit)), 4);
     assert_eq!(final_outcome(&r(1, 2, EndType::Shootout)), 5);
 }
+
+#[test]
+fn tilted_sample_follows_tilted_probabilities() {
+    let probs = [0.40f32, 0.07, 0.04, 0.37, 0.07, 0.05];
+    let np = probs.map(|x| x as f64);
+    let ph = np[0] + np[1] + np[2];
+    let p = Pending {
+        game: 0,
+        h: 0,
+        a: 1,
+        h2h: 1,
+        tiltable: true,
+        ph,
+        np,
+        last: 5,
+        sg: ScheduledGame {
+            home: 0,
+            away: 1,
+            counts_h2h: true,
+        },
+        cdf: OutcomeCdf::new(&probs).unwrap(),
+        base: (0, 0),
+        stream: Stream::Scoreline,
+    };
+    for ratio in [0.5f64, 1.0, 1.7] {
+        let target = noise::tilt(ph, ratio);
+        let (sh, sa) = (target / ph, (1.0 - target) / (1.0 - ph));
+        let mut counts = [0u32; 6];
+        let n = 200_000;
+        for i in 0..n {
+            let u = (i as f32 + 0.5) / n as f32;
+            counts[tilted_sample(&p, ratio, u) as usize] += 1;
+        }
+        for k in 0..6 {
+            let want = np[k] * if k < 3 { sh } else { sa };
+            let got = counts[k] as f64 / n as f64;
+            assert!(
+                (got - want).abs() < 1e-4,
+                "ratio {ratio} k {k}: {got} vs {want}"
+            );
+        }
+    }
+    // Zero-probability trailing outcomes stay impossible.
+    let probs = [0.5f32, 0.0, 0.0, 0.5, 0.0, 0.0];
+    let q = Pending {
+        np: probs.map(|x| x as f64),
+        ph: 0.5,
+        last: 3,
+        cdf: OutcomeCdf::new(&probs).unwrap(),
+        ..p
+    };
+    for i in 0..10_000 {
+        let k = tilted_sample(&q, 2.5, i as f32 / 10_000.0);
+        assert!(k == 0 || k == 3, "{k}");
+    }
+}
+
+#[test]
+fn team_noise_moves_extreme_odds_toward_half() {
+    let s = sim();
+    let mut input = future_input(s.config(), s.schedule(), 2000, 77);
+    // Sharpen the games so preseason odds are extreme without noise.
+    for (st, g) in input.status.iter_mut().zip(s.schedule().games()) {
+        if let GameStatus::Future { probs, .. } = st {
+            let d = 0.5
+                * (crate::testkit::strength(g.home as usize)
+                    - crate::testkit::strength(g.away as usize));
+            let home = (0.53 + d).clamp(0.05, 0.95);
+            *probs = [
+                home * 0.78,
+                home * 0.13,
+                home * 0.09,
+                (1.0 - home) * 0.78,
+                (1.0 - home) * 0.13,
+                (1.0 - home) * 0.09,
+            ];
+        }
+    }
+    let base = s.run(&input).unwrap().prob(Metric::Playoffs);
+    input.team_sigma = 0.35;
+    let noisy = s.run(&input).unwrap().prob(Metric::Playoffs);
+    let strong = (0..32)
+        .max_by(|&a, &b| base[a].total_cmp(&base[b]))
+        .unwrap();
+    let weak = (0..32)
+        .min_by(|&a, &b| base[a].total_cmp(&base[b]))
+        .unwrap();
+    assert!(base[strong] > 0.99, "{}", base[strong]);
+    assert!(
+        noisy[strong] < base[strong],
+        "{} vs {}",
+        noisy[strong],
+        base[strong]
+    );
+    assert!(
+        noisy[weak] > base[weak],
+        "{} vs {}",
+        noisy[weak],
+        base[weak]
+    );
+    // Spread across teams shrinks, total stays 16.
+    let spread = |v: &[f64]| v.iter().map(|p| (p - 0.5).abs()).sum::<f64>();
+    assert!(spread(&noisy) < spread(&base));
+    assert!((noisy.iter().sum::<f64>() - 16.0).abs() < 1e-9);
+}
+
+#[test]
+fn negative_sigma_is_rejected() {
+    let s = sim();
+    let mut input = future_input(s.config(), s.schedule(), 10, 1);
+    input.team_sigma = -0.1;
+    assert_eq!(s.run(&input), Err(SimError::BadSigma));
+}
