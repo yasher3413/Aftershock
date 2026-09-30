@@ -525,6 +525,7 @@ async def calibrate_magnitude(
         "n_goals": len(all_l),
     }
     path.write_text(json.dumps(meta, indent=2) + "\n")
+    (s.ml_dir / "reports" / "magnitude.json").write_text(json.dumps(meta, indent=2) + "\n")
     async with session_scope() as sess:
         await sess.execute(
             text(

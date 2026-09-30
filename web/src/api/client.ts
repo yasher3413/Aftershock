@@ -66,6 +66,13 @@ export const useRecap = (date: string) =>
     retry: false,
   });
 
+export const useMethodology = () =>
+  useQuery({
+    queryKey: ["methodology"],
+    queryFn: () => api<Record<string, any>>("/methodology"),
+    staleTime: 600_000,
+  });
+
 export const useStatus = () =>
   useQuery({
     queryKey: ["status"],
