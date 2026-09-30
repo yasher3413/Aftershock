@@ -220,6 +220,8 @@ class LiveSource:
         self.scoreboard: dict[int, dict[str, Any]] = {}
         self._next_poll: dict[int, float] = {}
         self._next_score = 0.0
+        # Games we have polled while live, until we have delivered them final.
+        self._watched: set[int] = set()
 
     async def refresh_scoreboard(self) -> dict[int, dict[str, Any]]:
         from zoneinfo import ZoneInfo
@@ -241,11 +243,14 @@ class LiveSource:
         self.scoreboard = games
         return games
 
-    def _interval(self, state: str | None) -> float | None:
+    def _interval(self, gid: int, state: str | None) -> float | None:
         if state in LIVE_STATES:
             return self.live_interval
         if state == "PRE":
             return self.pregame_interval
+        if state in ("FINAL", "OFF") and gid in self._watched:
+            # One more poll so the engine sees the final document.
+            return self.live_interval
         return None
 
     async def snapshots(self) -> AsyncIterator[Snapshot]:
@@ -260,7 +265,7 @@ class LiveSource:
                 self._next_score = now + self.score_interval
             due = []
             for gid, g in self.scoreboard.items():
-                interval = self._interval(g.get("gameState"))
+                interval = self._interval(gid, g.get("gameState"))
                 if interval is None:
                     continue
                 if self._next_poll.get(gid, 0.0) <= now:
@@ -274,6 +279,11 @@ class LiveSource:
                 if isinstance(res, BaseException):
                     log.warning("live.pbp_failed", game=gid, error=str(res))
                     continue
-                self.scoreboard[gid] = {**self.scoreboard[gid], "gameState": res.get("gameState")}
+                state = res.get("gameState")
+                self.scoreboard[gid] = {**self.scoreboard[gid], "gameState": state}
+                if state in ("FINAL", "OFF"):
+                    self._watched.discard(gid)
+                else:
+                    self._watched.add(gid)
                 yield Snapshot(gid, res, datetime.now(UTC))
             await asyncio.sleep(1.0)

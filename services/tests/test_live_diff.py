@@ -114,3 +114,30 @@ def test_replay_source_interleaves_games_by_wall_time(fixture: Fixture) -> None:
     times = [s.at for s in src.timeline()]
     assert times == sorted(times)
     assert {s.game_id for s in src.timeline()} == {a["id"], b["id"]}
+
+
+async def test_live_source_polls_a_watched_game_once_more_after_it_ends() -> None:
+    from aftershock.live.source import LiveSource
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.state = "LIVE"
+            self.pbp_calls = 0
+
+        async def score(self, day: object = None) -> dict[str, object]:
+            return {"currentDate": "2099-01-01", "games": [{"id": 1, "gameState": self.state}]}
+
+        async def play_by_play(self, gid: int, use_cache: bool = True) -> dict[str, object]:
+            self.pbp_calls += 1
+            return {"id": gid, "gameState": self.state, "plays": []}
+
+    client = FakeClient()
+    src = LiveSource(client, live_interval=0.0, score_interval=0.0)  # type: ignore[arg-type]
+    it = src.snapshots()
+    first = await it.__anext__()
+    assert first.raw["gameState"] == "LIVE"
+    client.state = "FINAL"
+    last = await it.__anext__()
+    assert last.raw["gameState"] == "FINAL"
+    assert 1 not in src._watched
+    await it.aclose()
