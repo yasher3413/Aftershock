@@ -1,0 +1,2283 @@
+{
+  "$defs": {
+    "EventMsg": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "integer"
+        },
+        "game_id": {
+          "title": "Game Id",
+          "type": "integer"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "period": {
+          "title": "Period",
+          "type": "integer"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "t_period_s": {
+          "title": "T Period S",
+          "type": "integer"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Team"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "event",
+          "default": "event",
+          "title": "Type",
+          "type": "string"
+        },
+        "x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "game_id",
+        "event_id",
+        "kind",
+        "period",
+        "t_period_s"
+      ],
+      "title": "EventMsg",
+      "type": "object"
+    },
+    "GameResponse": {
+      "properties": {
+        "game": {
+          "$ref": "#/$defs/GameSummary"
+        },
+        "shots": {
+          "items": {
+            "$ref": "#/$defs/ShotOut"
+          },
+          "title": "Shots",
+          "type": "array"
+        },
+        "tremors": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Tremors",
+          "type": "array"
+        },
+        "wp": {
+          "items": {
+            "$ref": "#/$defs/WpPoint"
+          },
+          "title": "Wp",
+          "type": "array"
+        },
+        "xg_away": {
+          "title": "Xg Away",
+          "type": "number"
+        },
+        "xg_home": {
+          "title": "Xg Home",
+          "type": "number"
+        }
+      },
+      "required": [
+        "game",
+        "wp",
+        "shots",
+        "xg_home",
+        "xg_away",
+        "tremors"
+      ],
+      "title": "GameResponse",
+      "type": "object"
+    },
+    "GameSummary": {
+      "properties": {
+        "away": {
+          "title": "Away",
+          "type": "string"
+        },
+        "away_score": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Away Score"
+        },
+        "away_sog": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Away Sog"
+        },
+        "clock_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clock Seconds"
+        },
+        "game_type": {
+          "title": "Game Type",
+          "type": "integer"
+        },
+        "home": {
+          "title": "Home",
+          "type": "string"
+        },
+        "home_score": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Home Score"
+        },
+        "home_sog": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Home Sog"
+        },
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "in_intermission": {
+          "default": false,
+          "title": "In Intermission",
+          "type": "boolean"
+        },
+        "last_period_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Period Type"
+        },
+        "night_date": {
+          "format": "date",
+          "title": "Night Date",
+          "type": "string"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        },
+        "period_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period Type"
+        },
+        "pregame": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SixWay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "stakes": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stakes"
+        },
+        "start_utc": {
+          "format": "date-time",
+          "title": "Start Utc",
+          "type": "string"
+        },
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "venue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue"
+        },
+        "wp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SixWay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "season",
+        "game_type",
+        "night_date",
+        "start_utc",
+        "home",
+        "away",
+        "venue",
+        "state"
+      ],
+      "title": "GameSummary",
+      "type": "object"
+    },
+    "GameUpdateMsg": {
+      "properties": {
+        "game": {
+          "$ref": "#/$defs/GameSummary"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "game_update",
+          "default": "game_update",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "game"
+      ],
+      "title": "GameUpdateMsg",
+      "type": "object"
+    },
+    "HealthResponse": {
+      "properties": {
+        "last_poll": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Last Poll",
+          "type": "object"
+        },
+        "last_sim_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Sim At"
+        },
+        "last_sim_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Sim Ms"
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "demo"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "server_time": {
+          "format": "date-time",
+          "title": "Server Time",
+          "type": "string"
+        },
+        "worker_lag_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Worker Lag S"
+        }
+      },
+      "required": [
+        "ok",
+        "server_time",
+        "last_poll",
+        "worker_lag_s",
+        "last_sim_ms",
+        "last_sim_at",
+        "mode"
+      ],
+      "title": "HealthResponse",
+      "type": "object"
+    },
+    "HeartbeatMsg": {
+      "properties": {
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "heartbeat",
+          "default": "heartbeat",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts"
+      ],
+      "title": "HeartbeatMsg",
+      "type": "object"
+    },
+    "HelloMsg": {
+      "properties": {
+        "mode": {
+          "enum": [
+            "live",
+            "demo"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "server_time": {
+          "format": "date-time",
+          "title": "Server Time",
+          "type": "string"
+        },
+        "state_version": {
+          "title": "State Version",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "hello",
+          "default": "hello",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "mode",
+        "server_time",
+        "state_version"
+      ],
+      "title": "HelloMsg",
+      "type": "object"
+    },
+    "HistBin": {
+      "properties": {
+        "p": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "p"
+      ],
+      "title": "HistBin",
+      "type": "object"
+    },
+    "JobRunOut": {
+      "properties": {
+        "detail": {
+          "additionalProperties": true,
+          "title": "Detail",
+          "type": "object"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Finished At"
+        },
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "job": {
+          "title": "Job",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "job",
+        "status",
+        "started_at",
+        "finished_at",
+        "detail"
+      ],
+      "title": "JobRunOut",
+      "type": "object"
+    },
+    "LeaderRow": {
+      "properties": {
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "player": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlayerRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rank",
+        "team",
+        "value",
+        "count"
+      ],
+      "title": "LeaderRow",
+      "type": "object"
+    },
+    "LeadersResponse": {
+      "properties": {
+        "kind": {
+          "enum": [
+            "skater",
+            "assist",
+            "goalie",
+            "team_chaos"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/LeaderRow"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "season",
+        "kind",
+        "rows"
+      ],
+      "title": "LeadersResponse",
+      "type": "object"
+    },
+    "NightInfo": {
+      "properties": {
+        "n_games": {
+          "title": "N Games",
+          "type": "integer"
+        },
+        "n_tremors": {
+          "title": "N Tremors",
+          "type": "integer"
+        },
+        "night_date": {
+          "format": "date",
+          "title": "Night Date",
+          "type": "string"
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "total_energy": {
+          "title": "Total Energy",
+          "type": "number"
+        }
+      },
+      "required": [
+        "night_date",
+        "season",
+        "total_energy",
+        "n_games",
+        "n_tremors"
+      ],
+      "title": "NightInfo",
+      "type": "object"
+    },
+    "OddsPoint": {
+      "properties": {
+        "sim_run_id": {
+          "title": "Sim Run Id",
+          "type": "integer"
+        },
+        "t": {
+          "format": "date-time",
+          "title": "T",
+          "type": "string"
+        },
+        "trigger": {
+          "title": "Trigger",
+          "type": "string"
+        },
+        "value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t",
+        "sim_run_id",
+        "trigger",
+        "value"
+      ],
+      "title": "OddsPoint",
+      "type": "object"
+    },
+    "OddsUpdateMsg": {
+      "properties": {
+        "odds": {
+          "items": {
+            "$ref": "#/$defs/TeamOdds"
+          },
+          "title": "Odds",
+          "type": "array"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sim_run_id": {
+          "title": "Sim Run Id",
+          "type": "integer"
+        },
+        "trigger": {
+          "title": "Trigger",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "odds_update",
+          "default": "odds_update",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "sim_run_id",
+        "trigger",
+        "odds"
+      ],
+      "title": "OddsUpdateMsg",
+      "type": "object"
+    },
+    "Origin": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "off_map": {
+          "default": false,
+          "title": "Off Map",
+          "type": "boolean"
+        },
+        "venue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue"
+        }
+      },
+      "required": [
+        "venue",
+        "lat",
+        "lon"
+      ],
+      "title": "Origin",
+      "type": "object"
+    },
+    "PlayerRef": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "PlayerRef",
+      "type": "object"
+    },
+    "RecapReadyMsg": {
+      "properties": {
+        "night_date": {
+          "format": "date",
+          "title": "Night Date",
+          "type": "string"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "recap_ready",
+          "default": "recap_ready",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "night_date"
+      ],
+      "title": "RecapReadyMsg",
+      "type": "object"
+    },
+    "RecapResponse": {
+      "properties": {
+        "body": {
+          "title": "Body",
+          "type": "string"
+        },
+        "headline": {
+          "title": "Headline",
+          "type": "string"
+        },
+        "key_numbers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Key Numbers",
+          "type": "array"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "night_date": {
+          "format": "date",
+          "title": "Night Date",
+          "type": "string"
+        },
+        "validated": {
+          "title": "Validated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "night_date",
+        "headline",
+        "body",
+        "key_numbers",
+        "model",
+        "validated"
+      ],
+      "title": "RecapResponse",
+      "type": "object"
+    },
+    "ReplayInfo": {
+      "properties": {
+        "next_live_utc": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Live Utc"
+        },
+        "night_date": {
+          "format": "date",
+          "title": "Night Date",
+          "type": "string"
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "speed": {
+          "title": "Speed",
+          "type": "number"
+        }
+      },
+      "required": [
+        "night_date",
+        "season",
+        "speed"
+      ],
+      "title": "ReplayInfo",
+      "type": "object"
+    },
+    "RootingLine": {
+      "properties": {
+        "away": {
+          "title": "Away",
+          "type": "string"
+        },
+        "best_outcome": {
+          "title": "Best Outcome",
+          "type": "string"
+        },
+        "best_outcome_p": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Best Outcome P",
+          "type": "number"
+        },
+        "game_id": {
+          "title": "Game Id",
+          "type": "integer"
+        },
+        "home": {
+          "title": "Home",
+          "type": "string"
+        },
+        "impact": {
+          "title": "Impact",
+          "type": "number"
+        },
+        "involves_team": {
+          "title": "Involves Team",
+          "type": "boolean"
+        },
+        "root_for": {
+          "title": "Root For",
+          "type": "string"
+        },
+        "start_utc": {
+          "format": "date-time",
+          "title": "Start Utc",
+          "type": "string"
+        },
+        "stderr": {
+          "title": "Stderr",
+          "type": "number"
+        },
+        "worst_outcome": {
+          "title": "Worst Outcome",
+          "type": "string"
+        },
+        "worst_outcome_p": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Worst Outcome P",
+          "type": "number"
+        }
+      },
+      "required": [
+        "game_id",
+        "start_utc",
+        "home",
+        "away",
+        "involves_team",
+        "impact",
+        "stderr",
+        "root_for",
+        "best_outcome",
+        "best_outcome_p",
+        "worst_outcome",
+        "worst_outcome_p"
+      ],
+      "title": "RootingLine",
+      "type": "object"
+    },
+    "ScheduleGame": {
+      "properties": {
+        "game_id": {
+          "title": "Game Id",
+          "type": "integer"
+        },
+        "home": {
+          "title": "Home",
+          "type": "boolean"
+        },
+        "opponent": {
+          "title": "Opponent",
+          "type": "string"
+        },
+        "p_points": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Points",
+          "type": "number"
+        },
+        "p_win": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Win",
+          "type": "number"
+        },
+        "start_utc": {
+          "format": "date-time",
+          "title": "Start Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "game_id",
+        "start_utc",
+        "opponent",
+        "home",
+        "p_win",
+        "p_points"
+      ],
+      "title": "ScheduleGame",
+      "type": "object"
+    },
+    "Score": {
+      "properties": {
+        "away": {
+          "title": "Away",
+          "type": "integer"
+        },
+        "home": {
+          "title": "Home",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "home",
+        "away"
+      ],
+      "title": "Score",
+      "type": "object"
+    },
+    "ShotOut": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "integer"
+        },
+        "goal": {
+          "title": "Goal",
+          "type": "boolean"
+        },
+        "period": {
+          "title": "Period",
+          "type": "integer"
+        },
+        "shooter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlayerRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "shot_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shot Type"
+        },
+        "t_period_s": {
+          "title": "T Period S",
+          "type": "integer"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "xg": {
+          "title": "Xg",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_id",
+        "team",
+        "period",
+        "t_period_s",
+        "x",
+        "y",
+        "xg",
+        "goal"
+      ],
+      "title": "ShotOut",
+      "type": "object"
+    },
+    "SixWay": {
+      "properties": {
+        "away_ot": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Away Ot",
+          "type": "number"
+        },
+        "away_reg": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Away Reg",
+          "type": "number"
+        },
+        "away_so": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Away So",
+          "type": "number"
+        },
+        "home_ot": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Home Ot",
+          "type": "number"
+        },
+        "home_reg": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Home Reg",
+          "type": "number"
+        },
+        "home_so": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Home So",
+          "type": "number"
+        }
+      },
+      "required": [
+        "home_reg",
+        "home_ot",
+        "home_so",
+        "away_reg",
+        "away_ot",
+        "away_so"
+      ],
+      "title": "SixWay",
+      "type": "object"
+    },
+    "StandingsRow": {
+      "properties": {
+        "conference": {
+          "title": "Conference",
+          "type": "string"
+        },
+        "conference_rank": {
+          "title": "Conference Rank",
+          "type": "integer"
+        },
+        "division": {
+          "title": "Division",
+          "type": "string"
+        },
+        "division_rank": {
+          "title": "Division Rank",
+          "type": "integer"
+        },
+        "ga": {
+          "title": "Ga",
+          "type": "integer"
+        },
+        "gf": {
+          "title": "Gf",
+          "type": "integer"
+        },
+        "gp": {
+          "title": "Gp",
+          "type": "integer"
+        },
+        "l": {
+          "title": "L",
+          "type": "integer"
+        },
+        "league_rank": {
+          "title": "League Rank",
+          "type": "integer"
+        },
+        "otl": {
+          "title": "Otl",
+          "type": "integer"
+        },
+        "points": {
+          "title": "Points",
+          "type": "integer"
+        },
+        "points_pct": {
+          "title": "Points Pct",
+          "type": "number"
+        },
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "rw": {
+          "title": "Rw",
+          "type": "integer"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        },
+        "w": {
+          "title": "W",
+          "type": "integer"
+        },
+        "wildcard_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wildcard Rank"
+        }
+      },
+      "required": [
+        "team",
+        "conference",
+        "division",
+        "gp",
+        "w",
+        "l",
+        "otl",
+        "points",
+        "points_pct",
+        "rw",
+        "row",
+        "gf",
+        "ga",
+        "division_rank",
+        "conference_rank",
+        "league_rank"
+      ],
+      "title": "StandingsRow",
+      "type": "object"
+    },
+    "StandingsUpdateMsg": {
+      "properties": {
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "standings": {
+          "items": {
+            "$ref": "#/$defs/StandingsRow"
+          },
+          "title": "Standings",
+          "type": "array"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "standings_update",
+          "default": "standings_update",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "standings"
+      ],
+      "title": "StandingsUpdateMsg",
+      "type": "object"
+    },
+    "StateResponse": {
+      "properties": {
+        "game_of_the_night": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Game Of The Night"
+        },
+        "live_games": {
+          "items": {
+            "$ref": "#/$defs/GameSummary"
+          },
+          "title": "Live Games",
+          "type": "array"
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "demo"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "odds": {
+          "items": {
+            "$ref": "#/$defs/TeamOdds"
+          },
+          "title": "Odds",
+          "type": "array"
+        },
+        "odds_day_start": {
+          "items": {
+            "$ref": "#/$defs/TeamOdds"
+          },
+          "title": "Odds Day Start",
+          "type": "array"
+        },
+        "replay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReplayInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "server_time": {
+          "format": "date-time",
+          "title": "Server Time",
+          "type": "string"
+        },
+        "sim_run_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sim Run Id"
+        },
+        "standings": {
+          "items": {
+            "$ref": "#/$defs/StandingsRow"
+          },
+          "title": "Standings",
+          "type": "array"
+        },
+        "state_version": {
+          "title": "State Version",
+          "type": "integer"
+        },
+        "teams": {
+          "items": {
+            "$ref": "#/$defs/TeamInfo"
+          },
+          "title": "Teams",
+          "type": "array"
+        },
+        "tonight": {
+          "items": {
+            "$ref": "#/$defs/GameSummary"
+          },
+          "title": "Tonight",
+          "type": "array"
+        },
+        "tremors": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Tremors",
+          "type": "array"
+        },
+        "venues": {
+          "items": {
+            "$ref": "#/$defs/VenueInfo"
+          },
+          "title": "Venues",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mode",
+        "server_time",
+        "state_version",
+        "season",
+        "sim_run_id",
+        "teams",
+        "venues",
+        "standings",
+        "odds",
+        "live_games",
+        "tonight",
+        "tremors"
+      ],
+      "title": "StateResponse",
+      "type": "object"
+    },
+    "StatusResponse": {
+      "properties": {
+        "health": {
+          "$ref": "#/$defs/HealthResponse"
+        },
+        "jobs": {
+          "items": {
+            "$ref": "#/$defs/JobRunOut"
+          },
+          "title": "Jobs",
+          "type": "array"
+        },
+        "reconcile": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Reconcile",
+          "type": "array"
+        },
+        "sim_runs": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Sim Runs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "health",
+        "sim_runs",
+        "reconcile",
+        "jobs"
+      ],
+      "title": "StatusResponse",
+      "type": "object"
+    },
+    "TeamDelta": {
+      "properties": {
+        "d_cup": {
+          "title": "D Cup",
+          "type": "number"
+        },
+        "d_division": {
+          "title": "D Division",
+          "type": "number"
+        },
+        "d_playoffs": {
+          "title": "D Playoffs",
+          "type": "number"
+        },
+        "p_playoffs_after": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Playoffs After",
+          "type": "number"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "d_playoffs",
+        "d_division",
+        "d_cup",
+        "p_playoffs_after"
+      ],
+      "title": "TeamDelta",
+      "type": "object"
+    },
+    "TeamInfo": {
+      "properties": {
+        "abbrev": {
+          "title": "Abbrev",
+          "type": "string"
+        },
+        "arena": {
+          "title": "Arena",
+          "type": "string"
+        },
+        "color_primary": {
+          "title": "Color Primary",
+          "type": "string"
+        },
+        "color_secondary": {
+          "title": "Color Secondary",
+          "type": "string"
+        },
+        "conference": {
+          "title": "Conference",
+          "type": "string"
+        },
+        "division": {
+          "title": "Division",
+          "type": "string"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "abbrev",
+        "name",
+        "conference",
+        "division",
+        "arena",
+        "lat",
+        "lon",
+        "color_primary",
+        "color_secondary"
+      ],
+      "title": "TeamInfo",
+      "type": "object"
+    },
+    "TeamOdds": {
+      "properties": {
+        "exp_points": {
+          "title": "Exp Points",
+          "type": "number"
+        },
+        "p_conf_final": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Conf Final",
+          "type": "number"
+        },
+        "p_conf_first": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Conf First",
+          "type": "number"
+        },
+        "p_cup": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Cup",
+          "type": "number"
+        },
+        "p_division": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Division",
+          "type": "number"
+        },
+        "p_final": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Final",
+          "type": "number"
+        },
+        "p_last": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Last",
+          "type": "number"
+        },
+        "p_playoffs": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Playoffs",
+          "type": "number"
+        },
+        "p_presidents": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Presidents",
+          "type": "number"
+        },
+        "p_round2": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Round2",
+          "type": "number"
+        },
+        "p_top3_div": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Top3 Div",
+          "type": "number"
+        },
+        "p_wildcard": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Wildcard",
+          "type": "number"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "p_playoffs",
+        "p_division",
+        "p_top3_div",
+        "p_wildcard",
+        "p_presidents",
+        "p_conf_first",
+        "p_round2",
+        "p_conf_final",
+        "p_final",
+        "p_cup",
+        "p_last",
+        "exp_points"
+      ],
+      "title": "TeamOdds",
+      "type": "object"
+    },
+    "TeamPlayerPpa": {
+      "properties": {
+        "assist_ppa": {
+          "title": "Assist Ppa",
+          "type": "number"
+        },
+        "assists": {
+          "title": "Assists",
+          "type": "integer"
+        },
+        "goals": {
+          "title": "Goals",
+          "type": "integer"
+        },
+        "player": {
+          "$ref": "#/$defs/PlayerRef"
+        },
+        "ppa": {
+          "title": "Ppa",
+          "type": "number"
+        }
+      },
+      "required": [
+        "player",
+        "goals",
+        "ppa",
+        "assists",
+        "assist_ppa"
+      ],
+      "title": "TeamPlayerPpa",
+      "type": "object"
+    },
+    "TeamResponse": {
+      "properties": {
+        "history": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/OddsPoint"
+            },
+            "type": "array"
+          },
+          "title": "History",
+          "type": "object"
+        },
+        "odds": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TeamOdds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "players": {
+          "items": {
+            "$ref": "#/$defs/TeamPlayerPpa"
+          },
+          "title": "Players",
+          "type": "array"
+        },
+        "points_hist": {
+          "items": {
+            "$ref": "#/$defs/HistBin"
+          },
+          "title": "Points Hist",
+          "type": "array"
+        },
+        "remaining": {
+          "items": {
+            "$ref": "#/$defs/ScheduleGame"
+          },
+          "title": "Remaining",
+          "type": "array"
+        },
+        "rooting": {
+          "items": {
+            "$ref": "#/$defs/RootingLine"
+          },
+          "title": "Rooting",
+          "type": "array"
+        },
+        "seed_dist": {
+          "additionalProperties": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "title": "Seed Dist",
+          "type": "object"
+        },
+        "team": {
+          "$ref": "#/$defs/TeamInfo"
+        },
+        "tremors_against": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Tremors Against",
+          "type": "array"
+        },
+        "tremors_for": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Tremors For",
+          "type": "array"
+        }
+      },
+      "required": [
+        "team",
+        "odds",
+        "history",
+        "points_hist",
+        "seed_dist",
+        "rooting",
+        "remaining",
+        "tremors_for",
+        "tremors_against",
+        "players"
+      ],
+      "title": "TeamResponse",
+      "type": "object"
+    },
+    "Tremor": {
+      "properties": {
+        "assists": {
+          "items": {
+            "$ref": "#/$defs/PlayerRef"
+          },
+          "title": "Assists",
+          "type": "array"
+        },
+        "away": {
+          "title": "Away",
+          "type": "string"
+        },
+        "cpa": {
+          "title": "Cpa",
+          "type": "number"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "deltas": {
+          "items": {
+            "$ref": "#/$defs/TeamDelta"
+          },
+          "title": "Deltas",
+          "type": "array"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "integer"
+        },
+        "game_id": {
+          "title": "Game Id",
+          "type": "integer"
+        },
+        "goalie": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlayerRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "home": {
+          "title": "Home",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "magnitude": {
+          "title": "Magnitude",
+          "type": "number"
+        },
+        "night_date": {
+          "format": "date",
+          "title": "Night Date",
+          "type": "string"
+        },
+        "opponent": {
+          "title": "Opponent",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "overturned": {
+          "default": false,
+          "title": "Overturned",
+          "type": "boolean"
+        },
+        "period": {
+          "title": "Period",
+          "type": "integer"
+        },
+        "period_type": {
+          "title": "Period Type",
+          "type": "string"
+        },
+        "ppa": {
+          "title": "Ppa",
+          "type": "number"
+        },
+        "score_after": {
+          "$ref": "#/$defs/Score"
+        },
+        "score_before": {
+          "$ref": "#/$defs/Score"
+        },
+        "scorer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlayerRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "shootout": {
+          "default": false,
+          "title": "Shootout",
+          "type": "boolean"
+        },
+        "t_game_s": {
+          "title": "T Game S",
+          "type": "integer"
+        },
+        "t_period_s": {
+          "title": "T Period S",
+          "type": "integer"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        },
+        "total_shift": {
+          "title": "Total Shift",
+          "type": "number"
+        },
+        "wp_after": {
+          "$ref": "#/$defs/SixWay"
+        },
+        "wp_before": {
+          "$ref": "#/$defs/SixWay"
+        }
+      },
+      "required": [
+        "id",
+        "season",
+        "game_id",
+        "event_id",
+        "night_date",
+        "team",
+        "opponent",
+        "home",
+        "away",
+        "period",
+        "period_type",
+        "t_period_s",
+        "t_game_s",
+        "score_before",
+        "score_after",
+        "wp_before",
+        "wp_after",
+        "deltas",
+        "total_shift",
+        "magnitude",
+        "ppa",
+        "cpa",
+        "origin",
+        "created_at"
+      ],
+      "title": "Tremor",
+      "type": "object"
+    },
+    "TremorMsg": {
+      "properties": {
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "tremor": {
+          "$ref": "#/$defs/Tremor"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "tremor",
+          "default": "tremor",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "tremor"
+      ],
+      "title": "TremorMsg",
+      "type": "object"
+    },
+    "TremorPage": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "TremorPage",
+      "type": "object"
+    },
+    "TremorReversedMsg": {
+      "properties": {
+        "deltas": {
+          "items": {
+            "$ref": "#/$defs/TeamDelta"
+          },
+          "title": "Deltas",
+          "type": "array"
+        },
+        "game_id": {
+          "title": "Game Id",
+          "type": "integer"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "tremor_id": {
+          "title": "Tremor Id",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "tremor_reversed",
+          "default": "tremor_reversed",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "tremor_id",
+        "game_id",
+        "origin",
+        "deltas"
+      ],
+      "title": "TremorReversedMsg",
+      "type": "object"
+    },
+    "TremorUpdatedMsg": {
+      "properties": {
+        "changes": {
+          "additionalProperties": true,
+          "title": "Changes",
+          "type": "object"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "tremor_id": {
+          "title": "Tremor Id",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "tremor_updated",
+          "default": "tremor_updated",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "tremor_id",
+        "changes"
+      ],
+      "title": "TremorUpdatedMsg",
+      "type": "object"
+    },
+    "VenueInfo": {
+      "properties": {
+        "city": {
+          "title": "City",
+          "type": "string"
+        },
+        "country": {
+          "title": "Country",
+          "type": "string"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "city",
+        "country",
+        "lat",
+        "lon"
+      ],
+      "title": "VenueInfo",
+      "type": "object"
+    },
+    "WpPoint": {
+      "properties": {
+        "event_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Id"
+        },
+        "p_away": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Away",
+          "type": "number"
+        },
+        "p_home": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Home",
+          "type": "number"
+        },
+        "p_tie": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Tie",
+          "type": "number"
+        },
+        "t_game_s": {
+          "title": "T Game S",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "t_game_s",
+        "event_id",
+        "p_home",
+        "p_away",
+        "p_tie"
+      ],
+      "title": "WpPoint",
+      "type": "object"
+    }
+  },
+  "description": "Root that references every wire type, for JSON Schema export.",
+  "properties": {
+    "game": {
+      "$ref": "#/$defs/GameResponse"
+    },
+    "health": {
+      "$ref": "#/$defs/HealthResponse"
+    },
+    "leaders": {
+      "$ref": "#/$defs/LeadersResponse"
+    },
+    "message": {
+      "discriminator": {
+        "mapping": {
+          "event": "#/$defs/EventMsg",
+          "game_update": "#/$defs/GameUpdateMsg",
+          "heartbeat": "#/$defs/HeartbeatMsg",
+          "hello": "#/$defs/HelloMsg",
+          "odds_update": "#/$defs/OddsUpdateMsg",
+          "recap_ready": "#/$defs/RecapReadyMsg",
+          "standings_update": "#/$defs/StandingsUpdateMsg",
+          "tremor": "#/$defs/TremorMsg",
+          "tremor_reversed": "#/$defs/TremorReversedMsg",
+          "tremor_updated": "#/$defs/TremorUpdatedMsg"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/HelloMsg"
+        },
+        {
+          "$ref": "#/$defs/GameUpdateMsg"
+        },
+        {
+          "$ref": "#/$defs/EventMsg"
+        },
+        {
+          "$ref": "#/$defs/TremorMsg"
+        },
+        {
+          "$ref": "#/$defs/TremorUpdatedMsg"
+        },
+        {
+          "$ref": "#/$defs/TremorReversedMsg"
+        },
+        {
+          "$ref": "#/$defs/OddsUpdateMsg"
+        },
+        {
+          "$ref": "#/$defs/StandingsUpdateMsg"
+        },
+        {
+          "$ref": "#/$defs/RecapReadyMsg"
+        },
+        {
+          "$ref": "#/$defs/HeartbeatMsg"
+        }
+      ],
+      "title": "Message"
+    },
+    "nights": {
+      "items": {
+        "$ref": "#/$defs/NightInfo"
+      },
+      "title": "Nights",
+      "type": "array"
+    },
+    "recap": {
+      "$ref": "#/$defs/RecapResponse"
+    },
+    "state": {
+      "$ref": "#/$defs/StateResponse"
+    },
+    "status": {
+      "$ref": "#/$defs/StatusResponse"
+    },
+    "team": {
+      "$ref": "#/$defs/TeamResponse"
+    },
+    "tremor_page": {
+      "$ref": "#/$defs/TremorPage"
+    }
+  },
+  "required": [
+    "state",
+    "team",
+    "game",
+    "tremor_page",
+    "leaders",
+    "nights",
+    "health",
+    "status",
+    "recap",
+    "message"
+  ],
+  "title": "Schema",
+  "type": "object"
+}
