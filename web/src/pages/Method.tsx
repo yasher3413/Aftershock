@@ -149,8 +149,10 @@ export default function MethodPage() {
         S), where S is the total shift.
         {mag &&
           ` The constants (a = ${f(mag.a, 2)}, b = ${f(mag.b, 2)}) were set on ${mag.n_goals?.toLocaleString()} goals from 2024-25 and 2025-26 so the typical goal lands near 2 and a season's ten biggest near 8.`}{" "}
-        Early-season goals are small. That is correct: the map gets more violent as April
-        approaches.
+        {mag?.zero_share != null &&
+          `The scale stops at 0: a goal that moves the league by less than ${f(mag.floor_shift * 100, 1)} percentage points in total reads as M0.0, and ${f(mag.zero_share * 100, 0)}% of goals in those two seasons did.`}{" "}
+        {mag?.top25_march_april_share != null &&
+          `The map gets more violent as April approaches, but only at the top: ${f(mag.top25_march_april_share * 100, 0)}% of each season's 25 biggest goals came in March or April, while ${f(mag.april_zero_share * 100, 0)}% of April goals read M0.0 because most races are already settled.`}
       </p>
       <p>
         Playoff Probability Added (PPA) is how much a goal moved the scoring team's own playoff

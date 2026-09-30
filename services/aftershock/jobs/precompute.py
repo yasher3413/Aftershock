@@ -517,7 +517,7 @@ async def calibrate_magnitude(
         rows = (
             await sess.execute(
                 text(
-                    "SELECT t.season, t.total_shift FROM tremors t "
+                    "SELECT t.season, t.total_shift, t.night_date FROM tremors t "
                     "JOIN games g ON g.id = t.game_id WHERE g.game_type = 2 "
                     "AND NOT t.overturned AND NOT t.shootout AND t.season = ANY(:s)"
                 ),
@@ -526,7 +526,7 @@ async def calibrate_magnitude(
         ).all()
     L = {
         season: sorted(
-            (math.log10(1 + 10000 * sh) for se, sh in rows if se == season), reverse=True
+            (math.log10(1 + 10000 * sh) for se, sh, _ in rows if se == season), reverse=True
         )
         for season in seasons
     }
@@ -539,6 +539,16 @@ async def calibrate_magnitude(
     path = s.ml_dir / "artifacts" / "magnitude-1.0.0.json"
     # Goals whose total shift is below this land on M0 after the clamp.
     floor_shift = (10 ** (-a / b) - 1) / 10000
+
+    # How the size of goals changes over a season, for the methodology page.
+    def mag(sh: float) -> float:
+        return max(0.0, a + b * math.log10(1 + 10000 * sh))
+
+    april = [mag(sh) for _, sh, d in rows if d.month == 4]
+    late_top = []
+    for season in seasons:
+        ranked = sorted(((sh, d) for se, sh, d in rows if se == season), reverse=True)[:25]
+        late_top.append(sum(1 for _, d in ranked if d.month in (3, 4)) / max(len(ranked), 1))
     meta = {
         "a": a,
         "b": b,
@@ -548,6 +558,8 @@ async def calibrate_magnitude(
         "n_goals": len(all_l),
         "floor_shift": floor_shift,
         "zero_share": sum(1 for x in all_l if a + b * x <= 0) / len(all_l),
+        "april_zero_share": sum(1 for m in april if m <= 0) / max(len(april), 1),
+        "top25_march_april_share": float(np.mean(late_top)),
     }
     path.write_text(json.dumps(meta, indent=2) + "\n")
     (s.ml_dir / "reports" / "magnitude.json").write_text(json.dumps(meta, indent=2) + "\n")
