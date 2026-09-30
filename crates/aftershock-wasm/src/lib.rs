@@ -276,6 +276,20 @@ mod tests {
     }
 
     #[test]
+    fn team_sigma_field_is_optional() {
+        let mut v: Value = serde_json::from_str(&state_json()).unwrap();
+        let without: State = serde_json::from_value(v.clone()).unwrap();
+        assert_eq!(without.team_sigma, 0.0);
+        v["team_sigma"] = 0.0.into();
+        let zero: State = serde_json::from_value(v.clone()).unwrap();
+        let a = simulate_state(&without, 200, 3, || 0.0).unwrap();
+        assert_eq!(a, simulate_state(&zero, 200, 3, || 0.0).unwrap());
+        v["team_sigma"] = 0.3.into();
+        let noisy: State = serde_json::from_value(v).unwrap();
+        assert_ne!(a, simulate_state(&noisy, 200, 3, || 0.0).unwrap());
+    }
+
+    #[test]
     fn bad_input_is_an_error() {
         let mut state: State = serde_json::from_str(&state_json()).unwrap();
         state.games[0].status = "postponed".into();
