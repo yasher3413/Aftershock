@@ -142,6 +142,14 @@ Checks:
   Per-season rates are listed under "Per-season checks"; rows with null coordinates
   are dropped from xG training.
 
+### Blocked shots
+
+For `blocked-shot` events, `eventOwnerTeamId` is the **blocking** team and
+`zoneCode` is from the blocker's perspective (nearly always `D`). The one
+exception is `reason: teammate-blocked`, where the owner is the shooting
+team (zone `O`). `shootingPlayerId` and `blockingPlayerId` are both present.
+xG rebound detection uses the shooting team (`ml/xg_features.attempt_team`).
+
 ### Corrections and overturned goals
 
 In a finished game, an overturned goal simply is not a goal: the event shows
