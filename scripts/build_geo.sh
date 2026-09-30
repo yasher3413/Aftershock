@@ -41,5 +41,6 @@ mapshaper -i "$WORK/lakes.geojson" \
   -o "$WORK/lakes-na.json" format=geojson
 
 mapshaper -i "$WORK/land.json" "$WORK/borders.json" "$WORK/lakes-na.json" combine-files \
+  -rename-layers land,borders,lakes \
   -o "$OUT" format=topojson quantization=1e5
 ls -l "$OUT"
