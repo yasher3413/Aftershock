@@ -171,4 +171,32 @@ Unsuccessful challenges leave the goal in place and add a
 
 ## Per-season checks
 
-Filled in from `scripts/analyze_pbp.py` once the full backfill completes.
+Every cached game, regular season and playoffs. "Direction inference agrees"
+compares the zone-code inference with `homeTeamDefendingSide` period by
+period, where the field exists.
+
+| Season | Games | Unblocked shots | Null coordinates | Games with defending side | Direction inference agrees |
+|---|---|---|---|---|---|
+| 2015-16 | 1,321 | 109,522 | 1 (0.00%) | 0 | n/a (field absent) |
+| 2016-17 | 1,317 | 110,999 | 4 (0.00%) | 0 | n/a (field absent) |
+| 2017-18 | 1,355 | 119,770 | 3 (0.00%) | 0 | n/a (field absent) |
+| 2018-19 | 1,358 | 117,802 | 4 (0.00%) | 0 | n/a (field absent) |
+| 2019-20 | 1,212 | 104,404 | 0 (0.00%) | 1,212 | 3,893 of 3,923 |
+| 2020-21 | 952 | 78,671 | 0 (0.00%) | 952 | 3,073 of 3,084 |
+| 2021-22 | 1,401 | 121,603 | 0 (0.00%) | 1,401 | 4,508 of 4,508 |
+| 2022-23 | 1,400 | 122,066 | 0 (0.00%) | 1,400 | 4,531 of 4,531 |
+| 2023-24 | 1,400 | 122,529 | 0 (0.00%) | 1,400 | 4,492 of 4,492 |
+| 2024-25 | 1,398 | 119,954 | 0 (0.00%) | 1,398 | 4,489 of 4,489 |
+| 2025-26 | 1,394 | 119,357 | 0 (0.00%) | 1,394 | 4,534 of 4,534 |
+| 2026-27 | 5 | 371 | 0 (0.00%) | 5 | 17 of 17 |
+
+Notes:
+
+- Null coordinates are essentially absent: 12 unblocked shots in eleven
+  seasons. They are dropped from xG training.
+- `homeTeamDefendingSide` first appears in 2019-20. Inference agrees with it
+  in every period from 2021-22 on. In 2019-20 (30 of 3,923 periods) and
+  2020-21 (11 of 3,084) the two disagree; spot checks show the explicit field
+  is the one that is wrong in those games (goals land at the -89 end), which
+  is why the parser trusts the field only when present and the models were
+  checked on normalized goal locations instead.
