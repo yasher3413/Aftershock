@@ -1,0 +1,8 @@
+dist
+node_modules
+src/wasm/pkg
+src/api/types.gen.ts
+public/geo
+playwright-report
+test-results
+pnpm-lock.yaml
