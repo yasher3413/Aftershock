@@ -6,6 +6,7 @@ import json
 import math
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -32,12 +33,16 @@ class MagnitudeScale:
         return float(min(10.0, max(0.0, m)))
 
 
-@lru_cache(maxsize=1)
 def magnitude_scale(settings: Settings | None = None) -> MagnitudeScale:
     s = settings or get_settings()
-    path = s.ml_dir / "artifacts" / MAGNITUDE_FILE
-    if path.exists():
-        data = json.loads(path.read_text())
+    return _load_scale(str(s.ml_dir / "artifacts" / MAGNITUDE_FILE))
+
+
+@lru_cache(maxsize=4)
+def _load_scale(path: str) -> MagnitudeScale:
+    p = Path(path)
+    if p.exists():
+        data = json.loads(p.read_text())
         return MagnitudeScale(float(data["a"]), float(data["b"]))
     return MagnitudeScale()
 
