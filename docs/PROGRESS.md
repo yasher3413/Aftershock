@@ -5,43 +5,44 @@ Resume point for the Aftershock build. Read this, `docs/DECISIONS.md`, and
 
 ## Current phase
 
-Phases 1 to 6 in progress in parallel (client, data, rules engine, models).
-Phase 3 (Rust rules engine) is being built by a subagent in a separate clone
-and will be rebased onto main.
+Phases 10 to 14: history precompute running; API done; frontend home and
+replay working with real data; building the remaining pages. Tags pushed:
+v0.1.0 (data layer), v0.2.0 (models), v0.3.0 (simulator).
 
 ## Done
 
-- Phase 0: git safeguards (local commit-msg and pre-commit hooks, verified),
-  monorepo scaffolding, Makefile, Compose (Postgres on host port 55432,
-  Redis 6379), CI (style, rust, python with Postgres, web, stale types).
-- Phase 1: typed NHL client (rate limit, retries, ETag, disk cache),
-  parsers, trimmed real fixtures, `docs/DATA.md`, live recorder running.
-- Phase 2: schema and migrations, loader, resumable backfill. Raw cache
-  holds every game 2015-16 to now (14,513 games, 179 MB).
-- Models: xG features and trainer, games table, team strength with tuning
-  and backtest, win-probability tracker and ordinal model, OT and shootout
-  math. All coded and unit tested; training running (see below).
-- Live engine foundations: differ and event sources (live and replay).
-- Web foundation: design plan (`docs/DESIGN.md`), tokens, formatters, live
-  reducer and store, socket client, timeline player, shell and routes.
-- API wire types in pydantic with generated TypeScript types.
+- Phases 0 to 3: scaffolding, CI, NHL client, parsers, fixtures, schema,
+  backfill (all games 2015-16 to now in Postgres), Rust rules engine with the
+  nine-season gold test.
+- Phases 4 to 6: xG, team strength, win probability, OT and shootout math,
+  model cards (`ml/MODEL_CARDS.md`), sanity tests.
+- Phases 7 and 8: Rust Monte Carlo (20k seasons in ~120 ms p95), PyO3 and
+  WASM builds, team-strength noise, season backtest with tuned shrink.
+- Phase 9 core: I/O-free season engine, persistence, worker (leader lock,
+  drift reweighting, nightly upkeep), publisher and WebSocket hub.
+- Phase 11: every REST endpoint except share images; generated TS types.
+- Phase 12 and 13: design plan, tokens, map (Pixi shockwaves, reversals,
+  shake, reduced motion), seismograph, panels, demo mode, night replay page.
+- Recap generator (LLM with validation, template fallback).
 
 ## Next
 
-- Integrate the rules engine branch; then the Monte Carlo simulator
-  (Phase 7), PyO3 and WASM bindings.
-- Tremor pipeline, worker, API endpoints, map.
+- Pages: game, tremor, leaders, methodology, status, What-If Lab.
+- Share images (cairosvg), Docker images, e2e tests, README media.
+- Run the worker through tonight's real games (first puck drop 23:30 UTC).
 
 ## Background jobs
 
-- **Live recorder**: `aftershock record-live --hours 96`, started
-  2026-09-30 05:41 UTC. Log: `logs/recorder.log`. Output:
-  `data/recordings/{gameId}/`.
-- **Training**: `aftershock train all`, started 06:16 UTC. Log:
-  `logs/train-all.log`. Writes `ml/artifacts/` and `ml/reports/`.
-- **DB backfill**: `aftershock backfill --from-season 20152016`, started
-  06:16 UTC. Log: `logs/backfill.log`. Resumable: rerun the same command.
+- **Live recorder**: `aftershock record-live --hours 96` (since 05:41 UTC).
+  Log `logs/recorder.log`, output `data/recordings/`.
+- **Worker**: `aftershock worker`, log `logs/worker.log`.
+- **API**: uvicorn on :8000 (`logs/api.log`); **web dev** on :5173.
+- **Precompute**: `aftershock precompute --season 20252026 --season
+  20242025`, started 15:07 UTC, log `logs/precompute.log`, then calibrates
+  magnitude and rewrites bundles.
 
 ## Known issues
 
-None yet.
+- Preseason odds for extreme teams (Carolina 99.9 percent after a Cup run)
+  exceed anything in the backtest; ratings include playoff games and the
+  strength tuning chose no season-to-season regression.
