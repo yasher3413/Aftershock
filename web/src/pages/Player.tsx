@@ -236,6 +236,55 @@ export default function PlayerPage() {
             </section>
           )}
         </div>
+        {s && (
+          <section aria-labelledby="disc-h" className="pt-10">
+            <h2 id="disc-h" className="display mb-1 text-[30px] font-bold">
+              Discipline and defense
+            </h2>
+            <p className="mb-4 max-w-[70ch] text-[13px] text-ink-soft">
+              Regular season. Penalty and giveaway costs are the playoff odds the power-play goals
+              and quick-strike goals that followed actually took from {data.team ?? "the team"};
+              they describe what happened more than a repeatable skill.
+            </p>
+            <dl className="grid grid-cols-2 gap-y-4 border-y border-ice-scratch py-3 sm:grid-cols-4">
+              {(
+                [
+                  [
+                    "Plus/minus",
+                    s.plus_minus != null
+                      ? s.plus_minus > 0
+                        ? `+${s.plus_minus}`
+                        : String(s.plus_minus)
+                      : "-",
+                  ],
+                  ["PPA plus/minus", s.on_ice_ppa != null ? pp(s.on_ice_ppa) : "-"],
+                  ["Penalty minutes", String(s.pim)],
+                  [
+                    `Penalties cost (${s.penalty_goals} PP goals)`,
+                    s.penalties ? pp(s.penalty_ppa) : "-",
+                  ],
+                  [`Drew ${s.drawn} penalties`, s.drawn ? pp(s.drawn_ppa) : "-"],
+                  ["Giveaways / takeaways", `${s.giveaways} / ${s.takeaways}`],
+                  [
+                    `Costly giveaways (${s.costly_giveaways})`,
+                    s.costly_giveaways ? pp(s.giveaway_ppa) : "-",
+                  ],
+                ] as [string, string][]
+              ).map(([k, v]) => (
+                <div key={k} className="pr-3">
+                  <dt className="text-[12px] text-ink-soft">{k}</dt>
+                  <dd className="display text-[26px] font-bold leading-none tabular-nums">{v}</dd>
+                </div>
+              ))}
+            </dl>
+            {s.onice_coverage != null && s.onice_coverage < 0.99 && (
+              <p className="mt-2 text-[12px] text-ink-soft">
+                The NHL has no shift data for {Math.round((1 - s.onice_coverage) * 100)}% of this
+                season's goals, so plus/minus and PPA plus/minus leave those goals out.
+              </p>
+            )}
+          </section>
+        )}
         {data.seasons.length > 0 && (
           <section aria-labelledby="seasons-h" className="pt-10">
             <h2 id="seasons-h" className="display mb-4 text-[30px] font-bold">

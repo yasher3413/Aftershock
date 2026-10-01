@@ -43,6 +43,35 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
   },
   { id: "tremors", label: "Top 100 tremors", blurb: "The season's biggest goals by magnitude." },
   {
+    id: "on_ice",
+    label: "PPA plus/minus",
+    blurb:
+      "Plus/minus in playoff odds: what goals for added and goals against cost the player's team while he was on the ice. Shared with linemates. Measured stability: a player's two half-seasons correlate at 0.59.",
+  },
+  {
+    id: "plus_minus",
+    label: "Plus/minus",
+    blurb:
+      "Traditional plus/minus by the NHL's rules, from shift charts. Matches the NHL's official figure exactly for 94 percent of 2025-26 players and within one for 99 percent.",
+  },
+  {
+    id: "penalty_cost",
+    label: "Penalty cost",
+    blurb:
+      "Playoff odds lost to power-play goals scored during a player's own penalties. Mostly luck from one half-season to the next (correlation 0.24): read it as what happened, not a skill.",
+  },
+  {
+    id: "drawn",
+    label: "Penalties drawn",
+    blurb: "Playoff odds gained from power-play goals scored on penalties a player drew.",
+  },
+  {
+    id: "giveaway_cost",
+    label: "Costly giveaways",
+    blurb:
+      "Giveaways the other team turned into a goal within 10 seconds, and the playoff odds that goal cost. Arenas record giveaways unevenly, and the cost is mostly luck (correlation 0.20).",
+  },
+  {
     id: "energy",
     label: "Season energy",
     blurb:
@@ -59,6 +88,7 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
 const GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: "Players", tabs: ["skater", "assist", "goalie"] },
   { label: "Biggest goals", tabs: ["tremors"] },
+  { label: "Defense", tabs: ["on_ice", "plus_minus", "penalty_cost", "drawn", "giveaway_cost"] },
   { label: "Teams", tabs: ["team_chaos", "energy", "lottery"] },
 ];
 
@@ -68,80 +98,109 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
   if (!data || data.rows.length === 0)
     return <p className="text-ink-soft">No goals recorded for this season yet.</p>;
   const max = Math.max(...data.rows.map((r) => Math.abs(r.value)), 1e-9);
-  const countLabel = kind === "goalie" ? "goals allowed" : kind === "assist" ? "assists" : "goals";
+  const countLabel =
+    kind === "goalie"
+      ? "goals allowed"
+      : kind === "assist"
+        ? "assists"
+        : kind === "penalty_cost"
+          ? "penalties"
+          : kind === "drawn"
+            ? "drawn"
+            : kind === "giveaway_cost"
+              ? "costly giveaways"
+              : kind === "plus_minus" || kind === "on_ice"
+                ? "goals on ice"
+                : "goals";
+  const partial = data.onice_coverage != null && data.onice_coverage < 0.99;
   return (
-    <ol className="divide-y divide-ice-scratch">
-      {data.rows.map((r) => {
-        const value = kind === "team_chaos" ? pp(r.value).replace("+", "") : pp(r.value);
-        const w = (Math.abs(r.value) / max) * 100;
-        return (
-          <li
-            key={`${r.rank}-${r.player?.id ?? r.team}`}
-            className="grid grid-cols-[2.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-3 py-2 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem]"
-          >
-            <span className="display text-right text-[24px] font-bold leading-none text-ink-soft tabular-nums">
-              {r.rank}
-            </span>
-            <span className="flex min-w-0 items-center gap-3">
-              {r.player ? (
-                <Headshot
-                  playerId={r.player.id}
-                  name={r.player.name}
-                  team={r.team}
-                  season={season}
-                  size={40}
-                />
-              ) : (
-                <TeamLogo team={r.team} size={36} />
-              )}
-              <span className="min-w-0">
-                <span className="block truncate text-[15px] font-semibold">
-                  {r.player ? (
-                    <Link
-                      to={`/player/${r.player.id}?season=${season}`}
-                      className="underline-offset-4 hover:underline"
-                    >
-                      {r.player.name}
-                    </Link>
-                  ) : (
-                    <Link to={`/team/${r.team}`} className="display text-[20px] font-bold">
-                      {r.team}
-                    </Link>
-                  )}
-                </span>
-                <span className="inline-flex items-center text-[12px] text-ink-soft">
-                  {r.player && (
-                    <Link
-                      to={`/team/${r.team}`}
-                      className="display inline-flex items-center gap-1 text-[14px] font-bold text-ink"
-                    >
-                      <TeamLogo team={r.team} size={16} />
-                      {r.team}
-                    </Link>
-                  )}
-                  {r.player ? ", " : ""}
-                  {r.count} {countLabel}
+    <>
+      {partial && (
+        <p className="mb-2 text-[12px] text-ink-soft">
+          The NHL has no shift data for {Math.round((1 - data.onice_coverage!) * 100)}% of this
+          season's goals; this board leaves them out.
+        </p>
+      )}
+      <ol className="divide-y divide-ice-scratch">
+        {data.rows.map((r) => {
+          const value =
+            kind === "team_chaos"
+              ? pp(r.value).replace("+", "")
+              : kind === "plus_minus"
+                ? r.value > 0
+                  ? `+${r.value}`
+                  : String(r.value)
+                : pp(r.value);
+          const w = (Math.abs(r.value) / max) * 100;
+          return (
+            <li
+              key={`${r.rank}-${r.player?.id ?? r.team}`}
+              className="grid grid-cols-[2.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-3 py-2 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem]"
+            >
+              <span className="display text-right text-[24px] font-bold leading-none text-ink-soft tabular-nums">
+                {r.rank}
+              </span>
+              <span className="flex min-w-0 items-center gap-3">
+                {r.player ? (
+                  <Headshot
+                    playerId={r.player.id}
+                    name={r.player.name}
+                    team={r.team}
+                    season={season}
+                    size={40}
+                  />
+                ) : (
+                  <TeamLogo team={r.team} size={36} />
+                )}
+                <span className="min-w-0">
+                  <span className="block truncate text-[15px] font-semibold">
+                    {r.player ? (
+                      <Link
+                        to={`/player/${r.player.id}?season=${season}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        {r.player.name}
+                      </Link>
+                    ) : (
+                      <Link to={`/team/${r.team}`} className="display text-[20px] font-bold">
+                        {r.team}
+                      </Link>
+                    )}
+                  </span>
+                  <span className="inline-flex items-center text-[12px] text-ink-soft">
+                    {r.player && (
+                      <Link
+                        to={`/team/${r.team}`}
+                        className="display inline-flex items-center gap-1 text-[14px] font-bold text-ink"
+                      >
+                        <TeamLogo team={r.team} size={16} />
+                        {r.team}
+                      </Link>
+                    )}
+                    {r.player ? ", " : ""}
+                    {r.count} {countLabel}
+                  </span>
                 </span>
               </span>
-            </span>
-            <span aria-hidden className="hidden h-3 sm:block">
+              <span aria-hidden className="hidden h-3 sm:block">
+                <span
+                  className="block h-full"
+                  style={{
+                    width: `${w}%`,
+                    background: r.value < 0 ? "var(--goal)" : "var(--ink)",
+                  }}
+                />
+              </span>
               <span
-                className="block h-full"
-                style={{
-                  width: `${w}%`,
-                  background: r.value < 0 ? "var(--goal)" : "var(--ink)",
-                }}
-              />
-            </span>
-            <span
-              className={`text-right text-[15px] font-semibold tabular-nums ${r.value < 0 ? "down" : ""}`}
-            >
-              {value}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+                className={`text-right text-[15px] font-semibold tabular-nums ${r.value < 0 ? "down" : ""}`}
+              >
+                {value}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </>
   );
 }
 

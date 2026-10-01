@@ -76,6 +76,7 @@ export default function MethodPage() {
   const wp = m?.wp?.test;
   const bt = m?.backtest;
   const mag = m?.magnitude;
+  const disc = m?.discipline;
   const charts = m?.charts ?? {};
   return (
     <div className="mx-auto flex w-full max-w-5xl gap-10 px-4 py-8">
@@ -227,6 +228,39 @@ export default function MethodPage() {
           only measure used in the playoffs, where playoff odds are already settled.
         </p>
 
+        <H id="discipline">Discipline and defense</H>
+        <p>
+          Penalties, giveaways, and plus/minus are counted from the play-by-play and shift charts
+          for the regular season, then tied to the goals they led to. A power-play goal is charged
+          to the oldest penalty that put the team short-handed (a minor ends at the first goal, a
+          major runs its length) and credited to whoever drew it. A giveaway is costly when the
+          other team scores within 10 seconds. Each carries that goal's change in the team's playoff
+          odds.
+        </p>
+        {disc?.validation?.["20252026"] && (
+          <p>
+            Checked against the NHL's official 2025-26 totals, giveaways and takeaways match for{" "}
+            {p1(disc.validation["20252026"].giveaways.exact)} of players, penalty minutes for{" "}
+            {p1(disc.validation["20252026"].penalty_minutes.exact)}, and plus/minus for{" "}
+            {p1(disc.validation["20252026"].plus_minus.exact)} (within one goal for{" "}
+            {p1(disc.validation["20252026"].plus_minus.within_1)}; the rest are line changes in the
+            same second as a goal).
+          </p>
+        )}
+        {disc?.stability?.["20252026"] && (
+          <p>
+            To see which numbers describe a player rather than luck, each season is split into a
+            player's odd and even games. PPA plus/minus repeats from one half to the other with a
+            correlation of {f(disc.stability["20252026"].ppa_plus_minus.split_half_r, 2)}, drawn
+            penalties {f(disc.stability["20252026"].penalties_drawn.split_half_r, 2)}, and giveaways{" "}
+            {f(disc.stability["20252026"].giveaways.split_half_r, 2)}. What penalties and giveaways
+            cost in playoff odds barely repeats (
+            {f(disc.stability["20252026"].penalty_ppa.split_half_r, 2)} and{" "}
+            {f(disc.stability["20252026"].costly_giveaway_ppa.split_half_r, 2)}): those columns say
+            what happened, not who is good at it.
+          </p>
+        )}
+
         <H id="limits">Known limitations</H>
         <ul className="list-disc pl-5">
           <li>Ratings do not know about injuries, trades, or which goalie starts.</li>
@@ -235,8 +269,8 @@ export default function MethodPage() {
             record.
           </li>
           <li>
-            Preseason odds for teams far from average can be more extreme than anything in our
-            backtests.
+            The NHL has no shift charts for the last 78 games of 2024-25, so that season's
+            plus/minus and on-ice numbers leave out about 5 percent of its goals.
           </li>
           <li>Four-on-three overtime power plays are not modeled separately.</li>
         </ul>
