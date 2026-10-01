@@ -1,8 +1,93 @@
 # Deploying
 
 Aftershock has three processes (api, worker, web) plus Postgres 16 and
-Redis 7. Nothing here has been deployed; this guide is what the owner needs to
-do, and it lists every credential required.
+Redis 7.
+
+## Free: Vercel for the website, Oracle Cloud for everything else
+
+The website is static and lives on Vercel. The api, the worker, Postgres, and
+Redis run together on one Oracle Cloud Always Free VM (an always-on ARM
+machine, up to 4 cores and 24 GB), with Caddy serving HTTPS. Vercel forwards
+`/api` requests and page requests (for link previews) to the VM; the live map
+opens its WebSocket straight to the VM, because Vercel does not forward
+WebSockets. Total cost: nothing, until you add a domain.
+
+Why not a serverless host for the engine: the worker polls the NHL every few
+seconds for hours and keeps the live season in memory, and the api holds a
+WebSocket per visitor. Free serverless and sleeping instances stop both.
+
+### 1. Oracle Cloud VM
+
+1. Sign up at cloud.oracle.com (a card is asked for verification; Always
+   Free resources are not charged). Pick a home region near the US east coast
+   or central US; it cannot be changed later.
+2. Compute, Instances, Create instance: image Canonical Ubuntu 24.04, shape
+   `VM.Standard.A1.Flex` with 4 OCPUs and 24 GB (or 2 and 12). Add your SSH
+   public key. If A1 capacity is out in your region, retry later or pick
+   another availability domain.
+3. Networking, the instance's subnet, its security list: add ingress rules
+   for TCP 80 and TCP 443 from `0.0.0.0/0`.
+4. Note the instance's public IP. The api host until you buy a domain is
+   `<IP>.sslip.io` (a free name that points at the IP and can get an HTTPS
+   certificate).
+
+### 2. Point the website at the VM
+
+On your laptop, in the repo:
+
+```sh
+scripts/set_api_host.sh <IP>.sslip.io     # writes vercel.json
+git add vercel.json && git commit -m "Point the website at the api host" && git push
+```
+
+### 3. Vercel
+
+1. vercel.com, Add New Project, import `yasher3413/Aftershock`. Leave the
+   root directory as the repo root and the framework as Other; `vercel.json`
+   has the build (it installs Rust to build the What-If simulator, so the
+   first build takes a few minutes).
+2. Environment variables: `VITE_WS_URL` = `wss://<IP>.sslip.io/ws/live`.
+3. Deploy, and note the site address, for example `https://aftershock.vercel.app`.
+
+### 4. Start the engine on the VM
+
+```sh
+ssh ubuntu@<IP>
+curl -fsSL https://raw.githubusercontent.com/yasher3413/Aftershock/main/scripts/deploy/oracle_bootstrap.sh | bash -s -- https://aftershock.vercel.app
+```
+
+It installs Docker, opens the VM's firewall, writes `.env` (random database
+password, the api host, the site address), and builds and starts Postgres,
+Redis, the api, the worker, and Caddy. Add `OPENAI_API_KEY` to `~/Aftershock/.env`
+for model-written recaps, then
+`sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env up -d`.
+
+### 5. Copy the data
+
+From your laptop (Postgres running locally on port 55432):
+
+```sh
+scripts/deploy/push_data.sh ubuntu@<IP>
+```
+
+### 6. Check
+
+- `https://<IP>.sslip.io/api/health` answers.
+- The site loads, the map fills in, and `/status` shows the worker running.
+- Paste a team or tremor link into an Open Graph preview checker and see the
+  image card.
+
+### Later
+
+- **Updates:** Vercel redeploys on every push. On the VM:
+  `cd ~/Aftershock && git pull && sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env up -d --build`.
+- **A domain:** add it to the Vercel project for the site, point `api.<domain>`
+  at the VM's IP with an A record, then set `API_HOST=api.<domain>`,
+  `PUBLIC_BASE_URL=https://<domain>`, and `INDEX_HTML=https://<domain>/app.html`
+  in the VM's `.env`, rerun `scripts/set_api_host.sh api.<domain>`, and set
+  `VITE_WS_URL=wss://api.<domain>/ws/live` in Vercel.
+
+## Other hosts
 
 ## What the owner needs
 
