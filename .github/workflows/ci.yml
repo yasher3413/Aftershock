@@ -132,19 +132,24 @@ jobs:
           path: web/test-results
 
   docker:
-    runs-on: ubuntu-latest
+    # ARM too: the free Oracle Cloud VM in docs/DEPLOY.md is an ARM machine.
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         image: [api, worker, web]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        exclude:
+          - image: web
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Build ${{ matrix.image }} image
+      - name: Build ${{ matrix.image }} image on ${{ matrix.runner }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: infra/${{ matrix.image }}.Dockerfile
           push: false
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.runner }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.runner }}
