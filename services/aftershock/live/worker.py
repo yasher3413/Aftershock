@@ -72,6 +72,14 @@ def drop_known_tremors(eff: Effects, game_id: int, known: dict[tuple[int, int], 
     eff.tremors = kept
 
 
+NIGHT_TTL_S = 3 * 86_400
+
+
+def night_keys(night: Any) -> tuple[str, str]:
+    """Redis keys for a night's replay frames and its starting odds."""
+    return f"aftershock:night:{night}:frames", f"aftershock:night:{night}:initial"
+
+
 class Worker:
     def __init__(self, settings: Settings | None = None, backend: SimBackend | None = None) -> None:
         self.settings = settings or get_settings()
@@ -175,8 +183,18 @@ class Worker:
         await self.persist_run(snap, full=True)
         self.day_start = snap.output
         self.day = hockey_night(datetime.now(UTC))
-        self.night_frames = []
-        self.night_initial = {"odds": [o.model_dump(mode="json") for o in odds_list(snap.output)]}
+        # The night's replay survives restarts: its frames and its starting
+        # odds live in Redis until the bundle is written.
+        frames_key, initial_key = night_keys(self.day)
+        saved_initial = await self.redis.get(initial_key)
+        if saved_initial:
+            self.night_initial = json.loads(saved_initial)
+        else:
+            self.night_initial = {
+                "odds": [o.model_dump(mode="json") for o in odds_list(snap.output)]
+            }
+            await self.redis.set(initial_key, json.dumps(self.night_initial), ex=NIGHT_TTL_S)
+        self.night_frames = [json.loads(m) for m in await self.redis.lrange(frames_key, 0, -1)]
         await self.refresh_standings()
         await self.publish_whatif()
         await self.publish_odds(snap)
@@ -222,6 +240,10 @@ class Worker:
         msg = await self.publisher.publish(kind, payload)
         if kind in REPLAY_TYPES:
             self.night_frames.append(msg)
+            if self.day is not None:
+                frames_key, _ = night_keys(self.day)
+                await self.redis.rpush(frames_key, json.dumps(msg, separators=(",", ":")))
+                await self.redis.expire(frames_key, NIGHT_TTL_S)
 
     def _notify(self, t: S.Tremor) -> None:
         """Web push and Discord run in the background; they never delay the map."""
