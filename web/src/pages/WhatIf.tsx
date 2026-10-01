@@ -263,7 +263,7 @@ export default function WhatIfPage() {
       </div>
 
       <div className="mt-5 grid gap-8 lg:grid-cols-[1fr_1.1fr]">
-        <section aria-label="Games" className="max-h-[70vh] overflow-y-auto pr-1">
+        <section aria-label="Games" className="lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1">
           {Object.keys(byDay).length === 0 && (
             <p className="text-ink-soft">No games match these filters.</p>
           )}
