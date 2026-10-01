@@ -373,3 +373,22 @@ class TremorOnIce(Base):
     player_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     team: Mapped[str] = mapped_column(String(3))
     scored: Mapped[bool] = mapped_column(Boolean)
+
+
+class PlayerEvent(Base):
+    """A player's penalty, drawn penalty, giveaway, or takeaway, and the goal
+    (and its PPA) it led to, if any."""
+
+    __tablename__ = "player_events"
+    game_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10), primary_key=True)
+    season: Mapped[int] = mapped_column(Integer)
+    player_id: Mapped[int] = mapped_column(Integer)
+    team: Mapped[str] = mapped_column(String(3))
+    period: Mapped[int] = mapped_column(Integer)
+    t_game_s: Mapped[int] = mapped_column(Integer)
+    minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    tremor_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    ppa: Mapped[float | None] = mapped_column(Float, nullable=True)
