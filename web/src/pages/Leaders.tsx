@@ -8,6 +8,8 @@ import { pct, pp } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { useMyTeam } from "../lib/myTeam";
 import { TremorLine } from "../panels/TremorFeed";
+import { Headshot } from "../components/Headshot";
+import { TeamLogo } from "../components/TeamLogo";
 
 const SEASONS = [
   { id: 20262027, label: "2026-27" },
@@ -75,29 +77,51 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
         return (
           <li
             key={`${r.rank}-${r.player?.id ?? r.team}`}
-            className="grid grid-cols-[2.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-3 py-2 sm:grid-cols-[2.5rem_minmax(0,16rem)_1fr_5.5rem]"
+            className="grid grid-cols-[2.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-3 py-2 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem]"
           >
             <span className="display text-right text-[24px] font-bold leading-none text-ink-soft tabular-nums">
               {r.rank}
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold">
-                {r.player ? (
-                  r.player.name
-                ) : (
-                  <Link to={`/team/${r.team}`} className="display text-[20px] font-bold">
-                    {r.team}
-                  </Link>
-                )}
-              </span>
-              <span className="text-[12px] text-ink-soft">
-                {r.player && (
-                  <Link to={`/team/${r.team}`} className="display text-[14px] font-bold text-ink">
-                    {r.team}
-                  </Link>
-                )}
-                {r.player ? ", " : ""}
-                {r.count} {countLabel}
+            <span className="flex min-w-0 items-center gap-3">
+              {r.player ? (
+                <Headshot
+                  playerId={r.player.id}
+                  name={r.player.name}
+                  team={r.team}
+                  season={season}
+                  size={40}
+                />
+              ) : (
+                <TeamLogo team={r.team} size={36} />
+              )}
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-semibold">
+                  {r.player ? (
+                    <Link
+                      to={`/player/${r.player.id}?season=${season}`}
+                      className="underline-offset-4 hover:underline"
+                    >
+                      {r.player.name}
+                    </Link>
+                  ) : (
+                    <Link to={`/team/${r.team}`} className="display text-[20px] font-bold">
+                      {r.team}
+                    </Link>
+                  )}
+                </span>
+                <span className="inline-flex items-center text-[12px] text-ink-soft">
+                  {r.player && (
+                    <Link
+                      to={`/team/${r.team}`}
+                      className="display inline-flex items-center gap-1 text-[14px] font-bold text-ink"
+                    >
+                      <TeamLogo team={r.team} size={16} />
+                      {r.team}
+                    </Link>
+                  )}
+                  {r.player ? ", " : ""}
+                  {r.count} {countLabel}
+                </span>
               </span>
             </span>
             <span aria-hidden className="hidden h-3 sm:block">

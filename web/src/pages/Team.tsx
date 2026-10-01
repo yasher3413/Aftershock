@@ -9,6 +9,8 @@ import { useDocumentMeta } from "../lib/meta";
 import { useMyTeam } from "../lib/myTeam";
 import { TremorLine } from "../panels/TremorFeed";
 import { Alerts } from "../panels/Alerts";
+import { Headshot } from "../components/Headshot";
+import { seasonOf } from "../lib/season";
 
 const SEED_LABELS: Record<string, string> = {
   div1: "1st in division",
@@ -325,7 +327,21 @@ export default function TeamPage() {
                 <tbody>
                   {data.players.map((p) => (
                     <tr key={p.player.id} className="border-t border-ice-scratch">
-                      <td className="py-1.5">{p.player.name}</td>
+                      <td className="py-1.5">
+                        <Link
+                          to={`/player/${p.player.id}`}
+                          className="inline-flex items-center gap-2 underline-offset-4 hover:underline"
+                        >
+                          <Headshot
+                            playerId={p.player.id}
+                            name={p.player.name}
+                            team={abbrev}
+                            season={seasonOf(new Date().toISOString().slice(0, 10))}
+                            size={28}
+                          />
+                          {p.player.name}
+                        </Link>
+                      </td>
                       <td className="text-right tabular-nums">{p.goals}</td>
                       <td className="text-right tabular-nums">{pp(p.ppa)}</td>
                       <td className="text-right tabular-nums text-ink-soft">{pp(p.assist_ppa)}</td>

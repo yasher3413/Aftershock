@@ -5,6 +5,8 @@ import { useWidth } from "../charts/useWidth";
 import { clock, periodLabel, pp, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { MiniMap } from "../map/MiniMap";
+import { Headshot } from "../components/Headshot";
+import { TeamLogo } from "../components/TeamLogo";
 
 export default function TremorPage() {
   const id = useParams().id ?? "";
@@ -50,8 +52,31 @@ export default function TremorPage() {
               {t.overturned && <div className="font-semibold text-ink">Overturned. No goal.</div>}
             </div>
           </div>
-          <h1 className="mt-4 text-[28px] font-semibold leading-tight">
-            {t.scorer?.name ?? "Goal"} <span className="text-ink-soft">({t.team})</span>
+          <h1 className="mt-4 flex items-center gap-3 text-[28px] font-semibold leading-tight">
+            {t.scorer && (
+              <Headshot
+                playerId={t.scorer.id}
+                name={t.scorer.name}
+                team={t.team}
+                season={t.season}
+                size={56}
+              />
+            )}
+            <span>
+              {t.scorer ? (
+                <Link
+                  to={`/player/${t.scorer.id}?season=${t.season}`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {t.scorer.name}
+                </Link>
+              ) : (
+                "Goal"
+              )}{" "}
+              <span className="inline-flex items-center gap-1 align-middle text-ink-soft">
+                <TeamLogo team={t.team} size={26} />({t.team})
+              </span>
+            </span>
           </h1>
           <p className="mt-1 text-[15px]">
             {t.shootout
@@ -62,7 +87,18 @@ export default function TremorPage() {
           </p>
           {t.assists.length > 0 && (
             <p className="text-[14px] text-ink-soft">
-              Assists: {t.assists.map((a) => a.name).join(", ")}
+              Assists:{" "}
+              {t.assists.map((a, i) => (
+                <span key={a.id}>
+                  {i > 0 && ", "}
+                  <Link
+                    to={`/player/${a.id}?season=${t.season}`}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {a.name}
+                  </Link>
+                </span>
+              ))}
             </p>
           )}
           <dl className="mt-5 grid max-w-sm grid-cols-[1fr_auto] gap-x-6 gap-y-2 text-[14px]">

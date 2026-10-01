@@ -17,8 +17,17 @@ function Ripple({ t }: { t: Tremor }) {
           {t.magnitude.toFixed(1)}
         </Link>
         <div className="text-[14px]">
-          <span className="font-semibold">{t.scorer?.name ?? "Goal"}</span> ({t.team}),{" "}
-          {periodLabel(t.period, t.period_type)} {clock(t.t_period_s)}, {t.away}{" "}
+          {t.scorer ? (
+            <Link
+              to={`/player/${t.scorer.id}?season=${t.season}`}
+              className="font-semibold underline-offset-4 hover:underline"
+            >
+              {t.scorer.name}
+            </Link>
+          ) : (
+            <span className="font-semibold">Goal</span>
+          )}{" "}
+          ({t.team}), {periodLabel(t.period, t.period_type)} {clock(t.t_period_s)}, {t.away}{" "}
           {t.score_after.away}-{t.score_after.home} {t.home}
           {t.overturned && <span className="ml-2 text-ink-soft">Overturned</span>}
         </div>
