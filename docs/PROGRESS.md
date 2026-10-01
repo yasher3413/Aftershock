@@ -3,91 +3,109 @@
 Resume point for the Aftershock build. Read this, `docs/DECISIONS.md`, and
 `git log --oneline -30` before doing anything after a restart.
 
-## Current phase
+## Status: v1.0.0 (2026-10-01)
 
-Phase 18 (hardening) and the Definition of Done, with every stretch goal
-implemented. Waiting on: the history precompute (for demo mode, README media,
-and magnitude calibration) and tonight's live games (first puck drop 23:30
-UTC) to verify live mode end to end.
+The Definition of Done is met and every stretch goal is built. Live mode ran
+end to end on the first live night of 2026-27 (2026-09-30): three games, 22
+goals, every goal stored and broadcast once, a validated model-written recap,
+and a full replay of the night.
 
-## Done
+## What exists
 
-- Phases 0 to 3: scaffolding, CI, NHL client, parsers, fixtures, schema,
-  backfill (every game since 2015-16), Rust rules engine with the nine-season
-  gold test. Tag v0.1.0.
-- Phases 4 to 6: xG, team strength, win probability (Skellam-boosted, state
-  aware), OT and shootout math, model cards, sanity tests. Tag v0.2.0.
-- Phases 7 and 8: Rust Monte Carlo (20k seasons in about 120 ms p95), PyO3
-  and WASM builds, team-strength noise, season backtest with tuned shrink.
-  Tag v0.3.0.
-- Phase 9: I/O-free engine (tremors, reversals, corrections), worker (leader
-  lock, drift reweighting, schedule refresh, standings reconciliation, night
-  bundles, recap), engine tests on real games.
-- Phases 10 and 11: history precompute and magnitude calibration; every REST
-  endpoint, WebSocket with since replay, share images.
-- Phases 12 to 17: map with shockwaves, seismograph, panels, demo mode,
-  night replays, team, game, tremor, leaders, methodology, status pages,
-  What-If Lab (WASM in a worker), recap.
-- Phase 18: Docker images and Compose app profile, e2e tests in CI, docs
-  (ARCHITECTURE, DATA, MODELS, SIMULATOR, API, DESIGN, DEPLOY, DECISIONS).
-- Stretch goals 1 to 7: clinch and elimination status with magic numbers and
-  tonight's scenarios; web push alerts; Discord webhook; embeddable gauge;
-  on-ice PPA from shift charts; lottery watch; season energy comparison.
+- **Data:** NHL client (polite, cached), parsers, every game since 2015-16 in
+  Postgres, a Rust rules engine that reproduces nine seasons of official
+  standings exactly.
+- **Models:** expected goals (test AUC 0.755), team strength (59.4 percent
+  of winners, 2021-22 to 2025-26), in-game win probability (beats a
+  score-and-time table on log loss), exact overtime and shootout math; model
+  cards and reports in `ml/`.
+- **Simulator:** Rust Monte Carlo (20,000 seasons in about 120 ms), PyO3 and
+  WASM builds, season backtest (Brier 0.110 against 0.153), common random
+  numbers so one goal's effect can be isolated.
+- **Live engine:** worker with leader lock, goal tremors with reversals and
+  attribution changes, magnitude, PPA and CPA, nightly upkeep (schedule,
+  ratings, standings check, on-ice and discipline jobs, replay bundle, recap).
+- **Site:** live map with shockwaves and a map key; seismograph; demo replay
+  that opens on a goal; tonight, team (scoreboard ring plus season
+  seismogram), player cards (headshot, every goal, discipline and defense),
+  game, tremor, leaders (four groups), every night (season calendar),
+  What-If Lab (pick sheet, WASM), methodology (pipeline rail), status, embed;
+  team logos and headshots from the NHL's asset server with a trademark
+  notice; Overpass and Big Shoulders type.
+- **Extras:** clinch status and magic numbers, web push, Discord webhook,
+  share images, lottery watch, season energy, on-ice PPA, plus/minus and
+  discipline stats validated against NHL totals.
+- **Quality:** 136 Python tests, 80 Rust tests, 36 web unit tests, 22
+  Playwright tests (including axe accessibility in both color schemes),
+  live-engine tests replaying the first live night's recordings; CI runs
+  style, Rust, Python, web, e2e, and Docker image builds.
+
+## How to run
+
+See the README quickstart. On this machine Docker Desktop is broken (see
+Known issues), so the stack runs from Homebrew Postgres 16 (port 55432) and
+Redis 7, with:
+
+- API: `cd services && DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/uvicorn aftershock.api.app:create_app --factory --port 8000`
+- Worker: `cd services && DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/aftershock worker`
+- Web: `cd web && pnpm dev` (http://localhost:5173)
+
+`uv run` drops `DYLD_*` variables on macOS, so start from `.venv/bin` when
+share images (Cairo) are needed.
+
+## The first live night (2026-09-30)
+
+PIT 7-0 PHI, NYI 1-2 TOR, LAK 4-8 COL. 22 goals, 22 tremors. Detection to
+broadcast after the latency fix: 0.29 to 1.0 s (budget 2 s); the first goal
+took 2.6 s before it. Bugs found and fixed during the night, each with a test
+built from the recording:
+
+1. Leaderboards were refreshed before the broadcast (2.6 s): now in the
+   background after it.
+2. A goal the feed first posts as a shot was skipped by the engine (TOR at
+   20:00 ET, PIT at 22:10 ET) and crashed the play save: the engine takes the
+   shot back and applies the goal; play rows are deduplicated; a save error
+   no longer drops a snapshot's goals. Both goals recovered.
+3. A worker restart re-broadcast earlier goals and skipped finished games:
+   stored goals are remembered at boot and finished games are polled once.
+4. The home page fell back to an old replay between games, and the next-game
+   countdown skipped a late start: fixed.
+5. Restarts lost the night's replay frames: frames and starting odds now
+   live in Redis, a night is wrapped up once, and `SeasonPrecompute(...,
+   relink=True).run(only=..., force=True)` rebuilds a recorded night's replay
+   without rewriting its tremors (used for 2026-09-30).
+
+## Known issues and limitations
+
+- Docker Desktop on this machine crashes on start since the disk filled on
+  2026-09-30, so `make up` has not been run locally; CI builds all three
+  images. Start Postgres and Redis with
+  `/opt/homebrew/opt/postgresql@16/bin/pg_ctl -D ~/.aftershock/pg16 -o "-p 55432" start`
+  and `redis-server --port 6379 --daemonize yes --dir ~/.aftershock`.
+- Ratings know nothing about trades, injuries, or starting goalies; early
+  season odds rest on last season.
+- The NHL publishes no shift charts for 2024-25 games 2024021235 to
+  2024021312, so that season's on-ice PPA and plus/minus miss about 5
+  percent of goals (flagged on the pages). The NHL's HTML time-on-ice
+  reports could fill it.
+- Plus/minus matches the NHL exactly for 94 percent of players (99 within
+  one); penalty minutes for 99.6 percent (a few 10-minute misconducts).
+- Share images render in system fonts on macOS (CoreText ignores the bundled
+  fonts); the Linux images are correct.
+- Logos and headshots are loaded from the NHL unlicensed, with a trademark
+  notice (see DECISIONS); removing `TeamLogo` and `Headshot` restores the
+  code-and-color look.
 
 ## Next
 
-Tonight (2026-09-30, first puck drop 23:30 UTC: PIT at PHI, NYI at TOR,
-then LAK at COL at 02:00 UTC). The worker runs on its own; these checks
-work from logs and recordings afterwards:
+- Fill the 2024-25 shift-chart gap from the NHL's HTML reports.
+- Goalie "PPA saved" (leverage-weighted expected goals against) and skater
+  on-ice defensive PPA, with the same stability checks.
+- Re-run `/impeccable critique` on the redesigned pages and run the finish
+  reviewer.
+- Recover Docker Desktop and verify `make up` end to end.
 
-1. `grep worker.tremor_latency logs/worker.log`: goal detection to broadcast
-   should be under 2000 ms.
-2. Watch for `tremor_reversed` / attribution changes in the worker log and
-   that the map showed them.
-3. After the last final: recap stored for 2026-09-30 (OpenAI key is set,
-   model gpt-6.1-sol), night bundle written, `/night/2026-09-30` plays.
-4. `uv run python ../scripts/make_live_fixtures.py` (from services/), then add
-   live-engine tests on the recorded sequences.
-5. Final PROGRESS summary, then tag v1.0.0.
+## Background jobs (this machine)
 
-Later (UI, from the impeccable critique in .impeccable/critique/): replace
-the flagged body face and widen the type scale; redesign Leaders, Method,
-and Status like the team page; smaller notes (ring meaning inline, pp and M
-inline, mobile tap targets, magnitude color).
-
-## Background jobs
-
-- **Live recorder**: `aftershock record-live --hours 96` (since 05:41 UTC).
-  Log `logs/recorder.log`, output `data/recordings/`.
-- **Worker**: `aftershock worker`, log `logs/worker.log`.
-- **API**: uvicorn on :8000 (`logs/api.log`); **web dev** on :5173.
-- **Precompute rerun**: `aftershock precompute --season 20252026 --season
-  20242025` then `aftershock onice`, started 20:01 UTC, log
-  `logs/precompute2.log`.
-
-## Known issues
-
-- 2026-09-30 19:40 UTC: the first history precompute simulated every night
-  from empty standings. The season engine swaps in a new inputs object on
-  each tremor, and the precompute kept its own stale reference, so no game
-  was ever marked final. Every 2024-25 and 2025-26 tremor, odds point, and
-  bundle was deleted and is being recomputed (fix in `cdfc54d`, guarded by
-  `check_finals`). The live worker always reads `engine.inputs` and was not
-  affected; neither were the model metrics or the season backtest.
-
-- 2026-09-30 16:10 UTC: the disk filled during Docker builds and Docker
-  Desktop's containerd now crashes on start. Postgres and Redis run from
-  Homebrew instead (see DECISIONS). Start them with:
-  `/opt/homebrew/opt/postgresql@16/bin/pg_ctl -D ~/.aftershock/pg16 -o "-p 55432" start`
-  and `redis-server --port 6379 --daemonize yes --dir ~/.aftershock`.
-  The database reload runs as `logs/reload.log`.
-
-- Fixed 2026-09-30 21:15 UTC: live preseason odds were overconfident
-  (Carolina 99.9 percent, Toronto 0.5 percent). The worker simulated future
-  games with the stored, unshrunk pregame odds instead of the shrunk ratings
-  the season backtest tuned, so a season of games compounded their
-  confidence. After the fix: Carolina 95.4, Toronto 7.8, inside the range
-  the backtest found calibrated on October 1 (1.5 to 96.5 percent across
-  2021-22 to 2025-26). A grid over the start shrink and team noise scored
-  on October 1 log loss confirmed the tuned values (0.5 and 0.1) are best
-  on both tuning and test seasons.
+- Recorder: `aftershock record-live --hours 96`, output `data/recordings/`.
+- Worker, API (:8000), and web dev server (:5173), logs in `logs/`.
