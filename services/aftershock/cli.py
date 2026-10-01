@@ -244,6 +244,32 @@ def vapid_keys() -> None:
 
 
 @app.command()
+def discipline(
+    season: Annotated[list[int], typer.Option(help="Season id(s).")],
+    report: Annotated[bool, typer.Option(help="Write ml/reports/discipline.json.")] = True,
+) -> None:
+    """Penalties, drawn penalties, giveaways, takeaways, and their PPA."""
+    import json
+
+    from aftershock.config import get_settings
+    from aftershock.jobs.discipline import run_discipline, stability
+
+    async def run() -> None:
+        out: dict[str, object] = {}
+        for s in season:
+            typer.echo(await run_discipline(s))
+            out[str(s)] = await stability(s)
+        if report:
+            path = get_settings().ml_dir / "reports" / "discipline.json"
+            prev = json.loads(path.read_text()) if path.exists() else {}
+            prev.setdefault("stability", {}).update(out)
+            path.write_text(json.dumps(prev, indent=2) + "\n")
+            typer.echo(f"wrote {path}")
+
+    asyncio.run(run())
+
+
+@app.command()
 def onice(season: Annotated[list[int], typer.Option(help="Season id(s).")]) -> None:
     """Credit on-ice skaters for every goal from shift charts (on-ice PPA)."""
     from aftershock.jobs.onice import run_on_ice

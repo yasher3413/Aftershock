@@ -640,6 +640,12 @@ class Worker:
             await run_on_ice(self.season)
         except Exception as exc:
             log.warning("worker.onice_failed", error=str(exc))
+        from aftershock.jobs.discipline import run_discipline
+
+        try:
+            await run_discipline(self.season)
+        except Exception as exc:
+            log.warning("worker.discipline_failed", error=str(exc))
 
     async def maybe_recap(self) -> None:
         """Fifteen minutes after the night's last game goes final."""

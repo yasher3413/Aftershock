@@ -1,0 +1,110 @@
+{
+  "stability": {
+    "20252026": {
+      "penalty_minutes": {
+        "split_half_r": 0.554,
+        "players": 501
+      },
+      "penalties_drawn": {
+        "split_half_r": 0.612,
+        "players": 501
+      },
+      "penalty_ppa": {
+        "split_half_r": 0.237,
+        "players": 501
+      },
+      "giveaways": {
+        "split_half_r": 0.826,
+        "players": 501
+      },
+      "costly_giveaway_ppa": {
+        "split_half_r": 0.201,
+        "players": 501
+      },
+      "takeaways": {
+        "split_half_r": 0.624,
+        "players": 501
+      },
+      "ppa_plus_minus": {
+        "split_half_r": 0.588,
+        "players": 501
+      }
+    },
+    "20242025": {
+      "penalty_minutes": {
+        "split_half_r": 0.543,
+        "players": 491
+      },
+      "penalties_drawn": {
+        "split_half_r": 0.572,
+        "players": 491
+      },
+      "penalty_ppa": {
+        "split_half_r": 0.344,
+        "players": 491
+      },
+      "giveaways": {
+        "split_half_r": 0.815,
+        "players": 491
+      },
+      "costly_giveaway_ppa": {
+        "split_half_r": 0.247,
+        "players": 491
+      },
+      "takeaways": {
+        "split_half_r": 0.62,
+        "players": 491
+      },
+      "ppa_plus_minus": {
+        "split_half_r": 0.563,
+        "players": 491
+      }
+    }
+  },
+  "validation": {
+    "20252026": {
+      "plus_minus": {
+        "players": 925,
+        "exact": 0.9405,
+        "within_1": 0.9903
+      },
+      "penalty_minutes": {
+        "players": 922,
+        "exact": 0.9957,
+        "within_1": 0.9957
+      },
+      "giveaways": {
+        "players": 922,
+        "exact": 1.0,
+        "within_1": 1.0
+      },
+      "takeaways": {
+        "players": 922,
+        "exact": 1.0,
+        "within_1": 1.0
+      }
+    },
+    "20242025": {
+      "plus_minus": {
+        "players": 887,
+        "exact": 0.4183,
+        "within_1": 0.6471
+      },
+      "penalty_minutes": {
+        "players": 895,
+        "exact": 0.9877,
+        "within_1": 0.9877
+      },
+      "giveaways": {
+        "players": 895,
+        "exact": 1.0,
+        "within_1": 1.0
+      },
+      "takeaways": {
+        "players": 895,
+        "exact": 1.0,
+        "within_1": 1.0
+      }
+    }
+  }
+}
