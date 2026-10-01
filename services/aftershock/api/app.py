@@ -231,6 +231,14 @@ async def tremor(tremor_id: int, session: Db) -> S.Tremor:
     return (await Q.tremors_out(session, [row]))[0]
 
 
+@router.get("/players/{player_id}", response_model=S.PlayerResponse)
+async def player(player_id: int, session: Db, season: int | None = None) -> S.PlayerResponse:
+    out = await Q.player_card(session, player_id, season, fallback_season=current_season())
+    if out is None:
+        raise HTTPException(404, f"No player with id {player_id}")
+    return out
+
+
 @router.get("/leaders/ppa", response_model=S.LeadersResponse)
 async def leaders(
     session: Db,

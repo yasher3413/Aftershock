@@ -246,6 +246,36 @@ class ClinchOut(Model):
     max_points: int
 
 
+class PlayerSeason(Model):
+    season: int
+    team: str | None = None
+    goals: int = 0
+    ppa: float = 0.0
+    cpa: float = 0.0
+    assists: int = 0
+    assist_ppa: float = 0.0
+    goals_allowed: int = 0
+    goalie_ppa_allowed: float = 0.0
+    on_ice_ppa: float | None = None
+    on_ice_goals_for: int | None = None
+    on_ice_goals_against: int | None = None
+
+
+class PlayerResponse(Model):
+    id: int
+    name: str
+    position: str | None = None
+    shoots_catches: str | None = None
+    sweater: int | None = None
+    current_team: str | None = None
+    season: int
+    team: str | None = None
+    headshot: str | None = None
+    seasons: list[PlayerSeason]
+    goals: list[Tremor]
+    assists: list[Tremor]
+
+
 class TeamResponse(Model):
     team: TeamInfo
     clinch: ClinchOut | None = None
@@ -496,6 +526,7 @@ class Schema(BaseModel):
 
     state: StateResponse
     team: TeamResponse
+    player: PlayerResponse
     game: GameResponse
     tremor_page: TremorPage
     leaders: LeadersResponse

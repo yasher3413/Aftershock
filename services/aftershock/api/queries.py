@@ -560,3 +560,110 @@ async def recap(session: AsyncSession, day: date) -> S.RecapResponse | None:
 
 async def count_rows(session: AsyncSession, model: Any) -> int:
     return int(await session.scalar(select(func.count()).select_from(model)) or 0)
+
+
+def headshot_url(season: int, team: str | None, player_id: int) -> str | None:
+    """The NHL's public headshot for a player on a team in a season. Loaded
+    from the NHL's servers, never copied; the page falls back to initials."""
+    if not team:
+        return None
+    return f"https://assets.nhle.com/mugs/nhl/{season}/{team}/{player_id}.png"
+
+
+async def player_card(
+    session: AsyncSession, player_id: int, season: int | None, *, fallback_season: int
+) -> S.PlayerResponse | None:
+    """A player's card for ``season``, or for their latest season with goals
+    when none is given."""
+    p = (
+        await session.execute(
+            text(
+                "SELECT id, name, position, shoots_catches, sweater, current_team "
+                "FROM players WHERE id = :p"
+            ),
+            {"p": player_id},
+        )
+    ).first()
+    if p is None:
+        return None
+    rows = (
+        await session.execute(
+            text(
+                """
+                SELECT s.season, s.goals, s.ppa, s.cpa, s.assists, s.assist_ppa,
+                       s.goals_allowed, s.goalie_ppa_allowed,
+                       o.on_ice_ppa, o.goals_for, o.goals_against, o.team,
+                       (SELECT t.team FROM tremors t
+                        WHERE t.season = s.season AND NOT t.overturned
+                          AND :p IN (t.scorer_id, t.assist1_id, t.assist2_id)
+                        GROUP BY t.team ORDER BY count(*) DESC LIMIT 1) AS team_for,
+                       (SELECT t.opponent FROM tremors t
+                        WHERE t.season = s.season AND NOT t.overturned AND t.goalie_id = :p
+                        GROUP BY t.opponent ORDER BY count(*) DESC LIMIT 1) AS team_in_net
+                FROM player_ppa_season s
+                LEFT JOIN player_onice_ppa o ON o.season = s.season AND o.player_id = s.player_id
+                WHERE s.player_id = :p
+                ORDER BY s.season DESC
+                """
+            ),
+            {"p": player_id},
+        )
+    ).all()
+    seasons = [
+        S.PlayerSeason(
+            season=r[0],
+            team=r[12] or r[13] or r[11],
+            goals=int(r[1] or 0),
+            ppa=float(r[2] or 0),
+            cpa=float(r[3] or 0),
+            assists=int(r[4] or 0),
+            assist_ppa=float(r[5] or 0),
+            goals_allowed=int(r[6] or 0),
+            goalie_ppa_allowed=float(r[7] or 0),
+            on_ice_ppa=None if r[8] is None else float(r[8]),
+            on_ice_goals_for=None if r[9] is None else int(r[9]),
+            on_ice_goals_against=None if r[10] is None else int(r[10]),
+        )
+        for r in rows
+    ]
+    if season is None:
+        season = seasons[0].season if seasons else fallback_season
+    this = next((x for x in seasons if x.season == season), None)
+    team = (this.team if this else None) or p[5]
+    goals = (
+        await session.execute(
+            select(Tremor)
+            .where(
+                Tremor.season == season,
+                Tremor.scorer_id == player_id,
+                Tremor.overturned.is_(False),
+            )
+            .order_by(Tremor.night_date, Tremor.period, Tremor.t_period_s)
+        )
+    ).scalars()
+    assists = (
+        await session.execute(
+            select(Tremor)
+            .where(
+                Tremor.season == season,
+                or_(Tremor.assist1_id == player_id, Tremor.assist2_id == player_id),
+                Tremor.overturned.is_(False),
+            )
+            .order_by(desc(Tremor.magnitude))
+            .limit(10)
+        )
+    ).scalars()
+    return S.PlayerResponse(
+        id=p[0],
+        name=p[1],
+        position=p[2],
+        shoots_catches=p[3],
+        sweater=p[4],
+        current_team=p[5],
+        season=season,
+        team=team,
+        headshot=headshot_url(season, team, player_id),
+        seasons=seasons,
+        goals=await tremors_out(session, list(goals)),
+        assists=await tremors_out(session, list(assists)),
+    )

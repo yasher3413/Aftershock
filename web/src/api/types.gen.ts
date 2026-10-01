@@ -20,6 +20,7 @@ export interface Schema {
     | RecapReadyMsg
     | HeartbeatMsg;
   nights: NightInfo[];
+  player: PlayerResponse;
   recap: RecapResponse;
   replay: ReplayBundleOut;
   state: StateResponse;
@@ -399,6 +400,42 @@ export interface NightInfo {
   night_date: string;
   season: number;
   total_energy: number;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "PlayerResponse".
+ */
+export interface PlayerResponse {
+  assists: Tremor[];
+  current_team: string | null;
+  goals: Tremor[];
+  headshot: string | null;
+  id: number;
+  name: string;
+  position: string | null;
+  season: number;
+  seasons: PlayerSeason[];
+  shoots_catches: string | null;
+  sweater: number | null;
+  team: string | null;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "PlayerSeason".
+ */
+export interface PlayerSeason {
+  assist_ppa: number;
+  assists: number;
+  cpa: number;
+  goalie_ppa_allowed: number;
+  goals: number;
+  goals_allowed: number;
+  on_ice_goals_against: number | null;
+  on_ice_goals_for: number | null;
+  on_ice_ppa: number | null;
+  ppa: number;
+  season: number;
+  team: string | null;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema

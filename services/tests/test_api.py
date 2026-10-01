@@ -239,3 +239,18 @@ def test_websocket_hello_and_backlog(db_engine: AsyncEngine) -> None:
         with tc.websocket_connect("/ws/live?since=1") as ws:
             assert ws.receive_json()["type"] == "hello"
             assert [ws.receive_json()["seq"] for _ in range(2)] == [2, 3]
+
+
+async def test_player_card(client: Any) -> None:
+    c, _ = client
+    p = (await c.get("/api/players/1")).json()
+    assert p["name"] == "Scorer One" and p["season"] == 20262027 and p["team"] == "TOR"
+    assert p["headshot"] == "https://assets.nhle.com/mugs/nhl/20262027/TOR/1.png"
+    assert p["seasons"][0]["goals"] == 2 and p["seasons"][0]["ppa"] == pytest.approx(0.04)
+    assert [t["scorer"]["id"] for t in p["goals"]] == [1, 1]
+    helper = (await c.get("/api/players/2")).json()
+    assert helper["goals"] == [] and len(helper["assists"]) >= 1
+    goalie = (await c.get("/api/players/3")).json()
+    assert goalie["seasons"][0]["goalie_ppa_allowed"] == pytest.approx(-0.03)
+    assert goalie["team"] == "NYI"
+    assert (await c.get("/api/players/999")).status_code == 404

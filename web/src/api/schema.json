@@ -925,6 +925,238 @@
       "title": "PlayerRef",
       "type": "object"
     },
+    "PlayerResponse": {
+      "properties": {
+        "assists": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Assists",
+          "type": "array"
+        },
+        "current_team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Team"
+        },
+        "goals": {
+          "items": {
+            "$ref": "#/$defs/Tremor"
+          },
+          "title": "Goals",
+          "type": "array"
+        },
+        "headshot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Headshot"
+        },
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "seasons": {
+          "items": {
+            "$ref": "#/$defs/PlayerSeason"
+          },
+          "title": "Seasons",
+          "type": "array"
+        },
+        "shoots_catches": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shoots Catches"
+        },
+        "sweater": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sweater"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Team"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "position",
+        "shoots_catches",
+        "sweater",
+        "current_team",
+        "season",
+        "team",
+        "headshot",
+        "seasons",
+        "goals",
+        "assists"
+      ],
+      "title": "PlayerResponse",
+      "type": "object"
+    },
+    "PlayerSeason": {
+      "properties": {
+        "assist_ppa": {
+          "default": 0.0,
+          "title": "Assist Ppa",
+          "type": "number"
+        },
+        "assists": {
+          "default": 0,
+          "title": "Assists",
+          "type": "integer"
+        },
+        "cpa": {
+          "default": 0.0,
+          "title": "Cpa",
+          "type": "number"
+        },
+        "goalie_ppa_allowed": {
+          "default": 0.0,
+          "title": "Goalie Ppa Allowed",
+          "type": "number"
+        },
+        "goals": {
+          "default": 0,
+          "title": "Goals",
+          "type": "integer"
+        },
+        "goals_allowed": {
+          "default": 0,
+          "title": "Goals Allowed",
+          "type": "integer"
+        },
+        "on_ice_goals_against": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Ice Goals Against"
+        },
+        "on_ice_goals_for": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Ice Goals For"
+        },
+        "on_ice_ppa": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Ice Ppa"
+        },
+        "ppa": {
+          "default": 0.0,
+          "title": "Ppa",
+          "type": "number"
+        },
+        "season": {
+          "title": "Season",
+          "type": "integer"
+        },
+        "team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Team"
+        }
+      },
+      "required": [
+        "season",
+        "team",
+        "goals",
+        "ppa",
+        "cpa",
+        "assists",
+        "assist_ppa",
+        "goals_allowed",
+        "goalie_ppa_allowed",
+        "on_ice_ppa",
+        "on_ice_goals_for",
+        "on_ice_goals_against"
+      ],
+      "title": "PlayerSeason",
+      "type": "object"
+    },
     "RecapReadyMsg": {
       "properties": {
         "night_date": {
@@ -2546,6 +2778,9 @@
       "title": "Nights",
       "type": "array"
     },
+    "player": {
+      "$ref": "#/$defs/PlayerResponse"
+    },
     "recap": {
       "$ref": "#/$defs/RecapResponse"
     },
@@ -2568,6 +2803,7 @@
   "required": [
     "state",
     "team",
+    "player",
     "game",
     "tremor_page",
     "leaders",

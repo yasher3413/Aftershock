@@ -4,6 +4,7 @@ import type {
   GameResponse,
   LeadersResponse,
   NightInfo,
+  PlayerResponse,
   RecapResponse,
   StateResponse,
   StatusResponse,
@@ -33,6 +34,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const useStateQuery = () =>
   useQuery({ queryKey: ["state"], queryFn: () => api<StateResponse>("/state") });
 
+export const usePlayer = (id: string, season?: number) =>
+  useQuery({
+    queryKey: ["player", id, season],
+    queryFn: () => api<PlayerResponse>(`/players/${id}${season ? `?season=${season}` : ""}`),
+  });
 export const useTeam = (abbrev: string) =>
   useQuery({ queryKey: ["team", abbrev], queryFn: () => api<TeamResponse>(`/teams/${abbrev}`) });
 
