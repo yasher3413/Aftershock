@@ -25,6 +25,14 @@ export default function TremorPage() {
   if (isLoading) return <div className="p-6 text-ink-soft">Loading the tremor</div>;
   if (isError || !t) return <div className="p-6">No tremor with that id.</div>;
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
+  // Teams the goal barely touched collapse into one line.
+  const moved = t.deltas.filter((d) => Math.abs(d.d_playoffs) >= 0.0005);
+  const still = t.deltas.filter((d) => Math.abs(d.d_playoffs) < 0.0005);
+  const own = t.deltas.find((d) => d.team === t.team);
+  const settled =
+    own && (own.p_playoffs_after >= 0.995 || own.p_playoffs_after <= 0.005)
+      ? own.p_playoffs_after
+      : null;
   const date = new Date(`${t.night_date}T12:00:00Z`).toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",
@@ -108,7 +116,14 @@ export default function TremorPage() {
               {pct(scoringHome ? wpAfter : 1 - wpAfter)}
             </dd>
             <dt className="text-ink-soft">Playoff Probability Added</dt>
-            <dd className="text-right tabular-nums">{pp(t.ppa)}</dd>
+            <dd className="text-right tabular-nums">
+              {pp(t.ppa)}
+              {Math.abs(t.ppa) < 0.0005 && settled != null && (
+                <span className="block text-[12px] text-ink-soft">
+                  {t.team} {settled >= 0.995 ? "was already in" : "was already out"}
+                </span>
+              )}
+            </dd>
             <dt className="text-ink-soft">Cup Probability Added</dt>
             <dd className="text-right tabular-nums">{pp(t.cpa, 2)}</dd>
             <dt className="text-ink-soft">Total shift across the league</dt>
@@ -144,14 +159,14 @@ export default function TremorPage() {
         </div>
       </div>
       <section className="mt-8 border-t border-ice-scratch pt-4" aria-labelledby="deltas-h">
-        <h2 id="deltas-h" className="text-[17px] font-semibold">
+        <h2 id="deltas-h" className="display text-[30px] font-bold">
           Who it moved
         </h2>
         <p className="text-[13px] text-ink-soft">
           Change in playoff odds, in percentage points, and the odds right after.
         </p>
         <ul className="mt-3 grid gap-y-1 text-[13px] md:grid-cols-2 md:gap-x-10">
-          {t.deltas.map((d) => (
+          {moved.map((d) => (
             <li
               key={d.team}
               className="grid grid-cols-[2.8rem_1fr_4.2rem_3.6rem] items-center gap-2"
@@ -177,6 +192,12 @@ export default function TremorPage() {
             </li>
           ))}
         </ul>
+        {still.length > 0 && (
+          <p className="mt-3 max-w-[56ch] text-[13px] text-ink-soft">
+            {still.length} other teams moved by less than 0.05 percentage points:{" "}
+            {still.map((d) => d.team).join(", ")}.
+          </p>
+        )}
       </section>
     </div>
   );
