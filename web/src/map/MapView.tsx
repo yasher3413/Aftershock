@@ -7,6 +7,7 @@ import { useDarkScheme, useReducedMotion } from "../lib/useMedia";
 import { announceTremor } from "../lib/announce";
 import { arrow, clock, pct, periodLabel, pp } from "../lib/format";
 import { MapController, type MapLayout } from "./controller";
+import { TeamLogo } from "../components/TeamLogo";
 import type { GameSummary } from "../api/types.gen";
 
 const LIVE = new Set(["LIVE", "CRIT"]);
@@ -171,7 +172,7 @@ export function MapView() {
                 fontSize: p.r < 13 ? 10 : 12,
               }}
             >
-              {p.id}
+              <TeamLogo team={p.id} size={Math.round(size * 0.66)} />
             </button>
             {live && g && (
               <span

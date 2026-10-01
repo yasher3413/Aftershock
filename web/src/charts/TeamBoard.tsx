@@ -2,6 +2,7 @@ import { scaleLinear, scaleTime } from "d3-scale";
 import { line } from "d3-shape";
 import { Link } from "react-router";
 import { magnitude as fmtMag, pct } from "../lib/format";
+import { TeamLogo } from "../components/TeamLogo";
 
 /**
  * The team's map node at scoreboard size: the arc is its playoff odds, the
@@ -48,17 +49,14 @@ export function TeamRing({
         strokeDasharray={`${c * p} ${c}`}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
-      <text
-        x={size / 2}
-        y={size / 2 - size * 0.12}
-        textAnchor="middle"
-        className="display"
-        fontSize={size * 0.13}
-        fontWeight={700}
-        fill="var(--ink-soft)"
+      <foreignObject
+        x={size / 2 - size * 0.14}
+        y={size / 2 - size * 0.34}
+        width={size * 0.28}
+        height={size * 0.28}
       >
-        {code}
-      </text>
+        <TeamLogo team={code} size={Math.round(size * 0.28)} />
+      </foreignObject>
       <text
         x={size / 2}
         y={size / 2 + size * 0.14}
@@ -186,6 +184,13 @@ export function SeasonSeismogram({
         const color = s.up ? "var(--blue-line)" : "var(--goal)";
         return (
           <Link key={s.id} to={`/tremor/${s.id}`} aria-label={s.label}>
+            <rect
+              x={x0 - 6}
+              y={Math.min(y0, y1) - 16}
+              width={12}
+              height={Math.abs(y1 - y0) + 32}
+              fill="transparent"
+            />
             <line x1={x0} x2={x0} y1={y0} y2={y1} stroke={color} strokeWidth={2} />
             <circle cx={x0} cy={y0} r={3} fill={color} />
             <text

@@ -329,3 +329,20 @@ Each entry: date, decision, alternatives considered, reason.
   rail's 12, 13, and 15 px roles were too close to read as a hierarchy.
   Overpass comes from Highway Gothic, the signage lettering of the same
   buildings Big Shoulders evokes, and has tabular figures.
+
+## 2026-09-30: Show team logos and player headshots
+
+- **Decision:** at the owner's request, the site shows NHL team logos (map
+  nodes, team header, standings, tonight's games, leaderboards) and player
+  headshots (player cards, leaderboards, tremor pages), loaded from the NHL's
+  public asset server (`assets.nhle.com`) and never copied into the repo.
+  The footer carries a trademark notice. Each image falls back to the team
+  code or the player's initials if it cannot load. This replaces the build
+  brief's "no logos" rule.
+- **Alternatives:** keep team codes and color ticks only (the brief's rule);
+  bundle the images.
+- **Reason:** fans recognize logos and faces faster than codes. Comparable
+  unaffiliated analytics sites (for example hockeystats.com) do the same
+  with a trademark notice. The risk is a takedown request, which the
+  fallbacks make cheap to honor: removing two components restores the
+  previous look.

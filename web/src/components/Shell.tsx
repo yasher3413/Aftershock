@@ -52,7 +52,9 @@ export function Shell() {
         <Outlet />
       </main>
       <footer className="border-t border-ice-scratch px-4 py-3 text-[12px] text-ink-soft md:px-6">
-        Data from NHL.com. Aftershock is not affiliated with or endorsed by the NHL.{" "}
+        Data from NHL.com. NHL and team logos and marks, and player photos, are the property of the
+        NHL and its teams. Aftershock is not affiliated with, endorsed by, or sponsored by the NHL
+        or any team.{" "}
         <Link
           to="/status"
           className="underline decoration-ice-scratch underline-offset-2 hover:text-ink"

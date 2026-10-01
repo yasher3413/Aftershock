@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TeamLogo } from "../components/TeamLogo";
 import { Link } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import type { StandingsRow, TeamOdds } from "../api/types.gen";
@@ -24,9 +25,13 @@ function Row({
     <motion.li
       layout={reduce ? false : "position"}
       transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-      className={`grid grid-cols-[2.6rem_2rem_1fr_3.2rem_2.4rem] items-center gap-2 py-1 text-[13px] ${mine ? "font-semibold" : ""} ${cutline ? "border-t border-dashed border-goal/50" : ""}`}
+      className={`grid grid-cols-[3.8rem_2rem_1fr_3.2rem_2.4rem] items-center gap-2 py-1 text-[13px] ${mine ? "font-semibold" : ""} ${cutline ? "border-t border-dashed border-goal/50" : ""}`}
     >
-      <Link to={`/team/${r.team}`} className="display text-[16px] font-bold">
+      <Link
+        to={`/team/${r.team}`}
+        className="display inline-flex items-center gap-1.5 text-[16px] font-bold"
+      >
+        <TeamLogo team={r.team} size={18} />
         {r.team}
       </Link>
       <span className="text-right tabular-nums">{r.points}</span>
@@ -84,7 +89,7 @@ export function StandingsPanel() {
           ))}
         </div>
       </div>
-      <div className="mt-1 grid grid-cols-[2.6rem_2rem_1fr_3.2rem_2.4rem] gap-2 text-[11px] text-ink-soft">
+      <div className="mt-1 grid grid-cols-[3.8rem_2rem_1fr_3.2rem_2.4rem] gap-2 text-[11px] text-ink-soft">
         <span />
         <span className="text-right">Pts</span>
         <span>Playoff odds</span>

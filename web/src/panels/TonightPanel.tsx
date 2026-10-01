@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TeamLogo } from "../components/TeamLogo";
 import { Link } from "react-router";
 import type { GameSummary } from "../api/types.gen";
 import { clock, duration, localTime, pct, periodLabel } from "../lib/format";
@@ -108,8 +109,10 @@ export function TonightPanel() {
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <div className="display w-[88px] text-[20px] font-bold leading-none">
-                    {g.away} <span className="text-[14px] font-semibold text-ink-soft">at</span>{" "}
+                  <div className="display flex w-[128px] items-center gap-1 text-[20px] font-bold leading-none">
+                    <TeamLogo team={g.away} size={18} />
+                    {g.away} <span className="text-[14px] font-semibold text-ink-soft">at</span>
+                    <TeamLogo team={g.home} size={18} />
                     {g.home}
                   </div>
                   <div className="display w-10 text-center text-[20px] font-bold tabular-nums">
