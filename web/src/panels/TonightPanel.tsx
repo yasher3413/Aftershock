@@ -72,7 +72,13 @@ export function TonightPanel() {
     <section aria-labelledby="tonight-h" className="px-4 py-3">
       <div className="flex items-baseline justify-between">
         <h2 id="tonight-h" className="display text-[24px] font-bold">
-          {mode === "replay" ? "That night" : "Tonight"}
+          {mode === "replay" && list[0]
+            ? new Date(`${list[0].night_date}T12:00:00Z`).toLocaleDateString(undefined, {
+                month: "long",
+                day: "numeric",
+                timeZone: "UTC",
+              })
+            : "Tonight"}
         </h2>
         {!started && list.length > 0 && Number.isFinite(firstStart) && firstStart > now && (
           <span className="text-[13px] text-ink-soft">

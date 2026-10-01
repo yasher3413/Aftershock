@@ -349,7 +349,7 @@ export default function LeadersPage() {
           })}
         </div>
       )}
-      <p className="mt-3 max-w-[70ch] text-[14px] text-ink-soft">{active.blurb}</p>
+      <p className="mt-3 max-w-[56ch] text-[14px] text-ink-soft">{active.blurb}</p>
       <div className="mt-4" role="tabpanel">
         {tab === "tremors" ? (
           <TopTremors season={season} />

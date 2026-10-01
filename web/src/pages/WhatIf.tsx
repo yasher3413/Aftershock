@@ -17,6 +17,7 @@ import {
   toSimInput,
 } from "../whatif/scenario";
 import { useSimulator, type SimOutput } from "../whatif/useSimulator";
+import { TeamLogo } from "../components/TeamLogo";
 
 const N_SIMS = 10_000;
 const DEBOUNCE_MS = 150;
@@ -35,16 +36,16 @@ const HOW: Record<string, string> = {
 /** A team code on the pick sheet; a pick is a pen ring around the winner. */
 function PickCode({ code, ringed }: { code: string; ringed: boolean }) {
   return (
-    <span className="relative inline-flex h-10 w-[4.5rem] items-center justify-center">
+    <span className="relative inline-flex h-10 w-[6.5rem] items-center justify-center">
       {ringed && (
         <svg
           aria-hidden
-          viewBox="0 0 72 40"
+          viewBox="0 0 104 40"
           className="absolute inset-0 h-full w-full overflow-visible"
           preserveAspectRatio="none"
         >
           <path
-            d="M8 22 C 6 8, 40 2, 60 8 C 72 12, 70 32, 48 36 C 26 40, 4 34, 9 18"
+            d="M8 22 C 6 8, 56 2, 88 8 C 104 12, 102 32, 70 36 C 38 40, 4 34, 9 18"
             fill="none"
             stroke="var(--blue-line)"
             strokeWidth={2.2}
@@ -52,7 +53,10 @@ function PickCode({ code, ringed }: { code: string; ringed: boolean }) {
           />
         </svg>
       )}
-      <span className="display relative text-[26px] font-bold leading-none">{code}</span>
+      <span className="display relative inline-flex items-center gap-1.5 text-[26px] font-bold leading-none">
+        <TeamLogo team={code} size={22} />
+        {code}
+      </span>
     </span>
   );
 }
@@ -273,7 +277,7 @@ export default function WhatIfPage() {
                   return (
                     <li
                       key={g.game_id}
-                      className="grid grid-cols-[4.5rem_1.5rem_4.5rem_1fr] items-center py-1.5"
+                      className="grid grid-cols-[6.5rem_1.5rem_6.5rem_1fr] items-center py-1.5"
                     >
                       {(["away", "home"] as const).map((side, k) => {
                         const code = side === "home" ? g.home : g.away;
