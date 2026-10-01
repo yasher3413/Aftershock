@@ -86,3 +86,12 @@ test("a night without a replay shows its schedule", async ({ page }) => {
   await expect(page.locator('a[href^="/game/"]')).toHaveCount(3);
   await expect(page.getByText("PHI 55% to win")).toBeVisible();
 });
+
+test("the nights calendar opens a past night", async ({ page }) => {
+  await page.goto("/nights?season=20252026");
+  await expect(page.getByRole("heading", { name: "Every night" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "October 2025" })).toBeVisible();
+  await page.getByRole("link", { name: /^October 16, 2025:/ }).click();
+  await expect(page).toHaveURL(/\/night\/2025-10-16$/);
+  await expect(page.getByRole("link", { name: "All nights" })).toBeVisible();
+});

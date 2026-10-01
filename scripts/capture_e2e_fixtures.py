@@ -45,6 +45,7 @@ def main() -> None:
         "methodology": get("/api/methodology"),
         # A night with no replay yet shows its schedule instead.
         "games-2026-09-30": get("/api/games?date=2026-09-30"),
+        "nights-20252026": get("/api/replay/nights?season=20252026"),
     }
     for name, body in fixtures.items():
         path = OUT / f"{name}.json.gz"

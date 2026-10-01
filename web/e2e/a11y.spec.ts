@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "./fixtures";
 
-for (const path of ["/", "/team/MTL", "/what-if", "/method"]) {
+for (const path of ["/", "/team/MTL", "/what-if", "/method", "/nights?season=20252026"]) {
   for (const scheme of ["light", "dark"] as const) {
     test(`no serious accessibility violations on ${path} (${scheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
