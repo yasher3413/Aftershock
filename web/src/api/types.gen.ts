@@ -216,7 +216,17 @@ export interface HealthResponse {
  * via the `definition` "LeadersResponse".
  */
 export interface LeadersResponse {
-  kind: "skater" | "assist" | "goalie" | "team_chaos" | "on_ice";
+  kind:
+    | "skater"
+    | "assist"
+    | "goalie"
+    | "team_chaos"
+    | "on_ice"
+    | "plus_minus"
+    | "penalty_cost"
+    | "drawn"
+    | "giveaway_cost";
+  onice_coverage: number | null;
   rows: LeaderRow[];
   season: number;
 }
@@ -426,15 +436,27 @@ export interface PlayerResponse {
 export interface PlayerSeason {
   assist_ppa: number;
   assists: number;
+  costly_giveaways: number;
   cpa: number;
+  drawn: number;
+  drawn_ppa: number;
+  giveaway_ppa: number;
+  giveaways: number;
   goalie_ppa_allowed: number;
   goals: number;
   goals_allowed: number;
   on_ice_goals_against: number | null;
   on_ice_goals_for: number | null;
   on_ice_ppa: number | null;
+  onice_coverage: number | null;
+  penalties: number;
+  penalty_goals: number;
+  penalty_ppa: number;
+  pim: number;
+  plus_minus: number | null;
   ppa: number;
   season: number;
+  takeaways: number;
   team: string | null;
 }
 /**

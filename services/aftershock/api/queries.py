@@ -452,7 +452,63 @@ async def leaders(
         rows = (await session.execute(q, {"season": season, "limit": limit})).all()
         return S.LeadersResponse(
             season=season,
+            onice_coverage=await onice_coverage(session, season),
             kind="on_ice",
+            rows=[
+                S.LeaderRow(
+                    rank=i + 1,
+                    player=S.PlayerRef(id=r[0], name=r[1]),
+                    team=r[2],
+                    value=float(r[3]),
+                    count=int(r[4]),
+                )
+                for i, r in enumerate(rows)
+            ],
+        )
+    if kind == "plus_minus":
+        q = text(
+            """
+            SELECT m.player_id, pl.name, coalesce(o.team, pl.current_team, ''), m.plus_minus,
+                   coalesce(o.goals_for, 0) + coalesce(o.goals_against, 0)
+            FROM player_plus_minus m JOIN players pl ON pl.id = m.player_id
+            LEFT JOIN player_onice_ppa o ON o.season = m.season AND o.player_id = m.player_id
+            WHERE m.season = :season ORDER BY m.plus_minus DESC, pl.name LIMIT :limit
+            """
+        )
+        rows = (await session.execute(q, {"season": season, "limit": limit})).all()
+        return S.LeadersResponse(
+            season=season,
+            onice_coverage=await onice_coverage(session, season),
+            kind="plus_minus",
+            rows=[
+                S.LeaderRow(
+                    rank=i + 1,
+                    player=S.PlayerRef(id=r[0], name=r[1]),
+                    team=r[2],
+                    value=float(r[3]),
+                    count=int(r[4]),
+                )
+                for i, r in enumerate(rows)
+            ],
+        )
+    if kind in ("penalty_cost", "drawn", "giveaway_cost"):
+        column, count, order = {
+            "penalty_cost": ("penalty_ppa", "penalties", "ASC"),
+            "drawn": ("drawn_ppa", "drawn", "DESC"),
+            "giveaway_cost": ("giveaway_ppa", "costly_giveaways", "ASC"),
+        }[kind]
+        q = text(
+            f"""
+            SELECT d.player_id, pl.name, d.team, d.{column}, d.{count}
+            FROM player_discipline_season d JOIN players pl ON pl.id = d.player_id
+            WHERE d.season = :season AND d.{count} > 0
+            ORDER BY d.{column} {order}, d.{count} DESC LIMIT :limit
+            """
+        )
+        rows = (await session.execute(q, {"season": season, "limit": limit})).all()
+        return S.LeadersResponse(
+            season=season,
+            kind=kind,
             rows=[
                 S.LeaderRow(
                     rank=i + 1,
@@ -626,6 +682,39 @@ async def player_card(
         )
         for r in rows
     ]
+    by_season = {x.season: x for x in seasons}
+    for r in (
+        await session.execute(
+            text(
+                """
+                SELECT d.season, d.team, d.pim, d.penalties, d.penalty_ppa, d.penalty_goals,
+                       d.drawn, d.drawn_ppa, d.giveaways, d.takeaways, d.costly_giveaways,
+                       d.giveaway_ppa, m.plus_minus
+                FROM player_discipline_season d
+                FULL JOIN player_plus_minus m ON m.season = d.season AND m.player_id = d.player_id
+                WHERE coalesce(d.player_id, m.player_id) = :p
+                """
+            ),
+            {"p": player_id},
+        )
+    ).all():
+        sid = int(r[0]) if r[0] is not None else None
+        if sid is None:
+            continue
+        row = by_season.get(sid) or S.PlayerSeason(season=sid, team=r[1])
+        row.pim, row.penalties, row.penalty_ppa = int(r[2] or 0), int(r[3] or 0), float(r[4] or 0)
+        row.penalty_goals, row.drawn, row.drawn_ppa = (
+            int(r[5] or 0),
+            int(r[6] or 0),
+            float(r[7] or 0),
+        )
+        row.giveaways, row.takeaways = int(r[8] or 0), int(r[9] or 0)
+        row.costly_giveaways, row.giveaway_ppa = int(r[10] or 0), float(r[11] or 0)
+        row.plus_minus = None if r[12] is None else int(r[12])
+        by_season[sid] = row
+    seasons = sorted(by_season.values(), key=lambda x: -x.season)
+    for x in seasons:
+        x.onice_coverage = await onice_coverage(session, x.season)
     if season is None:
         season = seasons[0].season if seasons else fallback_season
     this = next((x for x in seasons if x.season == season), None)
@@ -667,3 +756,22 @@ async def player_card(
         goals=await tremors_out(session, list(goals)),
         assists=await tremors_out(session, list(assists)),
     )
+
+
+async def onice_coverage(session: AsyncSession, season: int) -> float | None:
+    """Share of a season's regular-season goals that have on-ice skaters
+    (NHL shift charts are missing for some games)."""
+    row = (
+        await session.execute(
+            text(
+                "SELECT count(*), count(*) FILTER (WHERE EXISTS "
+                "(SELECT 1 FROM tremor_on_ice o WHERE o.tremor_id = t.id)) "
+                "FROM tremors t JOIN games g ON g.id = t.game_id "
+                "WHERE t.season = :s AND g.game_type = 2 AND NOT t.overturned AND NOT t.shootout"
+            ),
+            {"s": season},
+        )
+    ).first()
+    if row is None or not row[0]:
+        return None
+    return round(float(row[1]) / float(row[0]), 4)

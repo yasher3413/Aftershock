@@ -243,7 +243,17 @@ async def player(player_id: int, session: Db, season: int | None = None) -> S.Pl
 async def leaders(
     session: Db,
     season: int | None = None,
-    kind: Literal["skater", "assist", "goalie", "team_chaos", "on_ice"] = "skater",
+    kind: Literal[
+        "skater",
+        "assist",
+        "goalie",
+        "team_chaos",
+        "on_ice",
+        "plus_minus",
+        "penalty_cost",
+        "drawn",
+        "giveaway_cost",
+    ] = "skater",
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> S.LeadersResponse:
     return await Q.leaders(session, season or current_season(), kind, limit)
@@ -332,7 +342,7 @@ async def methodology(st: State) -> dict[str, Any]:
     reports = st.settings.ml_dir / "reports"
     out: dict[str, Any] = {"plots": {}}
     raw: dict[str, Any] = {}
-    for name in ("xg", "strength", "wp", "backtest", "magnitude"):
+    for name in ("xg", "strength", "wp", "backtest", "magnitude", "discipline"):
         f = reports / f"{name}.json"
         if f.exists():
             raw[name] = json.loads(f.read_text())

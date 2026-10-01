@@ -254,3 +254,12 @@ async def test_player_card(client: Any) -> None:
     assert goalie["seasons"][0]["goalie_ppa_allowed"] == pytest.approx(-0.03)
     assert goalie["team"] == "NYI"
     assert (await c.get("/api/players/999")).status_code == 404
+
+
+async def test_discipline_leaders_and_card(client: Any) -> None:
+    c, _ = client
+    for kind in ("plus_minus", "penalty_cost", "drawn", "giveaway_cost"):
+        r = await c.get(f"/api/leaders/ppa?season=20262027&kind={kind}")
+        assert r.status_code == 200 and r.json()["kind"] == kind
+    p = (await c.get("/api/players/1")).json()
+    assert "pim" in p["seasons"][0] and "plus_minus" in p["seasons"][0]

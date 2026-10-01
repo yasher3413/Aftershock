@@ -724,10 +724,26 @@
             "assist",
             "goalie",
             "team_chaos",
-            "on_ice"
+            "on_ice",
+            "plus_minus",
+            "penalty_cost",
+            "drawn",
+            "giveaway_cost"
           ],
           "title": "Kind",
           "type": "string"
+        },
+        "onice_coverage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Onice Coverage"
         },
         "rows": {
           "items": {
@@ -744,7 +760,8 @@
       "required": [
         "season",
         "kind",
-        "rows"
+        "rows",
+        "onice_coverage"
       ],
       "title": "LeadersResponse",
       "type": "object"
@@ -1062,10 +1079,35 @@
           "title": "Assists",
           "type": "integer"
         },
+        "costly_giveaways": {
+          "default": 0,
+          "title": "Costly Giveaways",
+          "type": "integer"
+        },
         "cpa": {
           "default": 0.0,
           "title": "Cpa",
           "type": "number"
+        },
+        "drawn": {
+          "default": 0,
+          "title": "Drawn",
+          "type": "integer"
+        },
+        "drawn_ppa": {
+          "default": 0.0,
+          "title": "Drawn Ppa",
+          "type": "number"
+        },
+        "giveaway_ppa": {
+          "default": 0.0,
+          "title": "Giveaway Ppa",
+          "type": "number"
+        },
+        "giveaways": {
+          "default": 0,
+          "title": "Giveaways",
+          "type": "integer"
         },
         "goalie_ppa_allowed": {
           "default": 0.0,
@@ -1118,6 +1160,50 @@
           "default": null,
           "title": "On Ice Ppa"
         },
+        "onice_coverage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Onice Coverage"
+        },
+        "penalties": {
+          "default": 0,
+          "title": "Penalties",
+          "type": "integer"
+        },
+        "penalty_goals": {
+          "default": 0,
+          "title": "Penalty Goals",
+          "type": "integer"
+        },
+        "penalty_ppa": {
+          "default": 0.0,
+          "title": "Penalty Ppa",
+          "type": "number"
+        },
+        "pim": {
+          "default": 0,
+          "title": "Pim",
+          "type": "integer"
+        },
+        "plus_minus": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plus Minus"
+        },
         "ppa": {
           "default": 0.0,
           "title": "Ppa",
@@ -1125,6 +1211,11 @@
         },
         "season": {
           "title": "Season",
+          "type": "integer"
+        },
+        "takeaways": {
+          "default": 0,
+          "title": "Takeaways",
           "type": "integer"
         },
         "team": {
@@ -1152,7 +1243,19 @@
         "goalie_ppa_allowed",
         "on_ice_ppa",
         "on_ice_goals_for",
-        "on_ice_goals_against"
+        "on_ice_goals_against",
+        "plus_minus",
+        "onice_coverage",
+        "pim",
+        "penalties",
+        "penalty_ppa",
+        "penalty_goals",
+        "drawn",
+        "drawn_ppa",
+        "giveaways",
+        "takeaways",
+        "costly_giveaways",
+        "giveaway_ppa"
       ],
       "title": "PlayerSeason",
       "type": "object"

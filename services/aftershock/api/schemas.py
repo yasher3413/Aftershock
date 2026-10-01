@@ -259,6 +259,21 @@ class PlayerSeason(Model):
     on_ice_ppa: float | None = None
     on_ice_goals_for: int | None = None
     on_ice_goals_against: int | None = None
+    # Regular season discipline and defense (see jobs/discipline.py).
+    plus_minus: int | None = None
+    # Share of the season's regular-season goals with NHL shift data; on-ice
+    # stats and plus/minus are incomplete below 1.
+    onice_coverage: float | None = None
+    pim: int = 0
+    penalties: int = 0
+    penalty_ppa: float = 0.0
+    penalty_goals: int = 0
+    drawn: int = 0
+    drawn_ppa: float = 0.0
+    giveaways: int = 0
+    takeaways: int = 0
+    costly_giveaways: int = 0
+    giveaway_ppa: float = 0.0
 
 
 class PlayerResponse(Model):
@@ -335,8 +350,19 @@ class LeaderRow(Model):
 
 class LeadersResponse(Model):
     season: int
-    kind: Literal["skater", "assist", "goalie", "team_chaos", "on_ice"]
+    kind: Literal[
+        "skater",
+        "assist",
+        "goalie",
+        "team_chaos",
+        "on_ice",
+        "plus_minus",
+        "penalty_cost",
+        "drawn",
+        "giveaway_cost",
+    ]
     rows: list[LeaderRow]
+    onice_coverage: float | None = None
 
 
 class EnergyPoint(Model):
