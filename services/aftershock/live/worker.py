@@ -684,9 +684,17 @@ class Worker:
                 ),
                 {"d": night},
             )
+            # Once per night: a restart re-polls finished games, which must
+            # not rewrite a night that is already wrapped up.
+            done = await s.scalar(
+                text("SELECT count(*) FROM recaps WHERE night_date = :d"), {"d": night}
+            )
         if pending:
             return
         self._last_final_at = None
+        if done:
+            log.info("worker.night_already_wrapped", night=str(night))
+            return
         await self.write_night_bundle(night)
         from aftershock.recap.generate import generate_recap
 
