@@ -88,6 +88,7 @@ def create_app(
         lifespan=lifespan,
     )
     app.include_router(router, prefix="/api")
+    app.include_router(pages_router)
     app.add_api_websocket_route("/ws/live", live_socket)
     return app
 
@@ -99,6 +100,21 @@ async def db() -> AsyncIterator[AsyncSession]:
 
 Db = Annotated[AsyncSession, Depends(db)]
 router = APIRouter()
+pages_router = APIRouter()
+
+
+@pages_router.get("/page/{path:path}", include_in_schema=False)
+async def page(path: str, session: Db, request: Request) -> Response:
+    """index.html with this page's share preview tags (see api/pages.py)."""
+    from aftershock.api.pages import index_template, page_meta, render
+
+    settings: Settings = request.app.state.aftershock.settings
+    template = await index_template(settings)
+    if template is None:
+        raise HTTPException(503, "index.html is not available")
+    meta = await page_meta(session, path)
+    body = render(template, meta, settings.public_base_url, "/" + path.strip("/"))
+    return Response(body, media_type="text/html", headers={"Cache-Control": "public, max-age=60"})
 
 
 def current_season(now: datetime | None = None) -> int:

@@ -263,3 +263,46 @@ async def test_discipline_leaders_and_card(client: Any) -> None:
         assert r.status_code == 200 and r.json()["kind"] == kind
     p = (await c.get("/api/players/1")).json()
     assert "pim" in p["seasons"][0] and "plus_minus" in p["seasons"][0]
+
+
+async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
+    """Link-preview bots run no JavaScript: the served HTML must carry each
+    page's title, description, and an absolute share image."""
+    from aftershock.api import pages
+    from aftershock.api.app import create_app  # noqa: F401  (app already built)
+
+    c, _ = client
+    index = tmp_path / "index.html"
+    index.write_text(
+        '<html><head><meta name="description" content="generic" />'
+        "<title>Aftershock</title></head><body></body></html>"
+    )
+    pages._template.clear()
+    pages._template["html"] = index.read_text()
+    r = await c.get("/page/team/tor")
+    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+    body = r.text
+    assert "<title>Toronto" in body and 'content="generic"' not in body
+    assert 'property="og:image" content="http' in body and "/api/og/team/TOR.png" in body
+    assert 'name="twitter:card" content="summary_large_image"' in body
+    home = (await c.get("/page/")).text
+    assert "how every NHL goal moves the playoff race" in home
+    leaders = (await c.get("/page/leaders")).text
+    assert "<title>Leaders | Aftershock</title>" in leaders
+    assert 'name="twitter:card" content="summary"' in leaders
+    unknown = (await c.get("/page/nope")).text
+    assert "<title>Aftershock</title>" in unknown
+    pages._template.clear()
+
+
+def test_render_escapes_page_text() -> None:
+    from aftershock.api.pages import PageMeta, render
+
+    out = render(
+        "<html><head><title>x</title></head></html>",
+        PageMeta('A "quoted" <b>title</b>', "d & e", "/api/og/x.png"),
+        "https://aftershock.example/",
+        "/team/TOR",
+    )
+    assert "&quot;quoted&quot; &lt;b&gt;" in out and "d &amp; e" in out
+    assert 'content="https://aftershock.example/api/og/x.png"' in out

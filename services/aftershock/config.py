@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     recap_model: str = "claude-sonnet-5-5"
     public_base_url: str = "http://localhost:8080"
+    # The built web index.html (URL or file) that share previews are filled into.
+    index_html: str = "http://web:8080/index.html"
     repo_url: str = "https://github.com/yasher3413/Aftershock"
     log_level: str = "INFO"
     # Web push (optional). Generate with `aftershock vapid-keys`.
