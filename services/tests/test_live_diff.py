@@ -162,3 +162,15 @@ async def test_live_source_polls_finished_games_it_was_told_to_watch_once() -> N
     assert first.game_id == 7 and 7 not in src._watched
     await it.aclose()  # type: ignore[attr-defined]
     assert FakeClient.pbp_calls == 1
+
+
+def test_tonight_stays_on_air_between_games() -> None:
+    from aftershock.live.state import night_on_air
+
+    assert not night_on_air(["FUT", "PRE", "FUT"])  # before the first puck drop
+    assert night_on_air(["LIVE", "FUT"])
+    assert night_on_air(["CRIT", "FINAL"])
+    # 2026-09-30, 10:15 PM: two games over, LAK at COL still in pregame.
+    assert night_on_air(["FINAL", "FINAL", "PRE"])
+    assert not night_on_air(["FINAL", "OFF", "FINAL"])  # the night is over
+    assert not night_on_air([])

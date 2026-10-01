@@ -105,12 +105,28 @@ async def demo_night(session: AsyncSession, season: int) -> ReplayBundle | None:
 
 
 async def next_live_start(session: AsyncSession, now: datetime) -> datetime | None:
+    """The next puck drop: the earliest game that has not started. A game
+    still in pregame after its listed time (a late start) counts as next."""
     return await session.scalar(
         select(Game.start_utc)
-        .where(Game.start_utc > now, Game.game_type.in_((2, 3)))
+        .where(
+            Game.state.in_(("FUT", "PRE")),
+            Game.start_utc > now - timedelta(hours=6),
+            Game.game_type.in_((2, 3)),
+        )
         .order_by(Game.start_utc)
         .limit(1)
     )
+
+
+def night_on_air(states: list[str]) -> bool:
+    """Whether the home page shows tonight rather than a replay: while a game
+    is live, and between games once the night has started, so a gap before
+    the late game does not flip back to an old night."""
+    live = any(s in LIVE_STATES for s in states)
+    started = any(s in LIVE_STATES or s in ("FINAL", "OFF") for s in states)
+    pending = any(s in ("FUT", "PRE") for s in states)
+    return live or (started and pending)
 
 
 async def build_state(
@@ -160,7 +176,7 @@ async def build_state(
 
     mode: Literal["live", "demo"] = "live"
     replay = None
-    if demo_mode == "on" or (demo_mode == "auto" and not live_games):
+    if demo_mode == "on" or (demo_mode == "auto" and not night_on_air([g.state for g in tonight])):
         bundle = await demo_night(session, season - 10001)
         if bundle is not None:
             mode = "demo"
