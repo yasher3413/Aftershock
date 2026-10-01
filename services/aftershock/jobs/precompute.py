@@ -112,9 +112,15 @@ def check_finals(inputs: SimInputs, games: list[Game], night: date) -> None:
 
 class SeasonPrecompute:
     def __init__(
-        self, season: int, settings: Settings | None = None, backend: SimBackend | None = None
+        self,
+        season: int,
+        settings: Settings | None = None,
+        backend: SimBackend | None = None,
+        *,
+        relink: bool = False,
     ) -> None:
         self.season = season
+        self.relink = relink
         self.s = settings or get_settings()
         self.backend = backend or default_backend()
         self.params = load_params(self.s)
@@ -125,7 +131,9 @@ class SeasonPrecompute:
         self.n_sims = self.s.sim_n_backfill
         self.cfg = league_config(season, self.s)
 
-    async def run(self, only: set[date] | None = None) -> dict[str, Any]:
+    async def run(self, only: set[date] | None = None, *, force: bool = False) -> dict[str, Any]:
+        """Precompute every night (or only ``only``). Nights with a replay are
+        skipped unless ``force``."""
         started = time.monotonic()
         async with session_scope() as s:
             job = JobRun(job=f"precompute:{self.season}", status="running", detail={})
@@ -209,7 +217,7 @@ class SeasonPrecompute:
                 engine.start_season(self.season)
                 self._refresh_future(inputs, engine)
                 tonight = [g for g in by_night[night] if g.last_period_type is not None]
-                if night in done or (only is not None and night not in only):
+                if (night in done and not force) or (only is not None and night not in only):
                     self._apply_finals(inputs, tonight)
                     check_finals(inputs, games, night)
                     stats["skipped"] += 1
@@ -295,7 +303,7 @@ class SeasonPrecompute:
         base = engine.full_run("nightly", night.isoformat())
         frames = NightFrames([])
         async with session_scope() as s:
-            base_run = await P.save_run(s, base, self.season)
+            base_run = None if self.relink else await P.save_run(s, base, self.season)
             standings = await self._standings(inputs)
             initial_games = [
                 Q.game_summary(g, pg)
@@ -345,17 +353,31 @@ class SeasonPrecompute:
             eff = engine.handle(doc, game)
             t_ms = int((at - start).total_seconds() * 1000)
             async with session_scope() as s:
-                await P.save_xg(s, game.meta.id, eff.xg)
-                await P.save_wp(s, game.meta.id, eff.wp_points)
-                for rec in eff.tremors:
-                    after = OddsSnapshot(
-                        "goal", f"{rec.game_id}:{rec.event_id}", rec.calc.after, engine.inputs, at
-                    )
-                    run_a = await P.save_run(s, after, self.season)
-                    venue = await _venue(s, game.meta.venue, game.meta.home.abbrev)
-                    rec.id = await P.save_tremor(s, P.tremor_row(rec, None, run_a, *venue))
-                for snap in eff.odds:
-                    await P.save_run(s, snap, self.season)
+                if self.relink:
+                    # A night the live worker already recorded: link each goal
+                    # to its stored tremor, write nothing new.
+                    for rec in eff.tremors:
+                        rec.id = await s.scalar(
+                            select(Tremor.id).where(
+                                Tremor.game_id == rec.game_id, Tremor.event_id == rec.event_id
+                            )
+                        )
+                else:
+                    await P.save_xg(s, game.meta.id, eff.xg)
+                    await P.save_wp(s, game.meta.id, eff.wp_points)
+                    for rec in eff.tremors:
+                        after = OddsSnapshot(
+                            "goal",
+                            f"{rec.game_id}:{rec.event_id}",
+                            rec.calc.after,
+                            engine.inputs,
+                            at,
+                        )
+                        run_a = await P.save_run(s, after, self.season)
+                        venue = await _venue(s, game.meta.venue, game.meta.home.abbrev)
+                        rec.id = await P.save_tremor(s, P.tremor_row(rec, None, run_a, *venue))
+                    for snap in eff.odds:
+                        await P.save_run(s, snap, self.season)
                 rows = []
                 if eff.tremors:
                     tr = (
