@@ -1,0 +1,81 @@
+# Aftershock on one Oracle Cloud Always Free VM: the api, the worker,
+# Postgres, and Redis, with Caddy terminating HTTPS. The website itself is on
+# Vercel (see vercel.json), which forwards /api and /page here and opens the
+# live WebSocket directly to API_HOST. See docs/DEPLOY.md.
+name: aftershock
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aftershock
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: aftershock
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aftershock"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aftershock:${POSTGRES_PASSWORD}@postgres:5432/aftershock
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/worker.Dockerfile
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aftershock:${POSTGRES_PASSWORD}@postgres:5432/aftershock
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      api: { condition: service_started }
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      API_HOST: ${API_HOST:?set API_HOST in .env, for example 129.146.10.20.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  caddydata:

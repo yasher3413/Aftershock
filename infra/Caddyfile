@@ -1,0 +1,13 @@
+# HTTPS for the Aftershock api on API_HOST (a certificate is issued
+# automatically). Until a domain is bought, an sslip.io name that encodes the
+# VM's public IP works, for example 129.146.10.20.sslip.io.
+{$API_HOST} {
+	encode gzip
+	@app path /api/* /ws/* /page/*
+	handle @app {
+		reverse_proxy api:8000
+	}
+	handle {
+		respond "Aftershock api" 200
+	}
+}
