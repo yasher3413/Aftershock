@@ -47,6 +47,7 @@ def main() -> None:
         "games-2026-09-30": get("/api/games?date=2026-09-30"),
         "nights-20252026": get("/api/replay/nights?season=20252026"),
         "player-8481540": get("/api/players/8481540"),
+        "game-2026020007": get("/api/games/2026020007"),
     }
     for name, body in fixtures.items():
         path = OUT / f"{name}.json.gz"

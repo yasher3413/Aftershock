@@ -24,6 +24,7 @@ export async function mockApi(page: Page): Promise<void> {
     "/api/games": fixture("games-2026-09-30"),
     "/api/replay/nights": fixture("nights-20252026"),
     "/api/players/8481540": fixture("player-8481540"),
+    "/api/games/2026020007": fixture("game-2026020007"),
   };
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
