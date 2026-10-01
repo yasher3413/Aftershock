@@ -5,6 +5,7 @@ import { RouteError } from "./components/RouteError";
 
 const Home = lazy(() => import("./pages/Home"));
 const Night = lazy(() => import("./pages/Night"));
+const Nights = lazy(() => import("./pages/Nights"));
 const Team = lazy(() => import("./pages/Team"));
 const Game = lazy(() => import("./pages/Game"));
 const TremorPage = lazy(() => import("./pages/Tremor"));
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { path: "/", element: page(<Home />) },
+      { path: "/nights", element: page(<Nights />) },
       { path: "/night/:date", element: page(<Night />) },
       { path: "/team/:abbrev", element: page(<Team />) },
       { path: "/game/:id", element: page(<Game />) },

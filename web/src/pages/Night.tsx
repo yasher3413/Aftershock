@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router";
-import { api, useRecap } from "../api/client";
+import { api, useNights, useRecap } from "../api/client";
 import type { GameSummary, ReplayBundleOut, StateResponse } from "../api/types.gen";
 import { startReplay } from "../live/bootstrap";
 import { useClock } from "../live/clock";
@@ -13,6 +13,7 @@ import { TremorFeed } from "../panels/TremorFeed";
 import { StandingsPanel } from "../panels/StandingsPanel";
 import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
+import { seasonOf } from "../lib/season";
 
 function todayEastern(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -22,6 +23,33 @@ function todayEastern(): string {
     day: "2-digit",
   }).format(new Date(Date.now() - 6 * 3600_000));
   return parts;
+}
+
+/** Previous and next nights with a replay, and the season calendar. */
+function NightNav({ date }: { date: string }) {
+  const season = seasonOf(date);
+  const { data: nights = [] } = useNights(season);
+  const dates = nights.map((n) => n.night_date).sort();
+  const prev = [...dates].reverse().find((d) => d < date);
+  const next = dates.find((d) => d > date);
+  const link = "font-semibold text-blue-line underline-offset-4 hover:underline";
+  return (
+    <nav aria-label="Other nights" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+      {prev && (
+        <Link to={`/night/${prev}`} className={link}>
+          Previous night
+        </Link>
+      )}
+      <Link to={`/nights?season=${season}`} className={link}>
+        All nights
+      </Link>
+      {next && (
+        <Link to={`/night/${next}`} className={link}>
+          Next night
+        </Link>
+      )}
+    </nav>
+  );
 }
 
 type Status = "loading" | "ready" | "missing";
@@ -47,6 +75,9 @@ function NightSchedule({ date }: { date: string }) {
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-12">
       <h1 className="display text-[38px] font-bold">{longDate(date)}</h1>
+      <div className="mt-2">
+        <NightNav date={date} />
+      </div>
       {games.isLoading ? (
         <p className="mt-3 text-ink-soft">Loading the schedule</p>
       ) : list.length === 0 ? (
@@ -150,6 +181,9 @@ export default function NightPage() {
         <span className="text-[13px] text-ink-soft">
           Replay. Drag the seismograph to move through the night.
         </span>
+        <div className="ml-auto">
+          <NightNav date={date} />
+        </div>
       </div>
       {recap.data && (
         <article className="border-b border-ice-scratch bg-surface px-4 py-3 md:px-6">
