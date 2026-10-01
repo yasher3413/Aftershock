@@ -41,3 +41,6 @@ docs/media/raw/
 
 # Local design-tool state (critiques, reviews)
 .impeccable/
+
+# Playwright MCP session files
+.playwright-mcp/
