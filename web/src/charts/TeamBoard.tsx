@@ -122,21 +122,34 @@ export function SeasonSeismogram({
   const last = points[points.length - 1]!;
   // Place labels biggest first: each spike ends where its label clears every
   // label already placed, so goals close in time never print on top of each other.
+  // Spikes under M1 and spikes whose label finds no clear spot keep their line
+  // and hover text but print no number.
   const tips = new Map<number, number>();
+  const labelled = new Set<number>();
   const placed: { x: number; y: number }[] = [];
   for (const s of [...spikes].sort((a, b) => b.magnitude - a.magnitude)) {
     const x0 = x(s.t);
     const y0 = y(s.v);
     let len = 12 + s.magnitude * 5;
-    let tip = y0;
-    for (let tries = 0; tries < 12; tries++) {
+    let tip = Math.max(18, Math.min(h - 32, y0 + (s.up ? -len : len)));
+    let clear = false;
+    for (let tries = 0; tries < 6 && s.magnitude >= 1; tries++) {
       tip = Math.max(18, Math.min(h - 32, y0 + (s.up ? -len : len)));
       const ly = s.up ? tip - 4 : tip + 13;
-      if (!placed.some((p) => Math.abs(p.x - x0) < 24 && Math.abs(p.y - ly) < 15)) break;
-      len += 15;
+      if (!placed.some((p) => Math.abs(p.x - x0) < 26 && Math.abs(p.y - ly) < 16)) {
+        clear = true;
+        break;
+      }
+      len += 16;
     }
-    tips.set(s.id, tip);
-    placed.push({ x: x0, y: s.up ? tip - 4 : tip + 13 });
+    tips.set(
+      s.id,
+      clear ? tip : Math.max(18, Math.min(h - 32, y0 + (s.up ? -1 : 1) * (12 + s.magnitude * 5))),
+    );
+    if (clear) {
+      labelled.add(s.id);
+      placed.push({ x: x0, y: s.up ? tip - 4 : tip + 13 });
+    }
   }
   return (
     <svg width={width} height={h} role="group" aria-label={label} className="block">
@@ -193,18 +206,20 @@ export function SeasonSeismogram({
             />
             <line x1={x0} x2={x0} y1={y0} y2={y1} stroke={color} strokeWidth={2} />
             <circle cx={x0} cy={y0} r={3} fill={color} />
-            <text
-              key={i}
-              x={x0}
-              y={s.up ? y1 - 4 : y1 + 13}
-              textAnchor="middle"
-              className="display"
-              fontSize={15}
-              fontWeight={700}
-              fill={color}
-            >
-              {fmtMag(s.magnitude)}
-            </text>
+            {labelled.has(s.id) && (
+              <text
+                key={i}
+                x={x0}
+                y={s.up ? y1 - 4 : y1 + 13}
+                textAnchor="middle"
+                className="display"
+                fontSize={15}
+                fontWeight={700}
+                fill={color}
+              >
+                {fmtMag(s.magnitude)}
+              </text>
+            )}
             <title>{s.label}</title>
           </Link>
         );

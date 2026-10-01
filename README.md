@@ -14,13 +14,22 @@ from a decade of NHL data (expected goals, team strength, in-game win
 probability), and a Rust Monte Carlo simulator that reruns the rest of the
 season 20,000 times after every goal. From that comes a stat hockey does not
 really have: **Playoff Probability Added (PPA)**, which scores every goal by
-how much it moved its team's playoff odds. There is also a What-If Lab that
-reruns the season in your browser through WebAssembly, a replay of any night
-from the last two seasons, shareable tremor cards, and a nightly recap.
+how much it moved its team's playoff odds.
 
-| Team page | What-If Lab | Leaders |
+Around the map: a page for every team (its season drawn as a seismogram, with
+who to root for this week), a card for every player (every goal's effect on
+the race, plus discipline and defense), leaderboards, a calendar of every
+night since 2024-25 to replay goal by goal, a What-If Lab that reruns the
+season in your browser through WebAssembly when you pick results, shareable
+tremor cards, and a recap written each night.
+
+| Team page | Player card | What-If Lab |
 |---|---|---|
-| ![Team page with odds history, points distribution, and rooting guide](docs/media/team.png) | ![What-If Lab with game picks and the resulting odds](docs/media/what-if.png) | ![Playoff Probability Added leaders](docs/media/leaders.png) |
+| ![Team page: odds ring and the season as a seismogram of its biggest goals](docs/media/team.png) | ![Player card: headshot, season totals, and every goal by magnitude](docs/media/player.png) | ![What-If Lab: a pick sheet where clicking a team picks it to win](docs/media/what-if.png) |
+
+| Leaders | Every night |
+|---|---|
+| ![Playoff Probability Added leaders, drawn as ranked bars](docs/media/leaders.png) | ![A season calendar shaded by how hard each night shook the playoff race](docs/media/nights.png) |
 
 ## How it works
 
@@ -56,9 +65,19 @@ real shift of a few tenths of a percentage point would drown in noise.
 
 **PPA and magnitude.** A goal's PPA is the change in its team's playoff odds.
 Its magnitude puts the total shift across all 32 teams on a 0 to 10 scale:
-the typical goal is about a 2, and a season's biggest are around 8. Early in
-the season goals are small. That is correct: the map gets more violent as
-April approaches.
+the typical goal is about a 2, and a season's biggest are around 8. The map
+gets more violent as April approaches, but only at the top: 88 percent of a
+season's 25 biggest goals come in March or April, while most April goals
+barely register because most races are already settled.
+
+**Beyond goals.** Penalties, giveaways, takeaways, and plus/minus come from
+the play-by-play and shift charts and are tied to the goals they led to: a
+penalty carries the playoff odds lost to the power-play goal it allowed, a
+giveaway the odds lost to a goal within 10 seconds. Checked against the NHL's
+official 2025-26 totals, giveaways and takeaways match for every player,
+penalty minutes for 99.6 percent, and plus/minus for 94 percent (99 within
+one). Split-half tests decide what is a skill: PPA plus/minus repeats (0.59),
+what penalties cost mostly does not (0.24), and the pages say so.
 
 Every number above is measured and explained in the
 [methodology](docs/MODELS.md) and the [model cards](ml/MODEL_CARDS.md).
@@ -96,6 +115,11 @@ make up              # Postgres, Redis, api, worker, and web at http://localhost
 With no game on, the home page replays the most dramatic night of the
 2025-26 stretch run at 20x, with a banner that says so.
 
+The nightly recap is written by a language model when `OPENAI_API_KEY` (or
+`ANTHROPIC_API_KEY`) is set in `.env`, one call per night, every number
+checked against the data before it is stored; without a key it uses a
+template.
+
 Without Docker, run Postgres 16 and Redis 7 from Homebrew
 (`brew install postgresql@16 redis`), point `DATABASE_URL` and `REDIS_URL` in
 `.env` at them, and use `make dev` for hot reload.
@@ -112,6 +136,7 @@ Without Docker, run Postgres 16 and Redis 7 from Homebrew
 | `make backfill` | every game since 2015-16 into Postgres |
 | `make train` | retrain all models, write reports, rerun the season backtest |
 | `make precompute SEASON=20242025` | tremors, odds history, and replays for a past season |
+| `aftershock discipline --season 20252026` | penalties, giveaways, plus/minus, and their PPA (also runs nightly) |
 | `make bench` | simulator benchmarks |
 | `make screenshots` | the images and GIF in this README |
 
@@ -131,8 +156,13 @@ docs/                    architecture, data, models, simulator, API, design, dep
 
 ## Data
 
-Data from NHL.com. Aftershock is not affiliated with or endorsed by the NHL.
-It reads the league's public play-by-play feed politely (a descriptive user
-agent, at most 8 requests a second, cached so finished games are never
-fetched twice), never redistributes raw data, and shows teams by abbreviation
-and color only, with no logos. See [docs/DATA.md](docs/DATA.md).
+Data from NHL.com. Aftershock is not affiliated with, endorsed by, or
+sponsored by the NHL or any team. It reads the league's public play-by-play
+feed politely (a descriptive user agent, at most 8 requests a second, cached
+so finished games are never fetched twice) and never redistributes raw data.
+Team logos and player photos are loaded from the NHL's own asset server, never
+copied into this repository, and remain the property of the NHL and its
+teams; each falls back to the team code or the player's initials. The NHL
+publishes no shift charts for the last 78 games of 2024-25, so that season's
+plus/minus leaves out about 5 percent of goals. See
+[docs/DATA.md](docs/DATA.md).

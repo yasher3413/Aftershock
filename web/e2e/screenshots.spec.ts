@@ -48,10 +48,11 @@ for (const scheme of ["light", "dark"] as const) {
 }
 
 const pages: [string, string, { w: number; h: number; full?: boolean }][] = [
-  ["team", "/team/MTL", { w: 1280, h: 900, full: true }],
+  ["team", "/team/MTL", { w: 1280, h: 900 }],
   ["what-if", "/what-if", { w: 1280, h: 900 }],
   ["leaders", "/leaders", { w: 1280, h: 900 }],
-  ["method", "/method", { w: 1280, h: 900 }],
+  ["player", "/player/8481540", { w: 1280, h: 900 }],
+  ["nights", "/nights?season=20252026", { w: 1280, h: 900 }],
 ];
 for (const [name, path, size] of pages) {
   test(`page ${name}`, async ({ browser }) => {

@@ -10,11 +10,19 @@ scanning the cached play-by-play of every game since 2015-16 with
 
 - NHL data belongs to the NHL. The API is not an officially supported
   product, and Aftershock is not affiliated with or endorsed by the NHL.
-- Every page footer reads: "Data from NHL.com. Aftershock is not affiliated
-  with or endorsed by the NHL."
-- No NHL or team logos or other trademarks are used. Teams are shown by
-  abbreviation and small color accents only. The API returns logo URLs; the
-  parsers and fixtures drop them.
+- Every page footer carries the source and a trademark notice: "Data from
+  NHL.com. NHL and team logos and marks, and player photos, are the property
+  of the NHL and its teams. Aftershock is not affiliated with, endorsed by,
+  or sponsored by the NHL or any team."
+- Team logos and player headshots are loaded by the browser from the NHL's
+  public asset server (`assets.nhle.com`) and never copied into this
+  repository or its fixtures. Each falls back to the team code or the
+  player's initials. (This replaced an earlier codes-and-colors-only rule on
+  2026-09-30; see DECISIONS.)
+- Penalty, giveaway, and takeaway players come from the raw play-by-play in
+  the local cache; the stored plays do not keep them.
+- The NHL's shift charts are empty for 2024-25 games 2024021235 to 2024021312,
+  so on-ice stats and plus/minus for that season leave those games out.
 - Raw data dumps are never redistributed. The raw cache (`data/raw/`) is
   gitignored. Test fixtures are small, trimmed samples.
 
