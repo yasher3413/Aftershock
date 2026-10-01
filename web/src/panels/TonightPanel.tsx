@@ -70,7 +70,7 @@ export function TonightPanel() {
   return (
     <section aria-labelledby="tonight-h" className="px-4 py-3">
       <div className="flex items-baseline justify-between">
-        <h2 id="tonight-h" className="text-[15px] font-semibold">
+        <h2 id="tonight-h" className="display text-[24px] font-bold">
           {mode === "replay" ? "That night" : "Tonight"}
         </h2>
         {!started && list.length > 0 && Number.isFinite(firstStart) && firstStart > now && (

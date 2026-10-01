@@ -11,7 +11,7 @@
   --color-blue-line: var(--blue-line);
   --color-surface: var(--surface);
   --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
-  --font-text: "Instrument Sans", system-ui, sans-serif;
+  --font-text: "Overpass", system-ui, sans-serif;
 }
 
 html,

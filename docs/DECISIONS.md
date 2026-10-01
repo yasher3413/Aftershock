@@ -288,7 +288,7 @@ Each entry: date, decision, alternatives considered, reason.
 
 ## 2026-09-30: Share-image fonts are bundled
 
-- **Decision:** Big Shoulders Display and Instrument Sans TTFs (SIL Open Font
+- **Decision:** Big Shoulders Display and Overpass TTFs (SIL Open Font
   License, license texts included) ship in `services/aftershock/share/fonts`
   and are installed into the api and worker images.
 - **Alternatives:** system fonts.
@@ -316,3 +316,16 @@ Each entry: date, decision, alternatives considered, reason.
   reload about an hour, and the Docker volume stays untouched for recovery.
   The Docker images and `make up` are unchanged; they need a working Docker
   and about 15 GB free to build.
+
+## 2026-09-30: Overpass replaces Instrument Sans as the text face
+
+- **Decision:** the text face is Overpass (static 400 and 600 instances cut
+  from the variable font for share images). Panel titles in the home rail
+  move to the display face at 24 px, and group labels to 15 px, so adjacent
+  roles step by 1.25 or more.
+- **Alternatives:** keep Instrument Sans; Archivo; Barlow.
+- **Reason:** the design critique's detector flagged Instrument Sans as a
+  common AI-default face (99 percent of the team page's text), and the home
+  rail's 12, 13, and 15 px roles were too close to read as a hierarchy.
+  Overpass comes from Highway Gothic, the signage lettering of the same
+  buildings Big Shoulders evokes, and has tabular figures.

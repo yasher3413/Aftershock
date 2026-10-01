@@ -37,10 +37,14 @@ dark, and the shockwave gets an additive glow it does not have in light.
   for Chicago civic signage; condensed and sturdy, it reads like arena
   banners and jersey numbers. Used for team codes on the map, magnitudes,
   the wordmark, and big numbers. Never for sentences.
-- **Text: Instrument Sans** (400, 500, 600). A narrow-ish, legible grotesque
-  with more character than the usual system-like sans. All numbers use
-  `font-variant-numeric: tabular-nums`.
+- **Text: Overpass** (400 to 700). The open-source descendant of Highway
+  Gothic, the US road-sign lettering of arena exits, concourses, and old
+  scoreboards. Civic signage like Big Shoulders, so the two read as one
+  building. All numbers use `font-variant-numeric: tabular-nums`.
+  (Replaced Instrument Sans on 2026-09-30, see DECISIONS.)
 - Scale (1.25 ratio from 15 px): 12, 13, 15, 19, 24, 30, 38, 60, 96.
+  Panel and section titles use the display face (24 px in the home rail,
+  30 px on pages); group labels are 15 px text 600; rows 13 to 14 px.
   Line height 1.45 for text, 0.9 to 1.0 for display numerals.
 
 ### Layout
@@ -99,9 +103,9 @@ is a single column of sections separated by rules, not a stack of cards.
   by `--ice-scratch` rules, with a single radius (6 px) used only on
   interactive controls.
 - *All-caps tracked eyebrows over every heading:* removed. Section headings
-  are sentence case in Instrument Sans 600, and the display face is kept for
+  are sentence case in the display face, and the display face is kept for
   numbers and team codes, where its signage character belongs.
-- *Monospace for small data labels:* rejected. Tabular Instrument Sans does
+- *Monospace for small data labels:* rejected. Tabular Overpass does
   that job without the "dashboard template" tone.
 - *Big number, small label, gradient accent hero:* the hero is the map and
   its motion, not a stat block. The only big number is the magnitude of the

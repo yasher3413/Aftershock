@@ -50,7 +50,7 @@ export function TremorFeed({ limit = 12 }: { limit?: number }) {
   const replaying = useLive((s) => s.mode === "demo");
   return (
     <section aria-labelledby="feed-h" className="px-4 py-3">
-      <h2 id="feed-h" className="text-[15px] font-semibold">
+      <h2 id="feed-h" className="display text-[24px] font-bold">
         Tremors
       </h2>
       {tremors.length === 0 && (

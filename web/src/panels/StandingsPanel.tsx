@@ -67,7 +67,7 @@ export function StandingsPanel() {
   return (
     <section aria-labelledby="standings-h" className="px-4 py-3">
       <div className="flex items-baseline justify-between">
-        <h2 id="standings-h" className="text-[15px] font-semibold">
+        <h2 id="standings-h" className="display text-[24px] font-bold">
           Standings
         </h2>
         <div role="tablist" aria-label="Conference" className="flex gap-1 text-[13px]">
@@ -95,7 +95,7 @@ export function StandingsPanel() {
       </div>
       {divisions.map((d) => (
         <div key={d} className="mt-2">
-          <h3 className="text-[12px] font-semibold text-ink-soft">{d}</h3>
+          <h3 className="text-[15px] font-semibold text-ink-soft">{d}</h3>
           <ul>
             {top3(d).map((r) => (
               <Row key={r.team} r={r} odds={odds[r.team]} mine={r.team === myTeam} />
@@ -105,7 +105,7 @@ export function StandingsPanel() {
       ))}
       {wildcard.length > 0 && (
         <div className="mt-2">
-          <h3 className="text-[12px] font-semibold text-ink-soft">Wild card</h3>
+          <h3 className="text-[15px] font-semibold text-ink-soft">Wild card</h3>
           <ul>
             {wildcard.map((r, i) => (
               <Row

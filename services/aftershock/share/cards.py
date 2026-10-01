@@ -31,7 +31,7 @@ INK_SOFT = "#5d707e"
 GOAL = "#c8102e"
 BLUE = "#0b4fa8"
 DISPLAY = "Big Shoulders Display"
-TEXT = "Instrument Sans"
+TEXT = "Overpass"
 ATTRIBUTION = "Data from NHL.com. Aftershock is not affiliated with or endorsed by the NHL."
 
 
