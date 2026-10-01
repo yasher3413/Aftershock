@@ -12,7 +12,7 @@ export function TremorLine({ t, myTeam }: { t: Tremor; myTeam: string | null }) 
       to={`/tremor/${t.id}`}
       className={`grid grid-cols-[3.2rem_1fr] gap-3 py-2 ${t.overturned ? "opacity-50" : ""}`}
     >
-      <div className="display text-right text-[30px] font-extrabold leading-none text-goal">
+      <div className="display text-right text-[30px] font-extrabold leading-none">
         {t.magnitude.toFixed(1)}
       </div>
       <div className="min-w-0 text-[13px]">

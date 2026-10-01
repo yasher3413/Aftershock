@@ -1,3 +1,4 @@
+import { MapKey } from "./MapKey";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useLive } from "../live/store";
@@ -111,6 +112,7 @@ export function MapView() {
   return (
     <div className="relative h-full w-full overflow-hidden" data-testid="map">
       <div ref={host} className="absolute inset-0" />
+      <MapKey />
       <div className="sr-only" aria-live="polite" role="status">
         {announcement}
       </div>
@@ -160,7 +162,7 @@ export function MapView() {
               onFocus={() => setHover(p.id)}
               onBlur={() => setHover((h) => (h === p.id ? null : h))}
               data-team={p.id}
-              className="display absolute flex items-center justify-center rounded-full text-[12px] font-bold text-ink"
+              className="display absolute flex items-center justify-center rounded-full text-[12px] font-bold text-ink before:absolute before:-inset-2 before:rounded-full"
               style={{
                 left: p.x - size / 2,
                 top: p.y - size / 2,

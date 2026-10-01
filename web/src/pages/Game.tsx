@@ -13,7 +13,7 @@ function Ripple({ t }: { t: Tremor }) {
   return (
     <div className="py-3">
       <div className="flex items-baseline gap-3">
-        <Link to={`/tremor/${t.id}`} className="display text-[28px] font-extrabold text-goal">
+        <Link to={`/tremor/${t.id}`} className="display text-[28px] font-extrabold">
           {t.magnitude.toFixed(1)}
         </Link>
         <div className="text-[14px]">
