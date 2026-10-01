@@ -269,7 +269,6 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
     """Link-preview bots run no JavaScript: the served HTML must carry each
     page's title, description, and an absolute share image."""
     from aftershock.api import pages
-    from aftershock.api.app import create_app  # noqa: F401  (app already built)
 
     c, _ = client
     index = tmp_path / "index.html"
