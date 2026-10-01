@@ -29,7 +29,7 @@ from sqlalchemy.dialects.postgresql import insert
 from aftershock.api import queries as Q
 from aftershock.api import schemas as S
 from aftershock.config import Settings, get_settings
-from aftershock.db.models import Game, GamePregame, JobRun, ReplayBundle, Tremor
+from aftershock.db.models import Game, GamePregame, JobRun, ReplayBundle, SimRun, Tremor
 from aftershock.db.session import session_scope
 from aftershock.jobs.ratings import all_game_rows
 from aftershock.live import persist as P
@@ -303,7 +303,16 @@ class SeasonPrecompute:
         base = engine.full_run("nightly", night.isoformat())
         frames = NightFrames([])
         async with session_scope() as s:
-            base_run = None if self.relink else await P.save_run(s, base, self.season)
+            if self.relink:
+                # Point the replay's odds frames at the live worker's latest run.
+                base_run = await s.scalar(
+                    select(SimRun.id)
+                    .where(SimRun.season == self.season)
+                    .order_by(SimRun.id.desc())
+                    .limit(1)
+                )
+            else:
+                base_run = await P.save_run(s, base, self.season)
             standings = await self._standings(inputs)
             initial_games = [
                 Q.game_summary(g, pg)

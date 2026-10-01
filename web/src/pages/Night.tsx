@@ -188,9 +188,11 @@ export default function NightPage() {
       {recap.data && (
         <article className="border-b border-ice-scratch bg-surface px-4 py-3 md:px-6">
           <h2 className="text-[17px] font-semibold">{recap.data.headline}</h2>
-          <p className="mt-1 max-w-[75ch] text-[14px] leading-relaxed text-ink-soft">
-            {recap.data.body}
-          </p>
+          {recap.data.body.split(/\n\s*\n/).map((para, i) => (
+            <p key={i} className="mt-1.5 max-w-[75ch] text-[14px] leading-relaxed text-ink-soft">
+              {para}
+            </p>
+          ))}
         </article>
       )}
       <div className="flex min-h-[70vh] flex-1 flex-col lg:min-h-0 lg:flex-row">
