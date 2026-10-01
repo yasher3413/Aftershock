@@ -212,6 +212,7 @@ class LiveSource:
         live_interval: float = 5.0,
         pregame_interval: float = 60.0,
         score_interval: float = 30.0,
+        watch: Iterable[int] = (),
     ) -> None:
         self.client = client
         self.live_interval = live_interval
@@ -221,7 +222,9 @@ class LiveSource:
         self._next_poll: dict[int, float] = {}
         self._next_score = 0.0
         # Games we have polled while live, until we have delivered them final.
-        self._watched: set[int] = set()
+        # ``watch`` seeds it, so a restarted worker sees tonight's finished
+        # games once more and picks up anything it missed.
+        self._watched: set[int] = set(watch)
 
     async def refresh_scoreboard(self) -> dict[int, dict[str, Any]]:
         from zoneinfo import ZoneInfo

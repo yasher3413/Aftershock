@@ -214,3 +214,27 @@ def test_restart_mid_game_does_not_rebroadcast_stored_goals(
     eff = engine.handle(doc, parse_play_by_play(doc))
     drop_known_tremors(eff, raw["id"], known)
     assert [t.event_id for t in eff.tremors] == [second["eventId"]]
+
+
+def test_a_shot_the_feed_turns_into_a_goal_still_makes_a_tremor(
+    models: tuple[WinProbModel, XgModel],
+) -> None:
+    """2026-09-30, NYI at TOR: event 160 arrived as a shot and became a goal
+    a poll later. The engine had already applied the shot and skipped the goal."""
+    from tests.test_live_recorded import snapshots
+
+    docs = snapshots(2026020008)
+    engine = make_engine(docs[-1], models)
+    engine.full_run("nightly")
+    goals: list[int] = []
+    for doc in docs:
+        eff = engine.handle(doc, parse_play_by_play(doc))
+        goals += [t.event_id for t in eff.tremors]
+    final_goals = [p["eventId"] for p in docs[-1]["plays"] if p["typeDescKey"] == "goal"]
+    assert 160 in final_goals
+    assert sorted(goals) == sorted(final_goals)
+    lg = engine.games[2026020008]
+    assert (lg.tracker.state.home_score, lg.tracker.state.away_score) == (
+        docs[-1]["homeTeam"]["score"],
+        docs[-1]["awayTeam"]["score"],
+    )

@@ -759,11 +759,25 @@ class Worker:
             await asyncio.sleep(DRIFT_S)
 
     async def consume(self) -> None:
+        async with session_scope() as s:
+            finished_tonight = [
+                int(g)
+                for (g,) in (
+                    await s.execute(
+                        text(
+                            "SELECT id FROM games WHERE night_date = :n "
+                            "AND state IN ('FINAL', 'OFF')"
+                        ),
+                        {"n": hockey_night(datetime.now(UTC))},
+                    )
+                ).all()
+            ]
         source = LiveSource(
             self.client,
             live_interval=self.settings.poll_live_seconds,
             pregame_interval=self.settings.poll_pregame_seconds,
             score_interval=self.settings.poll_score_seconds,
+            watch=finished_tonight,
         )
         async for snap in source.snapshots():
             try:

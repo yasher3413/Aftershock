@@ -140,4 +140,25 @@ async def test_live_source_polls_a_watched_game_once_more_after_it_ends() -> Non
     last = await it.__anext__()
     assert last.raw["gameState"] == "FINAL"
     assert 1 not in src._watched
-    await it.aclose()
+    await it.aclose()  # type: ignore[attr-defined]
+
+
+async def test_live_source_polls_finished_games_it_was_told_to_watch_once() -> None:
+    from aftershock.live.source import LiveSource
+
+    class FakeClient:
+        pbp_calls = 0
+
+        async def score(self, day: object = None) -> dict[str, object]:
+            return {"currentDate": "2099-01-01", "games": [{"id": 7, "gameState": "FINAL"}]}
+
+        async def play_by_play(self, gid: int, use_cache: bool = True) -> dict[str, object]:
+            FakeClient.pbp_calls += 1
+            return {"id": gid, "gameState": "FINAL", "plays": []}
+
+    src = LiveSource(FakeClient(), live_interval=0.0, score_interval=0.0, watch=[7])  # type: ignore[arg-type]
+    it = src.snapshots()
+    first = await it.__anext__()
+    assert first.game_id == 7 and 7 not in src._watched
+    await it.aclose()  # type: ignore[attr-defined]
+    assert FakeClient.pbp_calls == 1

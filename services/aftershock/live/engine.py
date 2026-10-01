@@ -271,7 +271,16 @@ class SeasonEngine:
                     if changes:
                         eff.corrections.append((rec, changes))
 
-        if removed_ids:
+        # The feed sometimes posts a goal as a shot first and changes it a poll
+        # later. The shot was applied; take it back so the goal is applied as
+        # a goal (score, tremor) instead of being skipped as already seen.
+        turned = {
+            c.play.event_id
+            for c in diff.changes
+            if isinstance(c, ChangedPlay) and c.previous.type != "goal" and c.play.type == "goal"
+        } & lg.applied
+        lg.applied -= turned
+        if removed_ids or turned:
             self._rebuild_tracker(lg, game)
         new_plays = [c.play for c in diff.changes if isinstance(c, NewPlay)]
         for play in sorted(new_plays, key=lambda p: (p.sort_order, p.event_id)):
