@@ -28,7 +28,9 @@ export default function HomePage() {
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="relative h-[56vh] min-h-[320px] lg:h-auto lg:min-h-0 lg:flex-1">
           {loaded ? <MapView /> : <div className="p-6 text-ink-soft">Loading the league</div>}
-          <div className="pointer-events-none absolute left-3 top-3 right-3 flex justify-start">
+          {/* On wider screens the permanent map key explains the map; phones,
+              where the key would cover the West Coast, keep this note. */}
+          <div className="pointer-events-none absolute left-3 top-3 right-3 flex justify-start sm:hidden">
             <FirstVisit />
           </div>
         </div>
