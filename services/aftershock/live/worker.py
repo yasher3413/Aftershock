@@ -382,12 +382,17 @@ class Worker:
         engine_ms = (time.monotonic() - t0) * 1000
         drop_known_tremors(eff, game.meta.id, self.known_tremors)
         normalized = {p.event_id: p for p in game.plays}
-        async with session_scope() as s:
-            if eff.diff is not None:
-                await P.save_game_state(s, eff.diff.meta)
-                await P.save_plays(s, eff.diff, normalized)
-            await P.save_xg(s, game.meta.id, eff.xg)
-            await P.save_wp(s, game.meta.id, eff.wp_points)
+        try:
+            async with session_scope() as s:
+                if eff.diff is not None:
+                    await P.save_game_state(s, eff.diff.meta)
+                    await P.save_plays(s, eff.diff, normalized)
+                await P.save_xg(s, game.meta.id, eff.xg)
+                await P.save_wp(s, game.meta.id, eff.wp_points)
+        except Exception:
+            # The engine has already applied this snapshot; losing its play
+            # rows is recoverable from the raw cache, losing its goals is not.
+            log.exception("worker.play_save_failed", game=game.meta.id)
         await self.apply_effects(eff, game.meta.id, fetched_at=fetched_at, engine_ms=engine_ms)
 
     def _schedule_ppa_refresh(self) -> None:

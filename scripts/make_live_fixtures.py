@@ -5,7 +5,8 @@ Usage (from services/): uv run python ../scripts/make_live_fixtures.py [game_id 
 Reads ``data/recordings/{game_id}/`` (every distinct play-by-play response the
 recorder saw) and writes ``tests/fixtures/nhl/live/{game_id}/`` with only the
 snapshots where something about a goal changed (a goal appeared, its details
-changed, it disappeared, or the score changed), plus the first and the last.
+changed, it disappeared, or the score changed), the snapshot just before each
+of those, and the first and the last.
 Each snapshot keeps the fields the live engine reads.
 """
 
@@ -56,13 +57,22 @@ def convert(game_dir: Path) -> int:
         return 0
     keep: list[dict[str, Any]] = []
     last_sig: tuple[Any, ...] | None = None
+    prev: dict[str, Any] | None = None
+    prev_kept = False
     for i, f in enumerate(files):
         with gzip.open(f, "rt", encoding="utf-8") as fh:
             doc = json.load(fh)
         sig = goal_signature(doc)
-        if i == 0 or i == len(files) - 1 or sig != last_sig:
+        changed = sig != last_sig
+        # Keep the snapshot just before each change too: a shot that the feed
+        # turns into a goal only shows as a transition if both are present.
+        if changed and prev is not None and not prev_kept:
+            keep.append(trim(prev))
+        prev_kept = i == 0 or i == len(files) - 1 or changed
+        if prev_kept:
             keep.append(trim(doc))
         last_sig = sig
+        prev = doc
     out = OUT / game_dir.name
     out.mkdir(parents=True, exist_ok=True)
     for i, doc in enumerate(keep):

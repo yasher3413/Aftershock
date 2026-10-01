@@ -69,6 +69,21 @@ def _play_row(game_id: int, p: ParsedPlay, abbrev: dict[int, str]) -> dict[str, 
     }
 
 
+def play_rows(diff: DiffResult, normalized: dict[int, ParsedPlay]) -> list[dict[str, Any]]:
+    """One row per new or changed play. A shot that the feed turns into a goal
+    arrives as both a change and a new goal; one upsert may not touch a row
+    twice, so the latest version of each event wins."""
+    meta = diff.meta
+    abbrev = {meta.home.id: meta.home.abbrev, meta.away.id: meta.away.abbrev}
+    rows: dict[int, dict[str, Any]] = {}
+    for c in diff.changes:
+        if isinstance(c, NewPlay | ChangedPlay):
+            rows[c.play.event_id] = _play_row(
+                meta.id, normalized.get(c.play.event_id, c.play), abbrev
+            )
+    return list(rows.values())
+
+
 async def save_plays(
     session: AsyncSession, diff: DiffResult, normalized: dict[int, ParsedPlay]
 ) -> None:
@@ -77,12 +92,7 @@ async def save_plays(
     ``normalized`` maps event ids to plays from the fully parsed game, which
     carry normalized coordinates.
     """
-    meta = diff.meta
-    abbrev = {meta.home.id: meta.home.abbrev, meta.away.id: meta.away.abbrev}
-    rows = []
-    for c in diff.changes:
-        if isinstance(c, NewPlay | ChangedPlay):
-            rows.append(_play_row(meta.id, normalized.get(c.play.event_id, c.play), abbrev))
+    rows = play_rows(diff, normalized)
     for i in range(0, len(rows), 500):
         stmt = insert(Play).values(rows[i : i + 500])
         cols = [k for k in rows[0] if k not in ("game_id", "event_id")]
@@ -96,7 +106,7 @@ async def save_plays(
     if removed:
         await session.execute(
             update(Play)
-            .where(Play.game_id == meta.id, Play.event_id.in_(removed))
+            .where(Play.game_id == diff.meta.id, Play.event_id.in_(removed))
             .values(deleted=True)
         )
 
