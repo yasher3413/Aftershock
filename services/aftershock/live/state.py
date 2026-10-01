@@ -104,6 +104,26 @@ async def demo_night(session: AsyncSession, season: int) -> ReplayBundle | None:
     return (await session.execute(q)).scalar_one_or_none()
 
 
+RECENT_NIGHT_DAYS = 3
+
+
+async def recent_night(session: AsyncSession, night: date) -> ReplayBundle | None:
+    """During the season, the latest completed night before ``night`` (within
+    a few days): replaying last night is more useful than an old one."""
+    return (
+        await session.execute(
+            select(ReplayBundle)
+            .where(
+                ReplayBundle.night_date < night,
+                ReplayBundle.night_date >= night - timedelta(days=RECENT_NIGHT_DAYS),
+                ReplayBundle.n_tremors > 0,
+            )
+            .order_by(desc(ReplayBundle.night_date))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
 async def next_live_start(session: AsyncSession, now: datetime) -> datetime | None:
     """The next puck drop: the earliest game that has not started. A game
     still in pregame after its listed time (a late start) counts as next."""
@@ -177,7 +197,7 @@ async def build_state(
     mode: Literal["live", "demo"] = "live"
     replay = None
     if demo_mode == "on" or (demo_mode == "auto" and not night_on_air([g.state for g in tonight])):
-        bundle = await demo_night(session, season - 10001)
+        bundle = await recent_night(session, night) or await demo_night(session, season - 10001)
         if bundle is not None:
             mode = "demo"
             replay = S.ReplayInfo(

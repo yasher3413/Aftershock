@@ -346,3 +346,16 @@ Each entry: date, decision, alternatives considered, reason.
   with a trademark notice. The risk is a takedown request, which the
   fallbacks make cheap to honor: removing two components restores the
   previous look.
+
+## 2026-10-01: Between nights, replay last night
+
+- **Decision:** when no game is live, the home page replays the most recent
+  completed night of the last three days; only when there is none (the
+  offseason, a long break) does it fall back to the brief's choice, the most
+  dramatic night of the previous season's final three weeks.
+- **Alternatives:** always replay last season's most dramatic night (the
+  brief's rule).
+- **Reason:** on the morning after the first live night of 2026-27 the
+  "Tonight" page showed April 5, 2026, which read as stale. Last night's
+  goals are what a visitor wants before tonight's games, and the replay
+  banner still says plainly that it is a replay.
