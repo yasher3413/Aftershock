@@ -15,9 +15,19 @@ export function backoff(attempt: number): number {
   return base * (0.75 + Math.random() * 0.5);
 }
 
-export function socketUrl(lastSeq: number, loc: Location = window.location): string {
-  const proto = loc.protocol === "https:" ? "wss:" : "ws:";
+/**
+ * The live socket. Same origin by default; a deployment whose api is on
+ * another host (the website on Vercel) sets VITE_WS_URL, since Vercel cannot
+ * forward WebSockets.
+ */
+export function socketUrl(
+  lastSeq: number,
+  loc: Location = window.location,
+  base: string | undefined = import.meta.env.VITE_WS_URL,
+): string {
   const since = lastSeq > 0 ? `?since=${lastSeq}` : "";
+  if (base) return `${base}${since}`;
+  const proto = loc.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${loc.host}/ws/live${since}`;
 }
 
