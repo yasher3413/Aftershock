@@ -8,6 +8,7 @@ for (const path of [
   "/method",
   "/nights?season=20252026",
   "/leaders",
+  "/player/8481540",
 ]) {
   for (const scheme of ["light", "dark"] as const) {
     test(`no serious accessibility violations on ${path} (${scheme})`, async ({ page }) => {

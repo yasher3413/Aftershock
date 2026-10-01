@@ -95,3 +95,16 @@ test("the nights calendar opens a past night", async ({ page }) => {
   await expect(page).toHaveURL(/\/night\/2025-10-16$/);
   await expect(page.getByRole("link", { name: "All nights" })).toBeVisible();
 });
+
+test("a player card shows the season and links each goal", async ({ page }) => {
+  await page.goto("/player/8481540");
+  await expect(page.getByRole("heading", { name: "Cole Caufield" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Biggest goals" })).toBeVisible();
+  await expect(page.getByText("Playoff Probability Added", { exact: true })).toBeVisible();
+  const goal = page
+    .getByRole("group", { name: /Goals over the season/ })
+    .getByRole("link")
+    .first();
+  await goal.click();
+  await expect(page).toHaveURL(/\/tremor\/\d+$/);
+});
