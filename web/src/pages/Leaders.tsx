@@ -54,60 +54,70 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
   },
 ];
 
-function LeaderTable({ season, kind }: { season: number; kind: LeadersResponse["kind"] }) {
+const GROUPS: { label: string; tabs: Tab[] }[] = [
+  { label: "Players", tabs: ["skater", "assist", "goalie"] },
+  { label: "Biggest goals", tabs: ["tremors"] },
+  { label: "Teams", tabs: ["team_chaos", "energy", "lottery"] },
+];
+
+function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["kind"] }) {
   const { data, isLoading } = useLeaders(season, kind);
   if (isLoading) return <p className="text-ink-soft">Loading</p>;
   if (!data || data.rows.length === 0)
     return <p className="text-ink-soft">No goals recorded for this season yet.</p>;
+  const max = Math.max(...data.rows.map((r) => Math.abs(r.value)), 1e-9);
+  const countLabel = kind === "goalie" ? "goals allowed" : kind === "assist" ? "assists" : "goals";
   return (
-    <table className="w-full text-[14px]">
-      <thead className="text-left text-[12px] text-ink-soft">
-        <tr>
-          <th className="w-10 font-normal">#</th>
-          <th className="font-normal">{kind === "team_chaos" ? "Team" : "Player"}</th>
-          {kind !== "team_chaos" && <th className="font-normal">Team</th>}
-          <th className="text-right font-normal">
-            {kind === "goalie"
-              ? "Goals allowed"
-              : kind === "assist"
-                ? "Assists"
-                : kind === "team_chaos"
-                  ? "Goals"
-                  : "Goals"}
-          </th>
-          <th className="text-right font-normal">
-            {kind === "team_chaos" ? "Shift to others" : "PPA"}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.rows.map((r) => (
-          <tr key={`${r.rank}-${r.player?.id ?? r.team}`} className="border-t border-ice-scratch">
-            <td className="py-1.5 tabular-nums text-ink-soft">{r.rank}</td>
-            <td>
-              {r.player ? (
-                r.player.name
-              ) : (
-                <Link to={`/team/${r.team}`} className="display text-[16px] font-bold">
-                  {r.team}
-                </Link>
-              )}
-            </td>
-            {kind !== "team_chaos" && (
-              <td>
-                <Link to={`/team/${r.team}`} className="display text-[15px] font-bold">
-                  {r.team}
-                </Link>
-              </td>
-            )}
-            <td className="text-right tabular-nums">{r.count}</td>
-            <td className={`text-right tabular-nums ${r.value < 0 ? "down" : ""}`}>
-              {kind === "team_chaos" ? pp(r.value).replace("+", "") : pp(r.value)}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <ol className="divide-y divide-ice-scratch">
+      {data.rows.map((r) => {
+        const value = kind === "team_chaos" ? pp(r.value).replace("+", "") : pp(r.value);
+        const w = (Math.abs(r.value) / max) * 100;
+        return (
+          <li
+            key={`${r.rank}-${r.player?.id ?? r.team}`}
+            className="grid grid-cols-[2.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-3 py-2 sm:grid-cols-[2.5rem_minmax(0,16rem)_1fr_5.5rem]"
+          >
+            <span className="display text-right text-[24px] font-bold leading-none text-ink-soft tabular-nums">
+              {r.rank}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold">
+                {r.player ? (
+                  r.player.name
+                ) : (
+                  <Link to={`/team/${r.team}`} className="display text-[20px] font-bold">
+                    {r.team}
+                  </Link>
+                )}
+              </span>
+              <span className="text-[12px] text-ink-soft">
+                {r.player && (
+                  <Link to={`/team/${r.team}`} className="display text-[14px] font-bold text-ink">
+                    {r.team}
+                  </Link>
+                )}
+                {r.player ? ", " : ""}
+                {r.count} {countLabel}
+              </span>
+            </span>
+            <span aria-hidden className="hidden h-3 sm:block">
+              <span
+                className="block h-full"
+                style={{
+                  width: `${w}%`,
+                  background: r.value < 0 ? "var(--goal)" : "var(--ink)",
+                }}
+              />
+            </span>
+            <span
+              className={`text-right text-[15px] font-semibold tabular-nums ${r.value < 0 ? "down" : ""}`}
+            >
+              {value}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -197,6 +207,7 @@ export default function LeadersPage() {
   const [season, setSeason] = useState(20252026);
   const [tab, setTab] = useState<Tab>("skater");
   const active = TABS.find((t) => t.id === tab)!;
+  const group = GROUPS.find((g) => g.tabs.includes(tab))!;
   useDocumentMeta(
     "Leaders",
     "Playoff Probability Added leaders and the biggest goals of the season.",
@@ -223,20 +234,38 @@ export default function LeadersPage() {
       <div
         role="tablist"
         aria-label="Leaderboards"
-        className="mt-5 flex flex-wrap gap-1 border-b border-ice-scratch"
+        className="mt-6 flex gap-6 border-b-2 border-ink"
       >
-        {TABS.map((t) => (
+        {GROUPS.map((g) => (
           <button
-            key={t.id}
+            key={g.label}
             role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-2 text-[14px] ${tab === t.id ? "border-b-2 border-ink font-semibold" : "text-ink-soft hover:text-ink"}`}
+            aria-selected={group === g}
+            onClick={() => setTab(g.tabs[0]!)}
+            className={`display -mb-[2px] border-b-4 pb-1 text-[22px] font-bold ${group === g ? "border-ink text-ink" : "border-transparent text-ink-soft hover:text-ink"}`}
           >
-            {t.label}
+            {g.label}
           </button>
         ))}
       </div>
+      {group.tabs.length > 1 && (
+        <div role="group" aria-label={`${group.label} views`} className="mt-3 flex flex-wrap gap-1">
+          {group.tabs.map((id) => {
+            const t = TABS.find((x) => x.id === id)!;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={tab === id}
+                onClick={() => setTab(id)}
+                className={`rounded-[var(--radius)] px-3 py-1 text-[14px] ${tab === id ? "bg-ink font-semibold text-ice" : "text-ink-soft hover:bg-ice-land hover:text-ink"}`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <p className="mt-3 max-w-[70ch] text-[14px] text-ink-soft">{active.blurb}</p>
       <div className="mt-4" role="tabpanel">
         {tab === "tremors" ? (
@@ -246,7 +275,7 @@ export default function LeadersPage() {
         ) : tab === "energy" ? (
           <Energy />
         ) : (
-          <LeaderTable season={season} kind={tab} />
+          <LeaderBoard season={season} kind={tab} />
         )}
       </div>
     </div>
