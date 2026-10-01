@@ -629,8 +629,8 @@ def headshot_url(season: int, team: str | None, player_id: int) -> str | None:
 async def player_card(
     session: AsyncSession, player_id: int, season: int | None, *, fallback_season: int
 ) -> S.PlayerResponse | None:
-    """A player's card for ``season``, or for their latest season with goals
-    when none is given."""
+    """A player's card for ``season``, or for the current season when none is
+    given."""
     p = (
         await session.execute(
             text(
@@ -716,7 +716,9 @@ async def player_card(
     for x in seasons:
         x.onice_coverage = await onice_coverage(session, x.season)
     if season is None:
-        season = seasons[0].season if seasons else fallback_season
+        # The current season by default, even early when it is nearly empty;
+        # past seasons are one choice away on the card.
+        season = fallback_season
     this = next((x for x in seasons if x.season == season), None)
     team = (this.team if this else None) or p[5]
     goals = (

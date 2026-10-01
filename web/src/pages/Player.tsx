@@ -135,6 +135,14 @@ export default function PlayerPage() {
         ["On-ice PPA", s?.on_ice_ppa != null ? pp(s.on_ice_ppa) : "-"],
       ];
   const biggest = [...data.goals].sort((a, b) => b.magnitude - a.magnitude).slice(0, 5);
+  const seasonIds = [...new Set([data.season, ...data.seasons.map((x) => x.season)])].sort(
+    (a, b) => b - a,
+  );
+  // Early in a season the card is nearly empty: point at the last season with goals.
+  const previous = data.seasons.find(
+    (x) => x.season < data.season && (goalie ? x.goals_allowed > 0 : x.goals > 0),
+  );
+  const quiet = !goalie && (s?.goals ?? 0) === 0;
   return (
     <div className="w-full">
       <header className="border-b border-ice-scratch bg-ice-land">
@@ -167,7 +175,20 @@ export default function PlayerPage() {
                 </div>
               ))}
             </dl>
-            {data.seasons.length > 1 && (
+            {quiet && previous && (
+              <p className="mt-3 text-[14px]">
+                No goals yet in {seasonLabel(data.season)}. Last time out:{" "}
+                <button
+                  type="button"
+                  onClick={() => setParams({ season: String(previous.season) })}
+                  className="font-semibold text-blue-line underline-offset-4 hover:underline"
+                >
+                  {previous.goals} goals and {pp(previous.ppa)} in {seasonLabel(previous.season)}
+                </button>
+                .
+              </p>
+            )}
+            {seasonIds.length > 1 && (
               <label className="mt-4 inline-flex items-center gap-2 text-[13px] text-ink/80">
                 Season
                 <select
@@ -175,9 +196,9 @@ export default function PlayerPage() {
                   onChange={(e) => setParams({ season: e.target.value })}
                   className="rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1 text-ink"
                 >
-                  {data.seasons.map((x) => (
-                    <option key={x.season} value={x.season}>
-                      {seasonLabel(x.season)}
+                  {seasonIds.map((id) => (
+                    <option key={id} value={id}>
+                      {seasonLabel(id)}
                     </option>
                   ))}
                 </select>
@@ -194,7 +215,7 @@ export default function PlayerPage() {
               Every goal of {seasonLabel(data.season)}
             </h2>
             <GoalLog goals={data.goals} width={width} />
-            <p className="mt-2 text-[13px] text-ink-soft">
+            <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
               One bar per goal, taller for higher magnitude; blue when it raised his team's playoff
               odds. Select one to see everyone it moved.
             </p>
@@ -241,7 +262,7 @@ export default function PlayerPage() {
             <h2 id="disc-h" className="display mb-1 text-[30px] font-bold">
               Discipline and defense
             </h2>
-            <p className="mb-4 max-w-[70ch] text-[13px] text-ink-soft">
+            <p className="mb-4 max-w-[56ch] text-[13px] text-ink-soft">
               Regular season. Penalty and giveaway costs are the playoff odds the power-play goals
               and quick-strike goals that followed actually took from {data.team ?? "the team"};
               they describe what happened more than a repeatable skill.
