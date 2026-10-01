@@ -238,3 +238,33 @@ def test_a_shot_the_feed_turns_into_a_goal_still_makes_a_tremor(
         docs[-1]["homeTeam"]["score"],
         docs[-1]["awayTeam"]["score"],
     )
+
+
+@pytest.mark.parametrize("game_id", [2026020006, 2026020007, 2026020008])
+def test_recorded_live_games_produce_one_tremor_per_goal(
+    game_id: int, models: tuple[WinProbModel, XgModel]
+) -> None:
+    """2026-09-30, the first live night: every snapshot the worker saw for
+    each game, replayed through the engine."""
+    from tests.test_live_recorded import snapshots
+
+    docs = snapshots(game_id)
+    engine = make_engine(docs[-1], models)
+    engine.full_run("nightly")
+    seen: list[int] = []
+    for doc in docs:
+        eff = engine.handle(doc, parse_play_by_play(doc))
+        seen += [t.event_id for t in eff.tremors]
+    final = docs[-1]
+    goals = [
+        p["eventId"]
+        for p in final["plays"]
+        if p["typeDescKey"] == "goal" and p["periodDescriptor"].get("periodType") != "SO"
+    ]
+    assert len(seen) == len(set(seen)), "a goal was broadcast twice"
+    assert sorted(seen) == sorted(goals)
+    lg = engine.games[game_id]
+    assert (lg.tracker.state.home_score, lg.tracker.state.away_score) == (
+        final["homeTeam"]["score"],
+        final["awayTeam"]["score"],
+    )

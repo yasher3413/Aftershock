@@ -42,12 +42,19 @@ def test_a_shot_the_feed_turns_into_a_goal_saves_once() -> None:
     assert turned, "the recording no longer contains the shot-to-goal change"
 
 
-def test_recorded_goals_match_the_scoreboard() -> None:
+def test_recorded_goals_match_the_scoreboard_once_the_feed_settles() -> None:
+    """The live feed can bump the score a poll before the goal play appears
+    (2026-09-30, PIT at PHI: 6-0 on the scoreboard, five goals in the plays).
+    Such gaps must close, and every game must end consistent."""
+    transient = 0
     for game_dir in sorted(p for p in LIVE.iterdir() if p.is_dir()):
         differ = GameDiffer(int(game_dir.name))
+        res = None
         for doc in snapshots(int(game_dir.name)):
             res = differ.apply(doc)
-            assert res.discrepancy is None, (game_dir.name, res.discrepancy)
+            transient += res.discrepancy is not None
+        assert res is not None and res.discrepancy is None, (game_dir.name, res)
+    assert transient >= 1, "the recordings no longer contain a score-before-play gap"
 
 
 def test_fixture_dirs_exist() -> None:
