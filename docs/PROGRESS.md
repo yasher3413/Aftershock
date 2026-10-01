@@ -96,14 +96,44 @@ built from the recording:
   notice (see DECISIONS); removing `TeamLogo` and `Headshot` restores the
   code-and-color look.
 
+## Since v1.0.0 (2026-10-01)
+
+- Home replays last night between nights (falls back to last season's most
+  dramatic night only in the offseason); see DECISIONS.
+- Three `/impeccable critique` runs: 26, 29, 30 out of 40; every listed
+  issue fixed (season-chart label clusters, player cards open on the current
+  season with a last-season pointer, captions capped near 70 characters,
+  dated replay panel, logos on the What-If sheet, game page scoreboard
+  header with its biggest tremor, first-visit note on phones only, captions
+  hidden on empty charts). Snapshots in `.impeccable/` (gitignored).
+- Launch walkthrough fixes: link previews are now server-side (`/page/...`
+  route in `api/pages.py`, nginx sends page requests through it) because
+  preview bots run no JavaScript; tremor pages collapse unmoved teams and
+  explain a zero PPA; What-If list scrolls with the page on phones.
+- Free deployment built (not yet deployed): Vercel for the website plus one
+  Oracle Cloud Always Free ARM VM for api, worker, Postgres, Redis, and
+  Caddy (`infra/docker-compose.oracle.yml`, `infra/Caddyfile`,
+  `vercel.template.json` + `scripts/set_api_host.sh`,
+  `scripts/deploy/oracle_bootstrap.sh`, `scripts/deploy/push_data.sh`,
+  `VITE_WS_URL` for the live socket, `INDEX_HTML` for previews). CI builds
+  the api and worker images on ARM too, all green. Koyeb, Neon, and Upstash
+  free tiers were ruled out (Koyeb closed to new users and sleeps; the
+  database is 3.3 GB against Neon's 0.5 GB).
+
 ## Next
 
-- Fill the 2024-25 shift-chart gap from the NHL's HTML reports.
-- Goalie "PPA saved" (leverage-weighted expected goals against) and skater
-  on-ice defensive PPA, with the same stability checks.
-- Re-run `/impeccable critique` on the redesigned pages and run the finish
-  reviewer.
-- Recover Docker Desktop and verify `make up` end to end.
+1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,
+   24 GB, ingress TCP 80 and 443) and sends its public IP.
+2. Run `scripts/set_api_host.sh <IP>.sslip.io`, commit and push `vercel.json`.
+3. Owner imports the repo in Vercel (root = repo root, framework Other) with
+   `VITE_WS_URL=wss://<IP>.sslip.io/ws/live`, and sends the site address.
+4. Owner runs the bootstrap on the VM with the site address, then
+   `scripts/deploy/push_data.sh ubuntu@<IP>` from the laptop.
+5. Verify: `https://<IP>.sslip.io/api/health`, the site and live socket,
+   `/status`, and link previews in an Open Graph checker. The full stack has
+   never run together in Docker; expect to fix small startup issues.
+6. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
+   gap from NHL HTML reports; goalie "PPA saved".
 
 ## Background jobs (this machine)
 
