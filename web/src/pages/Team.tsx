@@ -85,7 +85,9 @@ export default function TeamPage() {
     (history[k] ?? []).map((p) => ({ t: Date.parse(p.t), v: p.value }));
   const spikes: Spike[] = [...data.tremors_for, ...data.tremors_against].flatMap((tr) => {
     const d = tr.deltas.find((x) => x.team === abbrev);
-    if (!d) return [];
+    // A goal that did not move this team's odds (under 0.05 pp) is not part
+    // of its season story.
+    if (!d || Math.abs(d.d_playoffs) < 0.0005) return [];
     return [
       {
         id: tr.id,
@@ -168,7 +170,7 @@ export default function TeamPage() {
               spikes={spikes}
               label={`${t.name} playoff odds over the season, with the biggest goals for and against`}
             />
-            <p className="mt-2 text-[13px] text-ink-soft">
+            <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
               The trace is {t.name} playoff odds. Spikes are the season's biggest goals: up and blue
               for them, down and red against them, longer for higher magnitude. Select one to see
               everyone it moved.

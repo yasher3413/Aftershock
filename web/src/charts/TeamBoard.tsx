@@ -120,36 +120,35 @@ export function SeasonSeismogram({
     .map(Number)
     .filter((t, i, all) => i === 0 || fmt(t) !== fmt(all[i - 1]!));
   const last = points[points.length - 1]!;
-  // Place labels biggest first: each spike ends where its label clears every
-  // label already placed, so goals close in time never print on top of each other.
-  // Spikes under M1 and spikes whose label finds no clear spot keep their line
-  // and hover text but print no number.
+  // Goals close together (same direction, within CLUSTER_PX) form a cluster
+  // that prints one label: its biggest goal, plus how many more. Spikes keep
+  // their natural length, and clusters are far enough apart that a label never
+  // lands on another cluster's lines. Spikes under M1 print no number.
+  const CLUSTER_PX = 36;
   const tips = new Map<number, number>();
-  const labelled = new Set<number>();
-  const placed: { x: number; y: number }[] = [];
-  for (const s of [...spikes].sort((a, b) => b.magnitude - a.magnitude)) {
-    const x0 = x(s.t);
-    const y0 = y(s.v);
-    let len = 12 + s.magnitude * 5;
-    let tip = Math.max(18, Math.min(h - 32, y0 + (s.up ? -len : len)));
-    let clear = false;
-    for (let tries = 0; tries < 6 && s.magnitude >= 1; tries++) {
-      tip = Math.max(18, Math.min(h - 32, y0 + (s.up ? -len : len)));
-      const ly = s.up ? tip - 4 : tip + 13;
-      if (!placed.some((p) => Math.abs(p.x - x0) < 26 && Math.abs(p.y - ly) < 16)) {
-        clear = true;
-        break;
+  const labels = new Map<number, string>();
+  for (const up of [true, false]) {
+    const side = spikes.filter((s) => s.up === up).sort((a, b) => a.t - b.t);
+    let cluster: Spike[] = [];
+    const flush = () => {
+      if (!cluster.length) return;
+      const top = cluster.reduce((a, b) => (b.magnitude > a.magnitude ? b : a));
+      if (top.magnitude >= 1) {
+        const more = cluster.length - 1;
+        labels.set(top.id, more ? `${fmtMag(top.magnitude)} +${more}` : fmtMag(top.magnitude));
       }
-      len += 16;
+      cluster = [];
+    };
+    for (const s of side) {
+      const last = cluster[cluster.length - 1];
+      if (last && x(s.t) - x(last.t) > CLUSTER_PX) flush();
+      cluster.push(s);
     }
-    tips.set(
-      s.id,
-      clear ? tip : Math.max(18, Math.min(h - 32, y0 + (s.up ? -1 : 1) * (12 + s.magnitude * 5))),
-    );
-    if (clear) {
-      labelled.add(s.id);
-      placed.push({ x: x0, y: s.up ? tip - 4 : tip + 13 });
-    }
+    flush();
+  }
+  for (const s of spikes) {
+    const y0 = y(s.v);
+    tips.set(s.id, Math.max(18, Math.min(h - 32, y0 + (s.up ? -1 : 1) * (12 + s.magnitude * 5))));
   }
   return (
     <svg width={width} height={h} role="group" aria-label={label} className="block">
@@ -206,7 +205,7 @@ export function SeasonSeismogram({
             />
             <line x1={x0} x2={x0} y1={y0} y2={y1} stroke={color} strokeWidth={2} />
             <circle cx={x0} cy={y0} r={3} fill={color} />
-            {labelled.has(s.id) && (
+            {labels.has(s.id) && (
               <text
                 key={i}
                 x={x0}
@@ -217,7 +216,7 @@ export function SeasonSeismogram({
                 fontWeight={700}
                 fill={color}
               >
-                {fmtMag(s.magnitude)}
+                {labels.get(s.id)}
               </text>
             )}
             <title>{s.label}</title>
