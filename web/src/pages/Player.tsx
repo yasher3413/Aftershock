@@ -215,10 +215,12 @@ export default function PlayerPage() {
               Every goal of {seasonLabel(data.season)}
             </h2>
             <GoalLog goals={data.goals} width={width} />
-            <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
-              One bar per goal, taller for higher magnitude; blue when it raised his team's playoff
-              odds. Select one to see everyone it moved.
-            </p>
+            {data.goals.length > 0 && (
+              <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
+                One bar per goal, taller for higher magnitude; blue when it raised his team's
+                playoff odds. Select one to see everyone it moved.
+              </p>
+            )}
           </section>
         )}
         <div className="grid gap-x-10 md:grid-cols-2">

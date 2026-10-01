@@ -170,11 +170,13 @@ export default function TeamPage() {
               spikes={spikes}
               label={`${t.name} playoff odds over the season, with the biggest goals for and against`}
             />
-            <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
-              The trace is {t.name} playoff odds. Spikes are the season's biggest goals: up and blue
-              for them, down and red against them, longer for higher magnitude. Select one to see
-              everyone it moved.
-            </p>
+            {toSeries("p_playoffs").length > 0 && (
+              <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
+                The trace is {t.name} playoff odds. Spikes are the season's biggest goals: up and
+                blue for them, down and red against them, longer for higher magnitude. Select one to
+                see everyone it moved.
+              </p>
+            )}
           </Section>
 
           <Section title="Who to root for this week" id="root-h">
