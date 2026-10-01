@@ -45,10 +45,12 @@ up: env ## Start the full stack at http://localhost:8080
 down: ## Stop the stack
 	$(COMPOSE) --profile app down
 
+# `uv run` drops DYLD_* variables on macOS, so the api and worker start from
+# the virtualenv directly; Cairo (share images) needs DYLD_FALLBACK_LIBRARY_PATH.
 dev: db-up migrate ## Hot reload api, worker, and web
 	@trap 'kill 0' EXIT; \
-	(cd services && $(UV) run uvicorn aftershock.api.app:create_app --factory --reload --port 8000) & \
-	(cd services && $(UV) run aftershock worker) & \
+	(cd services && $(UV) sync -q && .venv/bin/uvicorn aftershock.api.app:create_app --factory --reload --port 8000) & \
+	(cd services && .venv/bin/aftershock worker) & \
 	(cd web && pnpm dev) & \
 	wait
 
