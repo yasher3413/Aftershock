@@ -108,3 +108,18 @@ test("a player card shows the season and links each goal", async ({ page }) => {
   await goal.click();
   await expect(page).toHaveURL(/\/tremor\/\d+$/);
 });
+
+test("night replay can skip quiet time and restart without leaving the page", async ({ page }) => {
+  await page.goto("/night/2025-10-16");
+  await expect(page.getByRole("slider", { name: "Replay position" })).toBeVisible();
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  const position = page.getByRole("slider", { name: "Replay position" });
+  await page.getByRole("button", { name: "Next goal", exact: true }).click({ timeout: 5000 });
+  await expect(page.locator('[aria-label^="Open tremor"]').first()).toBeAttached();
+  expect(Number(await position.getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Restart", exact: true }).click();
+  await expect(position).toHaveAttribute("aria-valuenow", "0");
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Standings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Standings", exact: true })).toBeVisible();
+});

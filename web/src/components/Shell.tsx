@@ -14,7 +14,7 @@ const NAV = [
 export function Shell() {
   // The home view is an app-like screen pinned to the viewport on desktop.
   const path = useLocation().pathname;
-  const home = path === "/" || path.startsWith("/night/");
+  const home = path === "/";
   return (
     <div className={`flex flex-col ${home ? "min-h-dvh lg:h-dvh" : "min-h-dvh"}`}>
       <a

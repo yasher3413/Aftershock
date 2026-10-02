@@ -109,3 +109,39 @@ select {
     opacity: 0;
   }
 }
+
+/* Archived nights keep the replay stage in view and the recap in the page flow. */
+.night-map {
+  height: 54vh;
+  min-height: 340px;
+}
+
+.night-rail {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.night-transport > section > div {
+  flex-direction: column;
+}
+
+.night-transport > section > div > div:first-child {
+  min-height: 52px;
+}
+
+@media (min-width: 640px) {
+  .night-transport > section > div {
+    flex-direction: row;
+  }
+}
+
+@media (min-width: 1024px) {
+  .night-map {
+    height: clamp(420px, calc(100dvh - 330px), 720px);
+    min-height: 0;
+  }
+
+  .night-rail {
+    max-height: clamp(420px, calc(100dvh - 330px), 720px);
+  }
+}

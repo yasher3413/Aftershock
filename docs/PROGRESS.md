@@ -120,6 +120,19 @@ built from the recording:
   free tiers were ruled out (Koyeb closed to new users and sleeps; the
   database is 3.3 GB against Neon's 0.5 GB).
 
+- Nights now leads with the latest replay, real scoreboards and a ranked
+  list of biggest nights before the season calendar. Night pages put the
+  map and playback controls before the recap, switch between games,
+  tremors and standings, and add Restart / Next goal. The layout adapts
+  to phones without hiding the playback controls below the game list.
+  Verified: 138 Python tests, 37 web unit tests, TypeScript, lint, and 25
+  Playwright tests (nine optional media captures skipped). Real-data browser
+  checks covered desktop and phones in both themes, with no serious
+  accessibility violations or horizontal overflow. The browser suite passed
+  with two workers after a four-worker run timed out waiting for the home
+  map to initialize. Rapid night changes and phone playback control order
+  were checked separately.
+
 ## Next
 
 1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,

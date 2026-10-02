@@ -129,3 +129,14 @@ layout.
   "No goal".
 - Reduced motion: no rings, no shake, no rising labels. Values change
   instantly with a 1 s highlight behind the changed number.
+
+## Archived nights
+
+The archive is an invitation to replay a night. Lead with its real games,
+team logos and recap headline, then the season's ranked biggest nights.
+The calendar is the browsing tool below, with a visible shading key.
+
+An individual night gives the map the first viewport and puts the full
+recap in a two-column article below it. Games, tremors and standings share
+one switchable rail. Playback controls follow the map directly on phones;
+the persistent Replay label distinguishes recorded action from live games.

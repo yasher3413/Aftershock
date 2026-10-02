@@ -359,3 +359,21 @@ Each entry: date, decision, alternatives considered, reason.
   "Tonight" page showed April 5, 2026, which read as stale. Last night's
   goals are what a visitor wants before tonight's games, and the replay
   banner still says plainly that it is a replay.
+
+## 2026-10-01: Give the night archive a replay-first layout
+
+- **Decision:** Nights leads with the latest completed night, its recap
+  headline, actual game scores and team logos, followed by the biggest
+  nights ranked by seismic energy. The season calendar remains below with
+  an intensity key. A night opens on a generously sized replay map with
+  switchable games, tremors and standings, followed by the full recap.
+  Restart and Next goal skip quiet stretches without changing playback
+  speed; both leave playback paused. Phone controls sit directly below
+  the map. Each date owns its replay state so changing nights cannot show
+  the previous night's ready state while the new bundle loads.
+- **Alternatives:** enlarge the calendar alone; leave the full recap above
+  the map; stack all three replay panels in the sidebar.
+- **Reason:** a sparse early-season calendar gave little reason to open a
+  replay, and a full recap above the map compressed the experience visitors
+  came to watch. Existing rink colors, fonts, components and replay data
+  express the change without another visual system or dependency.

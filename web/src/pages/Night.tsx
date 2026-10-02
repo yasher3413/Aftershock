@@ -10,6 +10,7 @@ import { MapView } from "../map/MapView";
 import { Seismograph } from "../seismo/Seismograph";
 import { TonightPanel } from "../panels/TonightPanel";
 import { TremorFeed } from "../panels/TremorFeed";
+import { TeamLogo } from "../components/TeamLogo";
 import { StandingsPanel } from "../panels/StandingsPanel";
 import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
@@ -73,8 +74,8 @@ function NightSchedule({ date }: { date: string }) {
   );
   const started = list.some((g) => g.state !== "FUT" && g.state !== "PRE");
   return (
-    <div className="mx-auto w-full max-w-xl px-4 py-12">
-      <h1 className="display text-[38px] font-bold">{longDate(date)}</h1>
+    <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6">
+      <h1 className="display text-[48px] font-bold">{longDate(date)}</h1>
       <div className="mt-2">
         <NightNav date={date} />
       </div>
@@ -99,10 +100,12 @@ function NightSchedule({ date }: { date: string }) {
                 <li key={g.id}>
                   <Link
                     to={`/game/${g.id}`}
-                    className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-3"
+                    className="grid grid-cols-[1fr_auto] items-center gap-x-4 py-5 hover:text-blue-line"
                   >
-                    <span className="display text-[20px] font-bold">
+                    <span className="display flex items-center gap-2 text-[26px] font-bold">
+                      <TeamLogo team={g.away} size={32} />
                       {g.away} <span className="text-[14px] font-normal text-ink-soft">at</span>{" "}
+                      <TeamLogo team={g.home} size={32} />
                       {g.home}
                     </span>
                     <span className="text-right tabular-nums">
@@ -138,8 +141,47 @@ function NightSchedule({ date }: { date: string }) {
 export default function NightPage() {
   const params = useParams();
   const date = params.date === "today" || !params.date ? todayEastern() : params.date;
+  return <NightReplay key={date} date={date} />;
+}
+
+function ReplayActions({ bundle }: { bundle: ReplayBundleOut }) {
+  const player = useClock((s) => s.player);
+  const t = useClock((s) => s.replayT);
+  const next = bundle.frames.find((f) => f.t > t && f.message.type === "tremor");
+  const seek = (position: number) => {
+    player?.pause();
+    player?.seek(position);
+    useClock.getState().setPlaying(false);
+  };
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ice-scratch bg-surface px-4 py-3 md:px-6">
+      <p className="text-[13px] text-ink-soft">Drag the seismograph to move through the night.</p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => seek(0)}
+          className="min-h-10 rounded-[var(--radius)] border border-ice-scratch px-4 text-[13px] font-semibold hover:bg-ice-land"
+        >
+          Restart
+        </button>
+        <button
+          type="button"
+          disabled={!next}
+          onClick={() => next && seek(next.t)}
+          className="min-h-10 rounded-[var(--radius)] bg-ink px-4 text-[13px] font-semibold text-ice hover:bg-blue-line hover:text-surface disabled:cursor-default disabled:opacity-50"
+        >
+          Next goal
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NightReplay({ date }: { date: string }) {
   const [status, setStatus] = useState<Status>("loading");
   const loaded = useLive((s) => s.loaded);
+  const [bundle, setBundle] = useState<ReplayBundleOut | null>(null);
+  const [panel, setPanel] = useState("Games");
   const recap = useRecap(date);
   useDocumentMeta(
     `${longDate(date)} replay`,
@@ -160,6 +202,7 @@ export default function NightPage() {
         const player = startReplay(state, bundle, { speed: 20, loop: false, autoplay: true });
         useLive.setState({ mode: "demo", replay: null });
         stop = () => player.pause();
+        setBundle(bundle);
         setStatus("ready");
       } catch {
         if (!cancelled) setStatus("missing");
@@ -175,43 +218,89 @@ export default function NightPage() {
   if (status === "missing") return <NightSchedule date={date} />;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-baseline gap-x-4 border-b border-ice-scratch px-4 py-2 md:px-6">
-        <h1 className="display text-[26px] font-bold">{longDate(date)}</h1>
-        <span className="text-[13px] text-ink-soft">
-          Replay. Drag the seismograph to move through the night.
-        </span>
-        <div className="ml-auto">
-          <NightNav date={date} />
+    <div className="night-page flex flex-1 flex-col">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-ice-scratch px-4 py-5 md:px-6">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="display text-[38px] font-bold md:text-[48px]">{longDate(date)}</h1>
+            <span
+              role="note"
+              className="rounded-[3px] bg-ice-land px-2.5 py-1 text-[12px] font-semibold"
+            >
+              Replay
+            </span>
+          </div>
+          <p className="mt-2 text-[14px] text-ink-soft">
+            Every goal, and the playoff odds it moved.
+          </p>
         </div>
-      </div>
-      {recap.data && (
-        <article className="border-b border-ice-scratch bg-surface px-4 py-3 md:px-6">
-          <h2 className="text-[17px] font-semibold">{recap.data.headline}</h2>
-          {recap.data.body.split(/\n\s*\n/).map((para, i) => (
-            <p key={i} className="mt-1.5 max-w-[75ch] text-[14px] leading-relaxed text-ink-soft">
-              {para}
-            </p>
-          ))}
-        </article>
-      )}
-      <div className="flex min-h-[70vh] flex-1 flex-col lg:min-h-0 lg:flex-row">
-        <div className="relative h-[56vh] min-h-[320px] lg:h-auto lg:flex-1">
+        <NightNav date={date} />
+      </header>
+      <section
+        aria-label="Night replay"
+        className="night-stage grid lg:grid-cols-[minmax(0,1fr)_360px]"
+      >
+        <div className="night-map relative min-w-0 flex-1">
           {loaded && status === "ready" ? (
             <MapView />
           ) : (
-            <div className="p-6 text-ink-soft">Loading the night</div>
+            <div role="status" className="p-6 text-ink-soft">
+              Loading the night
+            </div>
           )}
         </div>
-        <aside className="shrink-0 border-ice-scratch lg:w-[380px] lg:overflow-y-auto lg:border-l">
-          <div className="divide-y divide-ice-scratch">
-            <TonightPanel />
-            <TremorFeed />
-            <StandingsPanel />
+        <div className="night-transport order-1 min-w-0 lg:order-2 lg:col-span-2">
+          {bundle && <ReplayActions bundle={bundle} />}
+          <Seismograph />
+        </div>
+        <aside className="night-rail order-2 min-w-0 lg:order-1 border-t border-ice-scratch lg:w-[360px] lg:border-t-0 lg:border-l">
+          <div
+            role="group"
+            aria-label="Replay panels"
+            className="sticky top-0 z-10 flex border-b border-ice-scratch bg-surface p-2"
+          >
+            {["Games", "Tremors", "Standings"].map((name) => (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={panel === name}
+                onClick={() => setPanel(name)}
+                className={`min-h-10 flex-1 rounded-[var(--radius)] px-3 text-[13px] ${panel === name ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"}`}
+              >
+                {name}
+              </button>
+            ))}
           </div>
+          {panel === "Games" && <TonightPanel />}
+          {panel === "Tremors" && <TremorFeed />}
+          {panel === "Standings" && <StandingsPanel />}
         </aside>
-      </div>
-      <Seismograph />
+      </section>
+      {recap.data && (
+        <article
+          aria-labelledby="night-recap-h"
+          className="order-2 border-t border-ice-scratch bg-surface px-4 py-8 md:px-6 md:py-12"
+        >
+          <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)] lg:gap-12">
+            <div>
+              <h2
+                id="night-recap-h"
+                className="display max-w-[24ch] text-[38px] font-bold leading-[1.08] md:text-[48px]"
+              >
+                {recap.data.headline}
+              </h2>
+              <p className="mt-4 text-[13px] text-ink-soft">
+                The night in review / {longDate(date)}
+              </p>
+            </div>
+            <div className="max-w-[70ch] space-y-4 text-[15px] leading-relaxed">
+              {recap.data.body.split(/\n\s*\n/).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
+          </div>
+        </article>
+      )}
     </div>
   );
 }
