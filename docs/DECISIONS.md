@@ -449,3 +449,17 @@ Each entry: date, decision, alternatives considered, reason.
   the production domain only serves the current deploy's files, so a shell
   cached from an earlier deploy would load a blank page. A short expiry
   needs no coordination between the two hosts.
+
+## 2026-10-02: Finish missed nights when the worker starts
+
+- **Decision:** after booting, the worker looks for games from the last
+  three hockey nights (how long Redis keeps a night's frames) that are not
+  final, plays their final play-by-play through the engine, and writes that
+  night's replay and recap if it has none. Their tremors send no push or
+  Discord notifications. Replays shorten any gap over 45 minutes with
+  nothing published to one minute; intermissions are shorter and unchanged.
+- **Alternatives:** have the live poller also read past scoreboards; a manual
+  repair command.
+- **Reason:** a worker that is down when a night ends otherwise leaves its
+  games live forever, and the home page keeps showing the night before.
+  Running once at startup covers every outage without changing live polling.

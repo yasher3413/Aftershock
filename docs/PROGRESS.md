@@ -174,6 +174,15 @@ built from the recording:
   api refetches the site's page shell every 60 seconds, since a Vercel
   redeploy renames the hashed assets a cached shell would point at.
 
+- The worker finishes earlier nights it missed (2026-10-02). The disk filled
+  at 23:54 on Oct 1 with three games still live; the poller only reads
+  today's scoreboard, so they stayed live and the night never got a replay
+  or recap. On boot the worker now plays any unfinished game from the last
+  three nights through the engine (without push notifications) and wraps
+  that night from the frames kept in Redis; replays shorten silent gaps over
+  45 minutes to one. Oct 1 was repaired this way (61 tremors, a 3,929-frame
+  replay restored from the old Redis snapshot, recap validated).
+
 ## Next
 
 1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,
