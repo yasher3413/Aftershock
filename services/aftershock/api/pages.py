@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import html
 import re
+import time
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -177,11 +178,15 @@ def render(template: str, meta: PageMeta, base_url: str, path: str) -> str:
 
 
 _template: dict[str, Any] = {}
+# Each site deploy renames its hashed assets, so the shell is fetched again
+# after this long rather than kept for the life of the process.
+TEMPLATE_TTL_S = 60.0
 
 
 async def index_template(settings: Settings) -> str | None:
-    """The built index.html, fetched once from the web server (or a file)."""
-    if "html" in _template:
+    """The built index.html from the web server (or a file), cached briefly.
+    If a refresh fails, the last copy is served."""
+    if "html" in _template and time.monotonic() - _template["at"] < TEMPLATE_TTL_S:
         return str(_template["html"])
     src = settings.index_html
     try:
@@ -194,6 +199,9 @@ async def index_template(settings: Settings) -> str | None:
             body = await asyncio.to_thread(Path(src).read_text, encoding="utf-8")
     except Exception as exc:
         log.warning("pages.template_failed", src=src, error=str(exc))
+        if "html" in _template:
+            _template["at"] = time.monotonic()
+            return str(_template["html"])
         return None
-    _template["html"] = body
+    _template.update(html=body, at=time.monotonic())
     return body

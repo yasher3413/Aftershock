@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -277,7 +278,7 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
         "<title>Aftershock</title></head><body></body></html>"
     )
     pages._template.clear()
-    pages._template["html"] = index.read_text()
+    pages._template.update(html=index.read_text(), at=time.monotonic())
     r = await c.get("/page/team/tor")
     assert r.status_code == 200 and "text/html" in r.headers["content-type"]
     body = r.text
@@ -291,6 +292,27 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
     assert 'name="twitter:card" content="summary"' in leaders
     unknown = (await c.get("/page/nope")).text
     assert "<title>Aftershock</title>" in unknown
+    pages._template.clear()
+
+
+async def test_page_shell_follows_site_redeploys(tmp_path: Any) -> None:
+    """Each site deploy renames its hashed assets, so the cached shell must
+    expire; if the site cannot be reached, the last copy is kept."""
+    from aftershock.api import pages
+    from aftershock.config import Settings
+
+    shell = tmp_path / "app.html"
+    shell.write_text("<html>first</html>")
+    settings = Settings(index_html=str(shell))
+    pages._template.clear()
+    assert await pages.index_template(settings) == "<html>first</html>"
+    shell.write_text("<html>second</html>")
+    assert await pages.index_template(settings) == "<html>first</html>"
+    pages._template["at"] -= pages.TEMPLATE_TTL_S + 1
+    assert await pages.index_template(settings) == "<html>second</html>"
+    shell.unlink()
+    pages._template["at"] -= pages.TEMPLATE_TTL_S + 1
+    assert await pages.index_template(settings) == "<html>second</html>"
     pages._template.clear()
 
 
