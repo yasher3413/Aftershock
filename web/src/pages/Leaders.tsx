@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useEnergy, useLeaders, useStateQuery, useTremors } from "../api/client";
 import { LineChart } from "../charts/LineChart";
 import { useWidth } from "../charts/useWidth";
@@ -23,7 +23,7 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
     id: "skater",
     label: "Goals",
     blurb:
-      "Playoff Probability Added: the total change in their team's playoff odds from a player's goals.",
+      "Playoff Probability Added: the playoff-odds impact of a player's goals, added across the situations in which they happened.",
   },
   {
     id: "assist",
@@ -92,11 +92,60 @@ const GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: "Teams", tabs: ["team_chaos", "energy", "lottery"] },
 ];
 
-function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["kind"] }) {
-  const { data, isLoading } = useLeaders(season, kind);
-  if (isLoading) return <p className="text-ink-soft">Loading</p>;
+function LoadError({ name, retry }: { name: string; retry: () => void }) {
+  return (
+    <div role="alert" className="py-8">
+      <p className="font-semibold">Could not load {name}.</p>
+      <p className="mt-1 text-[14px] text-ink-soft">
+        The data request failed. Try again to refresh this view.
+      </p>
+      <button
+        type="button"
+        onClick={retry}
+        className="mt-3 min-h-[44px] rounded-[var(--radius)] border border-ink px-4 font-semibold"
+      >
+        Retry {name}
+      </button>
+    </div>
+  );
+}
+
+function LeaderBoard({
+  season,
+  kind,
+  search,
+}: {
+  season: number;
+  kind: LeadersResponse["kind"];
+  search: string;
+}) {
+  const { data, isLoading, isError, refetch } = useLeaders(season, kind);
+  const [visible, setVisible] = useState(20);
+  const name = TABS.find((t) => t.id === kind)!.label;
+  if (isLoading)
+    return (
+      <p role="status" className="py-8 text-ink-soft">
+        Loading {name.toLowerCase()} for this season…
+      </p>
+    );
+  if (isError)
+    return (
+      <LoadError
+        name={name}
+        retry={() => {
+          void refetch();
+        }}
+      />
+    );
   if (!data || data.rows.length === 0)
-    return <p className="text-ink-soft">No goals recorded for this season yet.</p>;
+    return (
+      <p className="py-8 text-ink-soft">
+        No {name.toLowerCase()} entries recorded for this season yet.
+      </p>
+    );
+  const matching = data.rows.filter((r) =>
+    `${r.player?.name ?? ""} ${r.team}`.toLowerCase().includes(search.trim().toLowerCase()),
+  );
   const max = Math.max(...data.rows.map((r) => Math.abs(r.value)), 1e-9);
   const countLabel =
     kind === "goalie"
@@ -121,8 +170,13 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
           season's goals; this board leaves them out.
         </p>
       )}
-      <ol className="divide-y divide-ice-scratch">
-        {data.rows.map((r) => {
+      <p role="status" className="mb-3 text-[12px] text-ink-soft">
+        {matching.length
+          ? `Showing ${Math.min(visible, matching.length)} of ${matching.length} entries${search.trim() ? " matching your search" : " returned by this board"}. Original ranks are preserved.`
+          : "No player or team matches your search in this board."}
+      </p>
+      <ol aria-label={`${name} rankings`} className="divide-y divide-ice-scratch">
+        {matching.slice(0, visible).map((r) => {
           const value =
             kind === "team_chaos"
               ? pp(r.value).replace("+", "")
@@ -135,12 +189,12 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
           return (
             <li
               key={`${r.rank}-${r.player?.id ?? r.team}`}
-              className="grid grid-cols-[2.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-3 py-2 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem]"
+              className="grid grid-cols-[1.75rem_minmax(0,1fr)_4.75rem] items-center gap-x-2 py-3 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem]"
             >
               <span className="display text-right text-[24px] font-bold leading-none text-ink-soft tabular-nums">
                 {r.rank}
               </span>
-              <span className="flex min-w-0 items-center gap-3">
+              <span className="flex min-w-0 items-center gap-2 sm:gap-3">
                 {r.player ? (
                   <Headshot
                     playerId={r.player.id}
@@ -157,7 +211,7 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
                     {r.player ? (
                       <Link
                         to={`/player/${r.player.id}?season=${season}`}
-                        className="underline-offset-4 hover:underline"
+                        className="inline-flex min-h-[24px] items-center underline-offset-4 hover:underline"
                       >
                         {r.player.name}
                       </Link>
@@ -171,7 +225,7 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
                     {r.player && (
                       <Link
                         to={`/team/${r.team}`}
-                        className="display inline-flex items-center gap-1 text-[14px] font-bold text-ink"
+                        className="display inline-flex min-h-[24px] items-center gap-1 text-[14px] font-bold text-ink"
                       >
                         <TeamLogo team={r.team} size={16} />
                         {r.team}
@@ -200,6 +254,15 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
           );
         })}
       </ol>
+      {matching.length > visible && (
+        <button
+          type="button"
+          onClick={() => setVisible((v) => v + 20)}
+          className="mt-4 min-h-[44px] rounded-[var(--radius)] border border-ink px-5 text-[14px] font-semibold"
+        >
+          Show more ({matching.length - visible} remaining)
+        </button>
+      )}
     </>
   );
 }
@@ -207,9 +270,25 @@ function LeaderBoard({ season, kind }: { season: number; kind: LeadersResponse["
 const SEASON_COLORS = ["var(--ink-soft)", "var(--blue-line)", "var(--goal)"];
 
 function Energy() {
-  const { data } = useEnergy();
+  const { data, isLoading, isError, refetch } = useEnergy();
   const [ref, width] = useWidth<HTMLDivElement>(700);
-  if (!data) return <p className="text-ink-soft">Loading</p>;
+  if (isLoading)
+    return (
+      <p role="status" className="py-8 text-ink-soft">
+        Loading season energy…
+      </p>
+    );
+  if (isError)
+    return (
+      <LoadError
+        name="Season energy"
+        retry={() => {
+          void refetch();
+        }}
+      />
+    );
+  if (!data?.some((s) => s.points.length))
+    return <p className="py-8 text-ink-soft">No season energy data is available yet.</p>;
   const series = data.map((s, i) => ({
     name: `${Math.floor(s.season / 10000)}-${String((s.season % 10000) % 100).padStart(2, "0")}`,
     color: SEASON_COLORS[i] ?? "var(--ink)",
@@ -235,13 +314,31 @@ function Energy() {
 }
 
 function Lottery() {
-  const { data } = useStateQuery();
+  const { data, isLoading, isError, refetch } = useStateQuery();
   const rows = [...(data?.odds ?? [])]
     .sort((a, b) => (b.p_bottom3 ?? 0) - (a.p_bottom3 ?? 0))
     .slice(0, 12);
-  if (!rows.length) return <p className="text-ink-soft">Loading</p>;
+  if (isLoading)
+    return (
+      <p role="status" className="py-8 text-ink-soft">
+        Loading current-season lottery watch…
+      </p>
+    );
+  if (isError)
+    return (
+      <LoadError
+        name="Lottery watch"
+        retry={() => {
+          void refetch();
+        }}
+      />
+    );
+  if (!rows.length)
+    return (
+      <p className="py-8 text-ink-soft">No current-season lottery projections are available yet.</p>
+    );
   return (
-    <table className="w-full text-[14px]">
+    <table className="w-full text-[12px] sm:text-[14px]">
       <thead className="text-left text-[12px] text-ink-soft">
         <tr>
           <th className="font-normal">Team</th>
@@ -269,26 +366,65 @@ function Lottery() {
 }
 
 function TopTremors({ season }: { season: number }) {
-  const { data, isLoading } = useTremors(season, "magnitude", 100);
+  const { data, isLoading, isError, refetch } = useTremors(season, "magnitude", 100);
+  const [visible, setVisible] = useState(20);
   const myTeam = useMyTeam((s) => s.team);
-  if (isLoading) return <p className="text-ink-soft">Loading</p>;
+  if (isLoading)
+    return (
+      <p role="status" className="py-8 text-ink-soft">
+        Loading top tremors for this season…
+      </p>
+    );
+  if (isError)
+    return (
+      <LoadError
+        name="Top tremors"
+        retry={() => {
+          void refetch();
+        }}
+      />
+    );
   if (!data || data.items.length === 0)
     return <p className="text-ink-soft">No tremors recorded for this season yet.</p>;
   return (
-    <ol className="divide-y divide-ice-scratch">
-      {data.items.map((t, i) => (
-        <li key={t.id} className="grid grid-cols-[2rem_1fr] items-center">
-          <span className="tabular-nums text-[13px] text-ink-soft">{i + 1}</span>
-          <TremorLine t={t} myTeam={myTeam} />
-        </li>
-      ))}
-    </ol>
+    <>
+      <ol aria-label="Top tremor rankings" className="divide-y divide-ice-scratch">
+        {data.items.slice(0, visible).map((t, i) => (
+          <li key={t.id} className="grid grid-cols-[2rem_1fr] items-center">
+            <span className="tabular-nums text-[13px] text-ink-soft">{i + 1}</span>
+            <TremorLine t={t} myTeam={myTeam} />
+          </li>
+        ))}
+      </ol>
+      {data.items.length > visible && (
+        <button
+          type="button"
+          onClick={() => setVisible((v) => v + 20)}
+          className="mt-4 min-h-[44px] rounded-[var(--radius)] border border-ink px-5 text-[14px] font-semibold"
+        >
+          Show more ({data.items.length - visible} remaining)
+        </button>
+      )}
+    </>
   );
 }
 
 export default function LeadersPage() {
-  const [season, setSeason] = useState(20252026);
-  const [tab, setTab] = useState<Tab>("skater");
+  const [params, setParams] = useSearchParams();
+  const requestedSeason = Number(params.get("season"));
+  const season = SEASONS.some((s) => s.id === requestedSeason) ? requestedSeason : SEASONS[0]!.id;
+  const requestedView = params.get("view");
+  const tab: Tab = TABS.some((t) => t.id === requestedView) ? (requestedView as Tab) : "skater";
+  const [search, setSearch] = useState("");
+  const selectView = (view: Tab, selectedSeason = season) => {
+    const next = new URLSearchParams(params);
+    next.set("season", String(selectedSeason));
+    next.set("view", view);
+    setParams(next);
+    setSearch("");
+  };
+  const seasonLabel = SEASONS.find((s) => s.id === season)!.label;
+  const searchable = tab !== "tremors" && tab !== "energy" && tab !== "lottery";
   const active = TABS.find((t) => t.id === tab)!;
   const group = GROUPS.find((g) => g.tabs.includes(tab))!;
   useDocumentMeta(
@@ -296,15 +432,24 @@ export default function LeadersPage() {
     "Playoff Probability Added leaders and the biggest goals of the season.",
   );
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6">
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6 md:py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="display text-[48px] font-extrabold leading-none">Leaders</h1>
+        <div>
+          <h1 className="display text-[60px] font-extrabold leading-none sm:text-[80px]">
+            Leaders
+          </h1>
+          <p className="mt-3 max-w-[50ch] text-[15px] text-ink-soft">
+            The goals, players and teams that moved the playoff race.
+          </p>
+        </div>
         <label className="text-[13px] text-ink-soft">
           Season{" "}
           <select
+            aria-label="Season"
             value={season}
-            onChange={(e) => setSeason(Number(e.target.value))}
-            className="ml-1 rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1 text-ink"
+            disabled={tab === "lottery" || tab === "energy"}
+            onChange={(e) => selectView(tab, Number(e.target.value))}
+            className="ml-1 rounded-[var(--radius)] border border-ice-scratch bg-surface min-h-[44px] px-3 text-ink"
           >
             {SEASONS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -315,17 +460,17 @@ export default function LeadersPage() {
         </label>
       </div>
       <div
-        role="tablist"
+        role="group"
         aria-label="Leaderboards"
-        className="mt-6 flex gap-6 border-b-2 border-ink"
+        className="mt-8 grid grid-cols-2 gap-x-4 border-b-2 border-ink sm:flex sm:gap-8"
       >
         {GROUPS.map((g) => (
           <button
             key={g.label}
-            role="tab"
-            aria-selected={group === g}
-            onClick={() => setTab(g.tabs[0]!)}
-            className={`display -mb-[2px] border-b-4 pb-1 text-[22px] font-bold ${group === g ? "border-ink text-ink" : "border-transparent text-ink-soft hover:text-ink"}`}
+            type="button"
+            aria-pressed={group === g}
+            onClick={() => selectView(g.tabs[0]!)}
+            className={`display -mb-[2px] min-h-[44px] border-b-4 py-2 text-left text-[24px] font-bold ${group === g ? "border-ink text-ink" : "border-transparent text-ink-soft hover:text-ink"}`}
           >
             {g.label}
           </button>
@@ -340,8 +485,8 @@ export default function LeadersPage() {
                 key={id}
                 type="button"
                 aria-pressed={tab === id}
-                onClick={() => setTab(id)}
-                className={`rounded-[var(--radius)] px-3 py-1 text-[14px] ${tab === id ? "bg-ink font-semibold text-ice" : "text-ink-soft hover:bg-ice-land hover:text-ink"}`}
+                onClick={() => selectView(id)}
+                className={`rounded-[var(--radius)] min-h-[44px] px-3 py-2 text-[14px] ${tab === id ? "bg-ink font-semibold text-ice" : "text-ink-soft hover:bg-ice-land hover:text-ink"}`}
               >
                 {t.label}
               </button>
@@ -349,18 +494,83 @@ export default function LeadersPage() {
           })}
         </div>
       )}
-      <p className="mt-3 max-w-[56ch] text-[14px] text-ink-soft">{active.blurb}</p>
-      <div className="mt-4" role="tabpanel">
-        {tab === "tremors" ? (
-          <TopTremors season={season} />
-        ) : tab === "lottery" ? (
-          <Lottery />
-        ) : tab === "energy" ? (
-          <Energy />
-        ) : (
-          <LeaderBoard season={season} kind={tab} />
+      <section aria-labelledby="leader-view-title" className="mt-8">
+        <div className="flex flex-wrap items-end justify-between gap-2 border-b border-ice-scratch pb-3">
+          <h2 id="leader-view-title" className="display text-[38px] font-bold leading-none">
+            {active.label}
+          </h2>
+          <p className="text-[13px] font-semibold">
+            {tab === "lottery"
+              ? `${SEASONS[0]!.label} current season only`
+              : tab === "energy"
+                ? "Three-season comparison"
+                : `${seasonLabel}${season === SEASONS[0]!.id ? " current season" : " selected season"}`}
+          </p>
+        </div>
+        <p className="mt-3 max-w-[70ch] text-[14px] text-ink-soft">{active.blurb}</p>
+        {tab === "lottery" && season !== SEASONS[0]!.id && (
+          <p className="mt-2 text-[13px] font-semibold">
+            Lottery watch uses current-season projections, regardless of the selected {seasonLabel}{" "}
+            season.
+          </p>
         )}
-      </div>
+        {searchable && (
+          <label className="mt-5 block max-w-md text-[13px] font-semibold">
+            Find a player or team
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Player name or team code"
+              aria-describedby="leaders-search-scope"
+              className="mt-2 block min-h-[44px] w-full rounded-[var(--radius)] border border-ice-scratch bg-surface px-3 text-[15px] text-ink"
+            />
+            <span
+              id="leaders-search-scope"
+              className="mt-2 block text-[12px] font-normal text-ink-soft"
+            >
+              Search the entries returned for {active.label.toLowerCase()} in {seasonLabel}.
+            </span>
+          </label>
+        )}
+        <div className="mt-5">
+          {tab === "tremors" ? (
+            <TopTremors key={season} season={season} />
+          ) : tab === "lottery" ? (
+            <Lottery />
+          ) : tab === "energy" ? (
+            <Energy />
+          ) : (
+            <LeaderBoard
+              key={`${season}-${tab}-${search}`}
+              season={season}
+              kind={tab}
+              search={search}
+            />
+          )}
+        </div>
+      </section>
+      <details className="mt-8 border-t border-ice-scratch pt-4 text-[14px]">
+        <summary className="min-h-[44px] cursor-pointer font-semibold">
+          How to read playoff probability added
+        </summary>
+        <p className="mt-2 max-w-[70ch] text-ink-soft">
+          PPA sums individual goal impacts across their game and standings contexts. It is not the
+          team's net change over a season or a rating of player skill. Assists and on-ice credit can
+          share the same goal's impact, so these boards should not be added together.
+        </p>
+        <p className="mt-3 max-w-[70ch] text-ink-soft">
+          Hypothetical example: a goal moves playoff odds from 40% to 43%. That adds 3 percentage
+          points (pp), not 3 percent. Another goal adding 2 pp brings the summed impact to 5 pp,
+          even if other results later lower the team's odds.
+        </p>
+        <Link
+          to="/method"
+          className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-blue-line underline underline-offset-4"
+        >
+          Read the method
+        </Link>
+      </details>
     </div>
   );
 }

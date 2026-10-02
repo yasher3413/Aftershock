@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMyTeam } from "../lib/myTeam";
 import { TeamLogo } from "../components/TeamLogo";
 import { Link } from "react-router";
 import type { GameSummary } from "../api/types.gen";
@@ -49,6 +50,7 @@ function StakesMeter({ value, max }: { value: number | null | undefined; max: nu
 
 export function TonightPanel() {
   const games = useLive((s) => s.games);
+  const myTeam = useMyTeam((s) => s.team);
   const tonight = useLive((s) => s.tonight);
   const got = useLive((s) => s.gameOfTheNight);
   const scenarios = useLive((s) => s.clinchScenarios);
@@ -86,7 +88,25 @@ export function TonightPanel() {
           </span>
         )}
       </div>
-      {list.length === 0 && <p className="mt-2 text-[13px] text-ink-soft">No games tonight.</p>}
+      <div className="mt-2 flex items-center justify-between gap-2 text-[12px] text-ink-soft">
+        <span>Game win chance</span>
+        <details className="relative text-right">
+          <summary className="min-h-8 cursor-pointer py-1">Playoff stakes</summary>
+          <p className="absolute right-0 z-20 mt-1 w-60 rounded-[var(--radius)] border border-ice-scratch bg-surface p-3 text-left text-ink">
+            Taller bars mean this game has more potential to change playoff odds, relative to
+            tonight's other games.
+          </p>
+        </details>
+      </div>
+      {list.length === 0 && (
+        <p className="mt-2 text-[13px] text-ink-soft">
+          No games tonight.{" "}
+          <Link to="/nights" className="font-semibold text-blue-line underline">
+            Replay a past night
+          </Link>
+          .
+        </p>
+      )}
       {scenarios.length > 0 && (
         <ul className="mt-2 text-[13px]">
           {scenarios.map((s) => (
@@ -103,7 +123,7 @@ export function TonightPanel() {
           return (
             <li
               key={g.id}
-              className={`py-2 ${isGot ? "-mx-4 border-l-2 border-blue-line bg-ice-land/50 px-[14px]" : ""}`}
+              className={`py-3 ${isGot || g.home === myTeam || g.away === myTeam ? "-mx-4 bg-surface px-4" : ""}`}
             >
               <Link
                 to={`/game/${g.id}`}
@@ -115,10 +135,10 @@ export function TonightPanel() {
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <div className="display flex w-[128px] items-center gap-1 text-[20px] font-bold leading-none">
-                    <TeamLogo team={g.away} size={18} />
+                  <div className="display flex w-[142px] items-center gap-1 text-[22px] font-bold leading-none">
+                    <TeamLogo team={g.away} size={22} />
                     {g.away} <span className="text-[14px] font-semibold text-ink-soft">at</span>
-                    <TeamLogo team={g.home} size={18} />
+                    <TeamLogo team={g.home} size={22} />
                     {g.home}
                   </div>
                   <div className="display w-10 text-center text-[20px] font-bold tabular-nums">
@@ -138,7 +158,7 @@ export function TonightPanel() {
                   <StakesMeter value={g.stakes} max={maxStakes} />
                 </div>
                 {p != null && (
-                  <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-soft">
+                  <div className="mt-2 flex items-center gap-2 text-[12px] text-ink-soft">
                     <span className="w-9 tabular-nums">{pct(1 - p, 0)}</span>
                     <div
                       className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-ice-scratch"

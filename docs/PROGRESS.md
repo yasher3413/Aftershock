@@ -35,7 +35,7 @@ and a full replay of the night.
 - **Extras:** clinch status and magic numbers, web push, Discord webhook,
   share images, lottery watch, season energy, on-ice PPA, plus/minus and
   discipline stats validated against NHL totals.
-- **Quality:** 136 Python tests, 80 Rust tests, 36 web unit tests, 22
+- **Quality:** 138 Python tests, 80 Rust tests, 39 web unit tests, 37
   Playwright tests (including axe accessibility in both color schemes),
   live-engine tests replaying the first live night's recordings; CI runs
   style, Rust, Python, web, e2e, and Docker image builds.
@@ -132,6 +132,22 @@ built from the recording:
   with two workers after a four-worker run timed out waiting for the home
   map to initialize. Rapid night changes and phone playback control order
   were checked separately.
+
+- The four main routes received a fan-focused pass: Tonight's personal
+  context and current games come first; Leaders is searchable with saved
+  season/view URLs and progressive lists; What If has nearby phone feedback,
+  visible win types, filter-aware randomization and undo; How It Works opens
+  with a fan primer before complete, expandable model evidence. API failures
+  have recovery actions, phone panels support keyboard navigation, and
+  crowded timeline goals remain individually reachable through a chooser.
+  Loaded maps and replays survive background refresh failures.
+  Verified: 138 Python tests, 39 web unit tests, TypeScript/build, lint,
+  formatting and 37 Playwright tests (nine optional media captures skipped).
+  Desktop and narrow-phone checks covered both themes, with the actual
+  live data and selected-team/scenario states. Touch-target findings were
+  corrected; model metric expressions and validation charts were preserved.
+  The browser suite passed with one worker after concurrent screenshot jobs
+  caused a map-initialization timeout.
 
 ## Next
 

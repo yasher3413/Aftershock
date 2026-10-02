@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { useClock } from "../live/clock";
 import { useLive } from "../live/store";
 import { SPEEDS } from "../live/timeline";
-import { energyTrace, type Spike } from "./trace";
+import { energyTrace, groupSpikes, type Spike } from "./trace";
 
 const LIVE_SPAN_MS = 3 * 3600_000;
 const HEIGHT = 92;
@@ -41,6 +41,7 @@ function timeLabel(ms: number): string {
 export function Seismograph() {
   const navigate = useNavigate();
   const tremors = useLive((s) => s.tremors);
+  const tremorById = useMemo(() => new Map(tremors.map((t) => [t.id, t])), [tremors]);
   const mode = useClock((s) => s.mode);
   const replayStart = useClock((s) => s.replayStart);
   const replayDuration = useClock((s) => s.replayDuration);
@@ -96,15 +97,16 @@ export function Seismograph() {
   };
 
   const visible = spikes.filter((s) => s.at >= win.from);
+  const groups = groupSpikes(visible, x, plotW);
   const labelled = new Set(
-    [...visible]
-      .sort((a, b) => b.magnitude - a.magnitude)
-      .slice(0, 12)
-      .map((s) => s.id),
+    groups.map((g) => [...g.spikes].sort((a, b) => b.magnitude - a.magnitude)[0]!.id),
   );
 
   return (
     <section aria-label="Seismograph" className="border-t border-ice-scratch bg-surface">
+      <p className="border-b border-ice-scratch px-4 py-1.5 text-[12px] text-ink-soft">
+        Goal timeline. Numbers group nearby goals; select a marker to open them.
+      </p>
       <div className="flex items-stretch">
         {replay && player && (
           <div className="flex shrink-0 items-center gap-1 border-r border-ice-scratch px-3">
@@ -237,19 +239,67 @@ export function Seismograph() {
               />
             </svg>
           </div>
-          {visible
-            .filter((s) => labelled.has(s.id))
-            .map((s) => (
+          {groups.map((group) => {
+            const spike = group.spikes[0]!;
+            const marker = "absolute bottom-[18px] h-[58px] w-[24px] -translate-x-1/2";
+            return group.spikes.length === 1 ? (
               <button
-                key={s.id}
+                key={spike.id}
                 type="button"
-                className="absolute bottom-[18px] h-[58px] w-4 -translate-x-1/2"
-                style={{ left: x(s.at) }}
-                aria-label={`Open tremor, magnitude ${s.magnitude.toFixed(1)}`}
+                className={marker}
+                style={{ left: group.x }}
+                aria-label={`Open tremor, magnitude ${spike.magnitude.toFixed(1)}`}
+                title={`${timeLabel(spike.at)}: magnitude ${spike.magnitude.toFixed(1)}`}
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => navigate(`/tremor/${s.id}`)}
-              />
-            ))}
+                onClick={() => navigate(`/tremor/${spike.id}`)}
+              >
+                <span className="absolute bottom-0 left-0 w-full bg-surface text-center text-[12px] font-semibold text-goal">
+                  1
+                </span>
+              </button>
+            ) : (
+              <details
+                key={spike.id}
+                name="timeline-goals"
+                className={`${marker} z-10`}
+                style={{ left: group.x }}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <summary
+                  aria-label={`Open tremors: ${group.spikes.length} goals near ${timeLabel(spike.at)}`}
+                  title="Nearby goals: choose one to open"
+                  className="relative h-full w-full cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                >
+                  <span className="absolute bottom-0 left-0 w-full bg-surface text-center text-[12px] font-semibold text-goal">
+                    {group.spikes.length}
+                  </span>
+                </summary>
+                <div
+                  className="absolute bottom-[64px] max-h-60 w-[220px] overflow-y-auto rounded-[var(--radius)] border border-ice-scratch bg-surface p-2"
+                  style={{ left: Math.max(12 - group.x, Math.min(-98, plotW - group.x - 232)) }}
+                >
+                  <p className="px-2 py-1 text-[12px] text-ink-soft">Choose a goal to open</p>
+                  {group.spikes.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="block min-h-[44px] w-full rounded-[var(--radius)] px-2 py-2 text-left text-[13px] hover:bg-ice-land"
+                      onClick={() => navigate(`/tremor/${s.id}`)}
+                    >
+                      <span className="block font-semibold">
+                        {tremorById.get(s.id)?.scorer?.name ?? "Goal"}{" "}
+                        {tremorById.get(s.id)?.team && `(${tremorById.get(s.id)!.team})`}
+                      </span>
+                      <span className="mt-1 flex justify-between gap-2 text-[12px] text-ink-soft">
+                        <span>{timeLabel(s.at)}</span>
+                        <span>Magnitude {s.magnitude.toFixed(1)}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
         </div>
       </div>
     </section>

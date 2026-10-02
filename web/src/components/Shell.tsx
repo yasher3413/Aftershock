@@ -38,7 +38,7 @@ export function Shell() {
               to={n.to}
               end={n.end}
               className={({ isActive }) =>
-                `whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors sm:px-2.5 sm:py-1.5 ${
+                `inline-flex min-h-[44px] items-center whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors sm:px-2.5 sm:py-1.5 ${
                   isActive ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"
                 }`
               }

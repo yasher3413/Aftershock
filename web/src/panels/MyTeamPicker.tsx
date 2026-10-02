@@ -11,9 +11,9 @@ export function MyTeamPicker() {
       <select
         value={team ?? ""}
         onChange={(e) => setTeam(e.target.value || null)}
-        className="rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1 text-ink"
+        className="min-h-[44px] max-w-[260px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1 text-ink"
       >
-        <option value="">None</option>
+        <option value="">Choose your team</option>
         {list.map((t) => (
           <option key={t.abbrev} value={t.abbrev}>
             {t.name}

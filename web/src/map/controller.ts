@@ -189,7 +189,8 @@ export class MapController {
       const pos = placeVenue(this.projection!, t.lon, t.lat, this.vp);
       return { id: t.abbrev, x: pos.x, y: pos.y };
     });
-    const out = layoutNodes(inputs, r + 2.5);
+    // Leave square hit areas clear even when teams sit diagonally together.
+    const out = layoutNodes(inputs, r + 7);
     this.positions.clear();
     for (const n of out) this.positions.set(n.id, { ...n, r });
     for (const t of this.teams) {

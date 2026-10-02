@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { ReplayBundleOut, StateResponse } from "../api/types.gen";
 import { useClock } from "./clock";
@@ -83,20 +83,21 @@ export function startReplay(
 }
 
 /** Load /api/state, then go live over the socket or start the demo replay. */
-export function useLiveBootstrap(): void {
+export function useLiveBootstrap(): boolean {
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
     let socket: LiveSocket | null = null;
     let player: TimelinePlayer | null = null;
 
     async function load() {
-      player?.pause();
-      player = null;
       const state = await api<StateResponse>("/state");
       if (cancelled) return;
       if (state.mode === "demo" && state.replay) {
         const bundle = await api<ReplayBundleOut>(`/replay/${state.replay.night_date}`);
         if (cancelled) return;
+        player?.pause();
+        player = null;
         useLive.getState().bootstrap(state);
         player = startReplay(state, bundle, {
           speed: state.replay.speed,
@@ -105,9 +106,18 @@ export function useLiveBootstrap(): void {
         });
         useLive.setState({ mode: "demo", replay: state.replay });
       } else {
+        player?.pause();
+        player = null;
         useClock.getState().setLive();
         useLive.getState().bootstrap(state);
       }
+      setFailed(false);
+    }
+
+    function onLoadError() {
+      if (cancelled) return;
+      setFailed(true);
+      if (!useLive.getState().loaded) useLive.getState().setConnection("retrying");
     }
 
     function connect() {
@@ -115,20 +125,20 @@ export function useLiveBootstrap(): void {
         onMessage: (msg) => {
           if (msg.type === "hello" && msg.mode !== useLive.getState().mode) {
             // Live games started or ended: reload the page state.
-            void load();
+            void load().catch(onLoadError);
             return;
           }
           if (useClock.getState().mode === "live") useLive.getState().apply(msg);
         },
         onStatus: (c) => useLive.getState().setConnection(c),
-        onResync: () => void load(),
+        onResync: () => void load().catch(onLoadError),
         lastSeq: () => (useClock.getState().mode === "live" ? useLive.getState().lastSeq : 0),
       });
       socket.start();
     }
 
     load()
-      .catch(() => useLive.getState().setConnection("retrying"))
+      .catch(onLoadError)
       .finally(() => {
         if (!cancelled) connect();
       });
@@ -138,4 +148,5 @@ export function useLiveBootstrap(): void {
       player?.pause();
     };
   }, []);
+  return failed;
 }

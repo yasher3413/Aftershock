@@ -140,3 +140,18 @@ An individual night gives the map the first viewport and puts the full
 recap in a two-column article below it. Games, tremors and standings share
 one switchable rail. Playback controls follow the map directly on phones;
 the persistent Replay label distinguishes recorded action from live games.
+
+## Main fan routes
+
+Tonight keeps the live map as the centerpiece, but personal context is
+available before it on phones. Current games precede the previous recap.
+Labels distinguish game win chances, playoff chances and playoff stakes.
+Nearby timeline goals share a chooser rather than overlapping click areas.
+
+Leaders is an editorial list with original ranks, real player imagery and
+room to search. Keep selected season and metric visible and shareable.
+What If puts the result of a pick within reach, with explicit win types and
+plain scenario scope. The odds lead; projected brackets are secondary.
+How It Works answers the fan's vocabulary first, then exposes complete
+technical evidence on demand. Both casual reading and detailed scrutiny
+must remain possible. Errors preserve usable content and provide recovery.

@@ -377,3 +377,39 @@ Each entry: date, decision, alternatives considered, reason.
   replay, and a full recap above the map compressed the experience visitors
   came to watch. Existing rink colors, fonts, components and replay data
   express the change without another visual system or dependency.
+
+
+## 2026-10-01: Put fan questions before technical detail
+
+- **Decision:** Tonight keeps the map first, with the team choice and live
+  context above it, current games before the old recap, a durable phone
+  map key, and labels separating game win chances from playoff odds.
+  Leaders starts in the current season, stores season and metric in the
+  URL, searches the returned board, preserves ranks and reveals long lists
+  in groups of 20. Failures have explicit retry actions instead of looking
+  like empty results. Lottery and energy label their distinct season scope.
+- **Decision:** What If reads picks from the URL, exposes each selected
+  winner's regulation/overtime/shootout choice, and keeps scenario feedback
+  and a results link near the picks on phones. Randomize fills only the
+  upcoming games shown by the filters; Reset picks and Clear filters are
+  separate actions. Reset and randomize can be undone. Forecast changes
+  stay based on the same simulation seed, and projected brackets remain
+  available below the odds.
+- **Decision:** How It Works begins with reading the map, percentage points
+  and cumulative PPA, using a clearly hypothetical example. Complete model
+  evidence lives in labelled native disclosures, with all measured values,
+  charts, season windows and limitations preserved. Phone readers retain a
+  contents menu and can retry missing evidence without losing the prose.
+- **Decision:** Crowded timeline goals share an accessible chooser with
+  scorer, team, time and magnitude, while every goal keeps its original
+  data and detail link. Map nodes have separated hit areas without changing
+  arena origins or shockwave behavior. A background snapshot failure keeps
+  an already loaded map and replay usable; it no longer hides them or stops
+  replay before replacement data arrives.
+- **Alternatives:** styling-only changes; always show every row and model
+  chart; keep hidden win-type cycling as the only choice; larger overlapping
+  hit areas on the timeline.
+- **Reason:** casual fans need an immediate answer for their team, while
+  experienced readers need the original evidence and controls. Truthful
+  loading/error states, visible scenario feedback, clear statistical
+  language and usable phone targets address actual browser findings.
