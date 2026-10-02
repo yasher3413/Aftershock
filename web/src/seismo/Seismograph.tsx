@@ -6,9 +6,9 @@ import { SPEEDS } from "../live/timeline";
 import { energyTrace, groupSpikes, type Spike } from "./trace";
 
 const LIVE_SPAN_MS = 3 * 3600_000;
-const HEIGHT = 92;
+const HEIGHT = 104;
 const PAD_TOP = 16;
-const PAD_BOTTOM = 18;
+const PAD_BOTTOM = 38;
 
 function useNow(active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
@@ -72,7 +72,7 @@ export function Seismograph() {
     [tremors, now],
   );
 
-  const plotW = Math.max(100, width - (replay ? 0 : 0));
+  const plotW = Math.max(100, width);
   const x = (t: number) => ((t - win.from) / (win.to - win.from)) * plotW;
   const trace = energyTrace(spikes, win.from, win.to, now, Math.round(plotW / 3));
   const maxE = Math.max(0.02, ...trace.map((p) => p.e));
@@ -98,21 +98,24 @@ export function Seismograph() {
 
   const visible = spikes.filter((s) => s.at >= win.from);
   const groups = groupSpikes(visible, x, plotW);
-  const labelled = new Set(
-    groups.map((g) => [...g.spikes].sort((a, b) => b.magnitude - a.magnitude)[0]!.id),
-  );
 
   return (
     <section aria-label="Seismograph" className="border-t border-ice-scratch bg-surface">
-      <p className="border-b border-ice-scratch px-4 py-1.5 text-[12px] text-ink-soft">
-        Goal timeline. Numbers group nearby goals; select a marker to open them.
-      </p>
-      <div className="flex items-stretch">
+      <header className="flex items-center justify-between gap-3 border-b border-ice-scratch px-4 py-2">
+        <div>
+          <h2 className="display text-[19px] font-bold">Goal timeline</h2>
+          <p className="mt-0.5 text-[12px] text-ink-soft">Odds moved by goals, fading over time.</p>
+        </div>
+        <span className="shrink-0 text-[12px] font-semibold text-blue-line">
+          {replay ? "Replay" : "Now"} {timeLabel(now)}
+        </span>
+      </header>
+      <div className="flex flex-col items-stretch sm:flex-row">
         {replay && player && (
-          <div className="flex shrink-0 items-center gap-1 border-r border-ice-scratch px-3">
+          <div className="flex shrink-0 items-center gap-1 border-b border-ice-scratch px-3 py-2 sm:border-r sm:border-b-0 sm:py-0">
             <button
               type="button"
-              className="h-8 w-16 rounded-[var(--radius)] bg-ink text-[13px] font-semibold text-ice"
+              className="min-h-[44px] w-16 rounded-[var(--radius)] bg-ink text-[13px] font-semibold text-ice"
               onClick={() => {
                 if (playing) player.pause();
                 else player.play();
@@ -131,7 +134,7 @@ export function Seismograph() {
                     player.setSpeed(s);
                     useClock.getState().setSpeed(s);
                   }}
-                  className={`h-8 px-2 text-[12px] tabular-nums ${
+                  className={`min-h-[44px] px-2 text-[12px] tabular-nums ${
                     speed === s ? "font-semibold text-ink" : "text-ink-soft hover:text-ink"
                   }`}
                 >
@@ -187,42 +190,32 @@ export function Seismograph() {
               ))}
               <line x1={0} x2={plotW} y1={baseY} y2={baseY} stroke="var(--ice-scratch)" />
               {path && (
-                <path
-                  d={path}
-                  fill="none"
-                  stroke="var(--ink)"
-                  strokeWidth={1.4}
-                  strokeLinejoin="round"
-                />
+                <>
+                  <path
+                    d={`${path} L${x(now).toFixed(1)},${baseY} L0,${baseY} Z`}
+                    fill="var(--ink)"
+                    opacity={0.045}
+                  />
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke="var(--ink)"
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                  />
+                </>
               )}
-              {visible.map((s) => {
-                const h = inner * Math.min(1, s.magnitude / 10);
-                return (
-                  <g key={s.id}>
-                    <line
-                      x1={x(s.at)}
-                      x2={x(s.at)}
-                      y1={baseY}
-                      y2={baseY - h}
-                      stroke="var(--goal)"
-                      strokeWidth={s.magnitude >= 6 ? 2.5 : 1.5}
-                    />
-                    {labelled.has(s.id) && (
-                      <text
-                        x={x(s.at)}
-                        y={baseY - h - 3}
-                        textAnchor="middle"
-                        fontSize={12}
-                        fontWeight={800}
-                        fontFamily="var(--font-display)"
-                        fill="var(--goal)"
-                      >
-                        {s.magnitude.toFixed(1)}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
+              {visible.map((s) => (
+                <line
+                  key={s.id}
+                  x1={x(s.at)}
+                  x2={x(s.at)}
+                  y1={baseY}
+                  y2={baseY - 7}
+                  stroke="var(--goal)"
+                  strokeWidth={1.5}
+                />
+              ))}
               <line
                 x1={x(now)}
                 x2={x(now)}
@@ -241,21 +234,22 @@ export function Seismograph() {
           </div>
           {groups.map((group) => {
             const spike = group.spikes[0]!;
-            const marker = "absolute bottom-[18px] h-[58px] w-[24px] -translate-x-1/2";
+            const marker = "absolute bottom-[16px] h-[24px] w-[24px] -translate-x-1/2";
             return group.spikes.length === 1 ? (
               <button
                 key={spike.id}
                 type="button"
                 className={marker}
                 style={{ left: group.x }}
-                aria-label={`Open tremor, magnitude ${spike.magnitude.toFixed(1)}`}
-                title={`${timeLabel(spike.at)}: magnitude ${spike.magnitude.toFixed(1)}`}
+                aria-label={`Open tremor, ${tremorById.get(spike.id)?.scorer?.name ?? "Goal"}, ${timeLabel(spike.at)}, magnitude ${spike.magnitude.toFixed(1)}`}
+                title={`${tremorById.get(spike.id)?.scorer?.name ?? "Goal"} (${tremorById.get(spike.id)?.team ?? ""}), ${timeLabel(spike.at)}: magnitude ${spike.magnitude.toFixed(1)}`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => navigate(`/tremor/${spike.id}`)}
               >
-                <span className="absolute bottom-0 left-0 w-full bg-surface text-center text-[12px] font-semibold text-goal">
-                  1
-                </span>
+                <span
+                  aria-hidden
+                  className="absolute bottom-[3px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-goal"
+                />
               </button>
             ) : (
               <details
@@ -270,12 +264,12 @@ export function Seismograph() {
                   title="Nearby goals: choose one to open"
                   className="relative h-full w-full cursor-pointer list-none [&::-webkit-details-marker]:hidden"
                 >
-                  <span className="absolute bottom-0 left-0 w-full bg-surface text-center text-[12px] font-semibold text-goal">
+                  <span className="absolute bottom-0 left-0 flex h-[20px] w-[24px] items-center justify-center rounded-[3px] bg-surface text-[11px] font-semibold text-goal ring-1 ring-ice-scratch">
                     {group.spikes.length}
                   </span>
                 </summary>
                 <div
-                  className="absolute bottom-[64px] max-h-60 w-[220px] overflow-y-auto rounded-[var(--radius)] border border-ice-scratch bg-surface p-2"
+                  className="absolute bottom-[32px] max-h-60 w-[220px] overflow-y-auto rounded-[var(--radius)] border border-ice-scratch bg-surface p-2"
                   style={{ left: Math.max(12 - group.x, Math.min(-98, plotW - group.x - 232)) }}
                 >
                   <p className="px-2 py-1 text-[12px] text-ink-soft">Choose a goal to open</p>

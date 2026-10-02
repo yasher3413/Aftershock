@@ -156,6 +156,15 @@ built from the recording:
   138 Python, 39 unit and 38 browser tests passed, plus build/typecheck,
   lint, formatting and the em-dash scan (nine optional media tests skipped).
 
+- The bottom timeline now leads with its impact trace, explains the signal,
+  shows current/replay time, and keeps goal markers in a separate lane.
+  Magnitude values remain in goal details instead of crowding the curve;
+  phone playback controls leave the full plot width available. Verified live
+  and replay layouts on desktop and phones in both themes, with no serious
+  accessibility violations or overflow. Required checks passed: 138 Python,
+  39 unit and 38 browser tests, build/typecheck, lint and formatting (nine
+  optional media captures skipped).
+
 ## Next
 
 1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,

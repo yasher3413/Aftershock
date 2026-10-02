@@ -423,3 +423,17 @@ Each entry: date, decision, alternatives considered, reason.
   to scan on desktop while retaining a usable geographic view. Rendered
   checks caught a marker slightly outside the smaller viewport; displayed
   nodes now stay inside its bounds while their arena origins are preserved.
+
+## 2026-10-01: Make the timeline's pulse readable
+
+- **Decision:** the dark impact trace is the primary reading. Persistent
+  magnitude numbers are removed from the plot; the original magnitude,
+  scorer and time remain in goal controls and details. Small single-goal
+  markers and grouped-goal counts occupy a separate lane below the curve.
+  The heading explains the signal and shows the current or replay time.
+  Phone replay controls sit above the full-width plot.
+- **Reason:** the owner found the bottom graph distracting. The trace,
+  magnitude values and goal counts competed in a shallow strip, and count
+  badges obscured parts of the line. Separating the readings keeps actual
+  peaks and all goal links without inventing a decorative waveform or
+  changing the underlying energy calculation.

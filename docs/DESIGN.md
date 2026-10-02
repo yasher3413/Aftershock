@@ -158,3 +158,7 @@ must remain possible. Errors preserve usable content and provide recovery.
 
 Tonight uses a compact 38vh phone map with a 260px minimum for its geographic
 controls. Its desktop rail is 440px wide, balancing games against the map.
+
+The timeline has two distinct layers: the impact trace above, goal controls
+below. Persistent magnitude labels stay off the curve; goal details retain
+them. A short heading/key and current or replay time make the signal readable.
