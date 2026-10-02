@@ -6,14 +6,18 @@ set -euo pipefail
 vm="${1:?usage: push_data.sh ubuntu@VM_IP}"
 cd "$(dirname "$0")/../.."
 dump="$(mktemp -t aftershock).dump"
+# Use pg_dump 16: an older one refuses the 16 server, and a newer one writes
+# an archive the VM's pg_restore 16 cannot read.
+pg_dump=pg_dump
+[ -x /opt/homebrew/opt/postgresql@16/bin/pg_dump ] && pg_dump=/opt/homebrew/opt/postgresql@16/bin/pg_dump
 
 echo "== Dumping the local database (a few minutes)"
-pg_dump -h localhost -p 55432 -U aftershock -d aftershock -Fc -Z 6 -f "$dump"
+PGPASSWORD="${PGPASSWORD:-aftershock}" "$pg_dump" -h localhost -p 55432 -U aftershock -d aftershock -Fc -Z 6 -f "$dump"
 ls -lh "$dump"
 
 echo "== Copying the dump and replay bundles to $vm"
 scp "$dump" "$vm:~/aftershock.dump"
-rsync -az --info=progress2 data/replays/ "$vm:~/Aftershock/data/replays/"
+rsync -az --stats data/replays/ "$vm:~/Aftershock/data/replays/"
 
 echo "== Restoring on the VM (the worker pauses meanwhile)"
 ssh "$vm" 'set -e
