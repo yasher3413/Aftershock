@@ -165,6 +165,15 @@ built from the recording:
   39 unit and 38 browser tests, build/typecheck, lint and formatting (nine
   optional media captures skipped).
 
+- Rehearsed the Oracle stack locally in Docker on ARM (2026-10-02): images
+  build, migrations run on an empty database, Caddy proxies `/api`, `/page`
+  and the WebSocket, and the `push_data.sh` restore of the 3.3 GB database
+  (a 265 MB dump) took about 1.5 minutes, after which the worker booted with
+  1,344 games and share images rendered. Fixed on the way: `push_data.sh`
+  now uses pg_dump 16 and rsync flags macOS's openrsync accepts, and the
+  api refetches the site's page shell every 60 seconds, since a Vercel
+  redeploy renames the hashed assets a cached shell would point at.
+
 ## Next
 
 1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,

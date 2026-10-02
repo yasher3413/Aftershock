@@ -437,3 +437,15 @@ Each entry: date, decision, alternatives considered, reason.
   badges obscured parts of the line. Separating the readings keeps actual
   peaks and all goal links without inventing a decorative waveform or
   changing the underlying energy calculation.
+
+## 2026-10-02: Refetch the page shell after a minute
+
+- **Decision:** the api caches the site's `app.html` for 60 seconds instead
+  of for the life of the process, and keeps serving the last copy if a
+  refetch fails.
+- **Alternatives:** restart the api after every site deploy; a deploy hook
+  that clears the cache.
+- **Reason:** every Vercel deploy renames the hashed scripts and styles, and
+  the production domain only serves the current deploy's files, so a shell
+  cached from an earlier deploy would load a blank page. A short expiry
+  needs no coordination between the two hosts.
