@@ -190,7 +190,12 @@ export class MapController {
       return { id: t.abbrev, x: pos.x, y: pos.y };
     });
     // Leave square hit areas clear even when teams sit diagonally together.
-    const out = layoutNodes(inputs, r + 7);
+    const out = layoutNodes(inputs, r + 7).map((n) => {
+      const margin = r + 3;
+      const x = Math.max(margin, Math.min(this.vp.width - margin, n.x));
+      const y = Math.max(margin, Math.min(this.vp.height - margin, n.y));
+      return { ...n, x, y, displaced: n.displaced || x !== n.x || y !== n.y };
+    });
     this.positions.clear();
     for (const n of out) this.positions.set(n.id, { ...n, r });
     for (const t of this.teams) {

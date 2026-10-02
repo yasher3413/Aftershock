@@ -35,7 +35,7 @@ and a full replay of the night.
 - **Extras:** clinch status and magic numbers, web push, Discord webhook,
   share images, lottery watch, season energy, on-ice PPA, plus/minus and
   discipline stats validated against NHL totals.
-- **Quality:** 138 Python tests, 80 Rust tests, 39 web unit tests, 37
+- **Quality:** 138 Python tests, 80 Rust tests, 39 web unit tests, 38
   Playwright tests (including axe accessibility in both color schemes),
   live-engine tests replaying the first live night's recordings; CI runs
   style, Rust, Python, web, e2e, and Docker image builds.
@@ -148,6 +148,13 @@ built from the recording:
   corrected; model metric expressions and validation charts were preserved.
   The browser suite passed with one worker after concurrent screenshot jobs
   caused a map-initialization timeout.
+
+- Tonight's map is more compact on phones (38vh, minimum 260px), with
+  a wider desktop game panel (440px). The map-first flow is retained.
+  Displayed nodes stay inside the map bounds. Verified all 32 team targets
+  at phone, short-phone, desktop-breakpoint and desktop sizes in both themes;
+  138 Python, 39 unit and 38 browser tests passed, plus build/typecheck,
+  lint, formatting and the em-dash scan (nine optional media tests skipped).
 
 ## Next
 

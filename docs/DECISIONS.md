@@ -378,7 +378,6 @@ Each entry: date, decision, alternatives considered, reason.
   came to watch. Existing rink colors, fonts, components and replay data
   express the change without another visual system or dependency.
 
-
 ## 2026-10-01: Put fan questions before technical detail
 
 - **Decision:** Tonight keeps the map first, with the team choice and live
@@ -413,3 +412,14 @@ Each entry: date, decision, alternatives considered, reason.
   experienced readers need the original evidence and controls. Truthful
   loading/error states, visible scenario feedback, clear statistical
   language and usable phone targets address actual browser findings.
+
+## 2026-10-01: Give Tonight's game information more space
+
+- **Decision:** Tonight's phone map uses 38vh with a 260px minimum, down
+  from 45vh and 280px. The desktop game panel is 440px wide instead of
+  380px. The map, timeline and panel order stay the same.
+- **Reason:** the owner found the map too dominant. These small proportion
+  changes bring the game information closer on phones and make it easier
+  to scan on desktop while retaining a usable geographic view. Rendered
+  checks caught a marker slightly outside the smaller viewport; displayed
+  nodes now stay inside its bounds while their arena origins are preserved.

@@ -78,3 +78,24 @@ test("crowded timeline goals remain individually reachable", async ({ page }) =>
   await page.getByRole("button", { name: /Evan Rodrigues/ }).click({ timeout: 5000 });
   await expect(page).toHaveURL(/\/tremor\/17504$/);
 });
+
+test("compact phone map keeps every team target inside its viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-team]")).toHaveCount(32, { timeout: 15000 });
+  const clipped = await page.locator("[data-team]").evaluateAll((nodes) =>
+    nodes
+      .filter((node) => {
+        const target = node.getBoundingClientRect();
+        const map = node.closest('[data-testid="map"]')!.getBoundingClientRect();
+        return (
+          target.left < map.left ||
+          target.top < map.top ||
+          target.right > map.right ||
+          target.bottom > map.bottom
+        );
+      })
+      .map((node) => node.getAttribute("data-team")),
+  );
+  expect(clipped).toEqual([]);
+});

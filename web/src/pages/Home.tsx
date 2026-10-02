@@ -89,7 +89,7 @@ export default function HomePage() {
         </p>
       </details>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="relative h-[45vh] min-h-[280px] lg:h-auto lg:min-h-0 lg:flex-1">
+        <div className="relative h-[38vh] min-h-[260px] lg:h-auto lg:min-h-0 lg:flex-1">
           {failed && !loaded ? (
             <div role="alert" className="mx-auto max-w-md p-6">
               <h2 className="display text-[30px] font-bold">The league could not load</h2>
@@ -114,7 +114,7 @@ export default function HomePage() {
         </div>
         {wide ? (
           <aside
-            className="w-[380px] shrink-0 overflow-y-auto border-l border-ice-scratch"
+            className="w-[440px] shrink-0 overflow-y-auto border-l border-ice-scratch"
             aria-label="Tonight, standings, and tremors"
           >
             <div className="divide-y divide-ice-scratch">

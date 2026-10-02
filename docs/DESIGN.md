@@ -155,3 +155,6 @@ plain scenario scope. The odds lead; projected brackets are secondary.
 How It Works answers the fan's vocabulary first, then exposes complete
 technical evidence on demand. Both casual reading and detailed scrutiny
 must remain possible. Errors preserve usable content and provide recovery.
+
+Tonight uses a compact 38vh phone map with a 260px minimum for its geographic
+controls. Its desktop rail is 440px wide, balancing games against the map.
