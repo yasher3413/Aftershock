@@ -73,6 +73,27 @@ def drop_known_tremors(eff: Effects, game_id: int, known: dict[tuple[int, int], 
 
 
 NIGHT_TTL_S = 3 * 86_400
+# A replay skips any stretch longer than this with nothing published (the
+# worker was down), so it does not sit still for hours. Intermissions are
+# shorter and play back in full.
+REPLAY_MAX_GAP_MS = 45 * 60_000
+REPLAY_SKIPPED_GAP_MS = 60_000
+
+
+def replay_times(stamps: list[datetime], start: datetime) -> list[int]:
+    """Milliseconds from the night's first puck drop for each frame, with long
+    silent gaps shortened to a minute."""
+    out: list[int] = []
+    prev_real = 0
+    for ts in stamps:
+        real = max(0, int((ts - start).total_seconds() * 1000))
+        if not out:
+            out.append(real)
+        else:
+            gap = max(0, real - prev_real)
+            out.append(out[-1] + (REPLAY_SKIPPED_GAP_MS if gap > REPLAY_MAX_GAP_MS else gap))
+        prev_real = max(prev_real, real)
+    return out
 
 
 def night_keys(night: Any) -> tuple[str, str]:
@@ -109,6 +130,8 @@ class Worker:
         self.night_frames: list[dict[str, Any]] = []
         self.night_initial: dict[str, Any] | None = None
         self._last_full_state = 0.0
+        # Set while finishing an earlier night: its goals are old news.
+        self._catching_up = False
         self._background: set[asyncio.Task[Any]] = set()
 
     # ------------------------------------------------------------------
@@ -567,7 +590,7 @@ class Worker:
             await self.publish("game_update", {"game": self.games[game_id].model_dump(mode="json")})
         for kind, payload in published:
             await self.publish(kind, payload)
-            if kind == "tremor":
+            if kind == "tremor" and not self._catching_up:
                 self._notify(S.Tremor.model_validate(payload["tremor"]))
         if eff.tremors and fetched_at is not None:
             # Detection (the play-by-play fetch) to broadcast of the tremor.
@@ -695,11 +718,83 @@ class Worker:
         if done:
             log.info("worker.night_already_wrapped", night=str(night))
             return
+        await self.wrap_night(night)
+
+    async def wrap_night(self, night: Any) -> None:
         await self.write_night_bundle(night)
         from aftershock.recap.generate import generate_recap
 
         await generate_recap(night, self.settings)
         await self.publisher.publish("recap_ready", {"night_date": night.isoformat()})
+
+    async def catch_up(self) -> None:
+        """Finish earlier nights left with unfinished games, for example when
+        the worker was down at the end of a night. The live poller only reads
+        today's scoreboard, so nothing else would: their final play-by-play
+        goes through the engine, then the night's replay (from the frames kept
+        in Redis) and recap are written."""
+        today = hockey_night(datetime.now(UTC))
+        async with session_scope() as s:
+            rows = (
+                await s.execute(
+                    text(
+                        "SELECT night_date, array_agg(id ORDER BY start_utc) FROM games "
+                        "WHERE night_date < :d AND night_date >= :since "
+                        "AND state NOT IN ('FINAL', 'OFF', 'PPD', 'CNCL') "
+                        "GROUP BY night_date ORDER BY night_date"
+                    ),
+                    {"d": today, "since": today - timedelta(seconds=NIGHT_TTL_S)},
+                )
+            ).all()
+        for night, ids in rows:
+            await self._finish_night(night, [int(g) for g in ids])
+
+    async def _finish_night(self, night: Any, game_ids: list[int]) -> None:
+        log.info("worker.catch_up", night=str(night), games=game_ids)
+        frames_key, initial_key = night_keys(night)
+        saved_initial = await self.redis.get(initial_key)
+        kept = self.day, self.night_frames, self.night_initial, self._last_final_at
+        self.day = night
+        self.night_frames = [json.loads(m) for m in await self.redis.lrange(frames_key, 0, -1)]
+        self.night_initial = json.loads(saved_initial) if saved_initial else None
+        self._catching_up = True
+        try:
+            async with session_scope() as s:
+                for i, g, e in (
+                    await s.execute(
+                        text(
+                            "SELECT id, game_id, event_id FROM tremors "
+                            "WHERE night_date = :n AND NOT overturned"
+                        ),
+                        {"n": night},
+                    )
+                ).all():
+                    self.known_tremors[(int(g), int(e))] = int(i)
+            for gid in game_ids:
+                try:
+                    raw = await self.client.play_by_play(gid, use_cache=False)
+                except NhlApiError as exc:
+                    log.warning("worker.catch_up_failed", game=gid, error=str(exc))
+                    continue
+                await self.on_snapshot(raw)
+            async with session_scope() as s:
+                pending = await s.scalar(
+                    text(
+                        "SELECT count(*) FROM games WHERE night_date = :d AND state NOT IN "
+                        "('FINAL', 'OFF', 'PPD', 'CNCL')"
+                    ),
+                    {"d": night},
+                )
+                done = await s.scalar(
+                    text("SELECT count(*) FROM recaps WHERE night_date = :d"), {"d": night}
+                )
+            if pending:
+                log.warning("worker.catch_up_unfinished", night=str(night), pending=pending)
+            elif not done:
+                await self.wrap_night(night)
+        finally:
+            self.day, self.night_frames, self.night_initial, self._last_final_at = kept
+            self._catching_up = False
 
     async def write_night_bundle(self, night: Any) -> None:
         """Save tonight's published messages as the night's replay bundle."""
@@ -715,10 +810,10 @@ class Worker:
         if not games or not self.night_frames:
             return
         start = min(g.start_utc for g in games)
-        frames: list[dict[str, Any]] = []
-        for m in self.night_frames:
-            t = int((datetime.fromisoformat(m["ts"]) - start).total_seconds() * 1000)
-            frames.append({"t": max(0, t), "message": m})
+        times = replay_times([datetime.fromisoformat(m["ts"]) for m in self.night_frames], start)
+        frames: list[dict[str, Any]] = [
+            {"t": t, "message": m} for t, m in zip(times, self.night_frames, strict=True)
+        ]
         initial_games = [
             g.model_copy(
                 update={
@@ -824,6 +919,10 @@ class Worker:
     async def run(self) -> None:
         await self.acquire_leadership()
         await self.boot()
+        try:
+            await self.catch_up()
+        except Exception as exc:
+            log.exception("worker.catch_up_failed", error=str(exc))
         tasks = [asyncio.create_task(self.consume()), asyncio.create_task(self.periodic())]
         try:
             await asyncio.gather(*tasks)
