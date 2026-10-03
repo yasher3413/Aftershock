@@ -174,15 +174,21 @@ built from the recording:
   api refetches the site's page shell every 60 seconds, since a Vercel
   redeploy renames the hashed assets a cached shell would point at.
 
-- The worker finishes earlier nights it missed (2026-10-02). The disk filled
-  at 23:54 on Oct 1 with three games still live; the poller only reads
-  today's scoreboard, so they stayed live and the night never got a replay
-  or recap. On boot the worker now plays any unfinished game from the last
-  three nights through the engine (without push notifications) and wraps
-  that night from the frames kept in Redis; replays shorten silent gaps over
-  45 minutes to one. Oct 1 was repaired this way (61 tremors, a 3,929-frame
-  replay restored from the old Redis snapshot, recap validated).
-
+- The worker finishes earlier nights it missed (2026-10-02, widened
+  2026-10-03). Oct 1: the disk filled at 23:54 with three games still live.
+  Oct 2: the laptop slept from 20:49, so two games finished unseen; the
+  next day's schedule refresh marked them final and loaded their plays
+  without the engine, and the day rollover dropped the night's frames
+  before the wrap-up, so the night got a recap but no replay. At startup
+  and at each day rollover the worker now plays any game from the last
+  three nights that is not final, or whose goals outnumber its tremors,
+  through the engine (without push notifications), and wraps up a night
+  from its own frames in Redis even after the day has moved on. Replays
+  shorten silent gaps over 45 minutes to one. Both nights were repaired:
+  Oct 1 has 61 standing tremors and a 3,930-frame replay, Oct 2 has 27
+  and a 1,606-frame replay; both recaps were regenerated and validated. A
+  tremor shown twice in a replay is a goal the NHL feed briefly removed
+  and restored, not a duplicate.
 ## Next
 
 1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,
