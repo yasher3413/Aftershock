@@ -11,6 +11,7 @@ import asyncio
 import contextlib
 import json
 import time
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -678,6 +679,10 @@ class Worker:
         await self.refresh_schedule()
         await run_ratings(self.settings)
         await self.boot()
+        try:
+            await self.catch_up()
+        except Exception as exc:
+            log.exception("worker.catch_up_failed", error=str(exc))
         await self.reconcile(self.standings)
         from aftershock.jobs.onice import run_on_ice
 
@@ -721,27 +726,57 @@ class Worker:
         await self.wrap_night(night)
 
     async def wrap_night(self, night: Any) -> None:
+        if night == self.day:
+            await self._wrap(night)
+            return
+        # The day has already rolled over (nightly ran first); that night's
+        # frames are still in Redis.
+        async with self._on_night(night):
+            await self._wrap(night)
+
+    async def _wrap(self, night: Any) -> None:
         await self.write_night_bundle(night)
         from aftershock.recap.generate import generate_recap
 
         await generate_recap(night, self.settings)
         await self.publisher.publish("recap_ready", {"night_date": night.isoformat()})
 
+    @contextlib.asynccontextmanager
+    async def _on_night(self, night: Any) -> AsyncIterator[None]:
+        """Publish into an earlier night's replay for a while."""
+        frames_key, initial_key = night_keys(night)
+        saved_initial = await self.redis.get(initial_key)
+        kept = self.day, self.night_frames, self.night_initial, self._last_final_at
+        self.day = night
+        self.night_frames = [json.loads(m) for m in await self.redis.lrange(frames_key, 0, -1)]
+        self.night_initial = json.loads(saved_initial) if saved_initial else None
+        try:
+            yield
+        finally:
+            self.day, self.night_frames, self.night_initial, self._last_final_at = kept
+
     async def catch_up(self) -> None:
-        """Finish earlier nights left with unfinished games, for example when
-        the worker was down at the end of a night. The live poller only reads
-        today's scoreboard, so nothing else would: their final play-by-play
-        goes through the engine, then the night's replay (from the frames kept
-        in Redis) and recap are written."""
+        """Finish earlier nights whose goals the engine never saw, for example
+        when the worker was down or the machine asleep at the end of a night.
+        The live poller only reads today's scoreboard, so nothing else would.
+        A game counts when it is not final, or when its goals outnumber its
+        tremors (the nightly schedule refresh marks games final and loads
+        their plays without the engine). Their final play-by-play goes
+        through the engine, then the night is wrapped up if it is not yet."""
         today = hockey_night(datetime.now(UTC))
         async with session_scope() as s:
             rows = (
                 await s.execute(
                     text(
-                        "SELECT night_date, array_agg(id ORDER BY start_utc) FROM games "
-                        "WHERE night_date < :d AND night_date >= :since "
-                        "AND state NOT IN ('FINAL', 'OFF', 'PPD', 'CNCL') "
-                        "GROUP BY night_date ORDER BY night_date"
+                        "SELECT g.night_date, array_agg(g.id ORDER BY g.start_utc) FROM games g "
+                        "WHERE g.night_date < :d AND g.night_date >= :since "
+                        "AND g.state NOT IN ('PPD', 'CNCL') AND ("
+                        "g.state NOT IN ('FINAL', 'OFF') OR "
+                        "(SELECT count(*) FROM plays p WHERE p.game_id = g.id "
+                        "AND p.type = 'goal' AND p.period_type <> 'SO') > "
+                        "(SELECT count(*) FROM tremors t WHERE t.game_id = g.id "
+                        "AND NOT t.overturned)) "
+                        "GROUP BY g.night_date ORDER BY g.night_date"
                     ),
                     {"d": today, "since": today - timedelta(seconds=NIGHT_TTL_S)},
                 )
@@ -751,49 +786,43 @@ class Worker:
 
     async def _finish_night(self, night: Any, game_ids: list[int]) -> None:
         log.info("worker.catch_up", night=str(night), games=game_ids)
-        frames_key, initial_key = night_keys(night)
-        saved_initial = await self.redis.get(initial_key)
-        kept = self.day, self.night_frames, self.night_initial, self._last_final_at
-        self.day = night
-        self.night_frames = [json.loads(m) for m in await self.redis.lrange(frames_key, 0, -1)]
-        self.night_initial = json.loads(saved_initial) if saved_initial else None
         self._catching_up = True
         try:
-            async with session_scope() as s:
-                for i, g, e in (
-                    await s.execute(
+            async with self._on_night(night):
+                async with session_scope() as s:
+                    for i, g, e in (
+                        await s.execute(
+                            text(
+                                "SELECT id, game_id, event_id FROM tremors "
+                                "WHERE night_date = :n AND NOT overturned"
+                            ),
+                            {"n": night},
+                        )
+                    ).all():
+                        self.known_tremors[(int(g), int(e))] = int(i)
+                for gid in game_ids:
+                    try:
+                        raw = await self.client.play_by_play(gid, use_cache=False)
+                    except NhlApiError as exc:
+                        log.warning("worker.catch_up_failed", game=gid, error=str(exc))
+                        continue
+                    await self.on_snapshot(raw)
+                async with session_scope() as s:
+                    pending = await s.scalar(
                         text(
-                            "SELECT id, game_id, event_id FROM tremors "
-                            "WHERE night_date = :n AND NOT overturned"
+                            "SELECT count(*) FROM games WHERE night_date = :d AND state NOT IN "
+                            "('FINAL', 'OFF', 'PPD', 'CNCL')"
                         ),
-                        {"n": night},
+                        {"d": night},
                     )
-                ).all():
-                    self.known_tremors[(int(g), int(e))] = int(i)
-            for gid in game_ids:
-                try:
-                    raw = await self.client.play_by_play(gid, use_cache=False)
-                except NhlApiError as exc:
-                    log.warning("worker.catch_up_failed", game=gid, error=str(exc))
-                    continue
-                await self.on_snapshot(raw)
-            async with session_scope() as s:
-                pending = await s.scalar(
-                    text(
-                        "SELECT count(*) FROM games WHERE night_date = :d AND state NOT IN "
-                        "('FINAL', 'OFF', 'PPD', 'CNCL')"
-                    ),
-                    {"d": night},
-                )
-                done = await s.scalar(
-                    text("SELECT count(*) FROM recaps WHERE night_date = :d"), {"d": night}
-                )
-            if pending:
-                log.warning("worker.catch_up_unfinished", night=str(night), pending=pending)
-            elif not done:
-                await self.wrap_night(night)
+                    done = await s.scalar(
+                        text("SELECT count(*) FROM recaps WHERE night_date = :d"), {"d": night}
+                    )
+                if pending:
+                    log.warning("worker.catch_up_unfinished", night=str(night), pending=pending)
+                elif not done:
+                    await self._wrap(night)
         finally:
-            self.day, self.night_frames, self.night_initial, self._last_final_at = kept
             self._catching_up = False
 
     async def write_night_bundle(self, night: Any) -> None:
