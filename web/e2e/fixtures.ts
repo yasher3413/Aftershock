@@ -37,9 +37,20 @@ export async function mockApi(page: Page): Promise<void> {
   await page.routeWebSocket("**/ws/live**", (ws) => ws.close());
 }
 
-export const test = base.extend<{ mocked: void }>({
+export const test = base.extend<{ mocked: void; freshVisitor: boolean }>({
+  // Tests are returning visitors unless they opt in, so the first-visit
+  // walkthrough does not cover the page they are testing.
+  freshVisitor: [false, { option: true }],
   mocked: [
-    async ({ page }, use) => {
+    async ({ page, freshVisitor }, use) => {
+      if (!freshVisitor)
+        await page.addInitScript(() => {
+          try {
+            localStorage.setItem("aftershock.tourSeen", "1");
+          } catch {
+            // Storage unavailable; the tour may open.
+          }
+        });
       await mockApi(page);
       await use();
     },

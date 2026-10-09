@@ -6,7 +6,7 @@ export function MyTeamPicker() {
   const { team, setTeam } = useMyTeam();
   const list = Object.values(teams).sort((a, b) => a.name.localeCompare(b.name));
   return (
-    <label className="flex items-center gap-2 text-[13px] text-ink-soft">
+    <label className="flex items-center gap-2 text-[13px] text-ink/80" data-tour="myteam">
       My team
       <select
         value={team ?? ""}

@@ -2,7 +2,8 @@ import { expect, test } from "./fixtures";
 
 test("demo mode replays a night and a tremor lands within 30 seconds at 60x", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("note")).toContainText("Replaying October 16, 2025");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("October 16, replayed");
+  await expect(page.getByText("No games are on, so the map is replaying")).toBeVisible();
   await expect(page.getByTestId("map").locator("canvas")).toBeVisible();
   await page.getByRole("button", { name: "60x" }).click();
   await expect(page.locator('[aria-label^="Open tremor"]').first()).toBeAttached({
@@ -35,7 +36,8 @@ test("picking a team in the What-If Lab changes the odds", async ({ page }) => {
   await page.goto("/what-if");
   await expect(page.getByText(/seasons in \d+ ms/)).toBeVisible({ timeout: 30_000 });
   const changes = page.locator("tbody td:nth-child(3)");
-  await expect(changes.first()).toHaveText(/0\.0 pp/);
+  // With no picks there is nothing to compare, so the change column waits.
+  await expect(page.getByRole("columnheader", { name: "Change (pp)" })).toHaveCount(0);
   // Home team: regulation, then overtime; the away team takes over in regulation.
   const home = page.locator('button[aria-label*="Not decided"]').nth(1);
   const name = (await home.getAttribute("aria-label"))!.match(/Pick (\w+) to win/)![1]!;
@@ -100,7 +102,7 @@ test("a player card shows the season and links each goal", async ({ page }) => {
   await page.goto("/player/8481540");
   await expect(page.getByRole("heading", { name: "Cole Caufield" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Biggest goals" })).toBeVisible();
-  await expect(page.getByText("Playoff Probability Added", { exact: true })).toBeVisible();
+  await expect(page.getByText("PPA (playoff odds added)", { exact: true })).toBeVisible();
   const goal = page
     .getByRole("group", { name: /Goals over the season/ })
     .getByRole("link")

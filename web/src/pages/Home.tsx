@@ -1,41 +1,88 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import { MapView } from "../map/MapView";
 import { Seismograph } from "../seismo/Seismograph";
 import { TonightPanel } from "../panels/TonightPanel";
 import { StandingsPanel } from "../panels/StandingsPanel";
 import { TremorFeed } from "../panels/TremorFeed";
-import { ReplayBanner } from "../panels/ReplayBanner";
 import { MyTeamPicker } from "../panels/MyTeamPicker";
 import { ConnectionNote } from "../panels/ConnectionNote";
 import { RecapCard } from "../panels/RecapCard";
 import { useLiveBootstrap } from "../live/bootstrap";
+import { Tour } from "../tour/Tour";
+import { tourSeen, useTour } from "../tour/store";
 import { useLive } from "../live/store";
 import { useMedia } from "../lib/useMedia";
 import { useMyTeam } from "../lib/myTeam";
-import { pct, pp } from "../lib/format";
+import { duration, monthDay, pct, pp } from "../lib/format";
 
 const TABS = ["Tonight", "Standings", "Tremors"] as const;
 
+/** Re-renders every 30 s so a countdown stays current. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+/** The page's title block. Between nights it says plainly that the map is a
+ * recorded night and when the next live game starts; it keeps one height
+ * from first paint so nothing below it moves when the data arrives. */
 function TonightContext() {
   const games = useLive((s) => s.games);
   const tonight = useLive((s) => s.tonight);
   const mode = useLive((s) => s.mode);
+  const replay = useLive((s) => s.replay);
+  const loaded = useLive((s) => s.loaded);
   const myTeam = useMyTeam((s) => s.team);
   const odds = useLive((s) => (myTeam ? s.odds[myTeam] : undefined));
   const initial = useLive((s) => (myTeam ? s.oddsDayStart[myTeam] : undefined));
+  const now = useNow();
   const live = tonight.filter((id) => ["LIVE", "CRIT"].includes(games[id]?.state ?? "")).length;
+  const replaying = mode === "demo" && replay;
+  const next = replay?.next_live_utc ? Date.parse(replay.next_live_utc) - now : null;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ice-scratch px-4 py-3 md:px-6">
-      <div>
-        <h1 className="display text-[30px] font-bold">Tonight's playoff race</h1>
-        <p className="mt-1 text-[12px] text-ink-soft">
-          {mode === "demo"
-            ? "Recorded goals and their shockwaves"
-            : `${tonight.length} ${tonight.length === 1 ? "game" : "games"} tonight${live ? ` / ${live} live` : ""}`}
+    <div
+      className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ice-scratch px-4 py-3 transition-colors md:px-6 ${replaying ? "bg-ice-land" : ""}`}
+      data-tour="status"
+    >
+      <div className="min-w-0">
+        <h1 className="display flex flex-wrap items-baseline gap-x-3 text-[30px] font-bold">
+          {replaying ? `${monthDay(replay.night_date)}, replayed` : "Tonight's playoff race"}
+          {replaying && (
+            <span className="rounded-[var(--radius)] border border-ink/60 px-1.5 py-0.5 font-[family-name:var(--font-text)] text-[12px] font-semibold leading-none tracking-normal text-ink/80">
+              Replay
+            </span>
+          )}
+        </h1>
+        <p className="mt-1.5 min-h-[18px] text-[13px] text-ink/80">
+          {!loaded ? null : replaying ? (
+            <>
+              No games are on, so the map is replaying that night's goals.
+              {next != null && next > 0 && <> Next live game in {duration(next)}.</>}{" "}
+              <Link
+                to="/night/today"
+                className="font-semibold text-blue-line underline-offset-2 hover:underline"
+              >
+                Tonight's schedule
+              </Link>
+            </>
+          ) : (
+            `${tonight.length} ${tonight.length === 1 ? "game" : "games"} tonight${live ? `, ${live} live` : ""}`
+          )}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button
+          type="button"
+          onClick={() => useTour.getState().start()}
+          className="min-h-[44px] text-[13px] font-semibold text-blue-line underline-offset-4 hover:underline"
+        >
+          How to read this
+        </button>
         <MyTeamPicker />
         {myTeam && odds && (
           <Link to={`/team/${myTeam}`} className="text-[13px] font-semibold hover:underline">
@@ -57,10 +104,25 @@ export default function HomePage() {
   const loaded = useLive((s) => s.loaded);
   const wide = useMedia("(min-width: 1024px)");
   const [tab, setTab] = useState<(typeof TABS)[number]>("Tonight");
+  const [params, setParams] = useSearchParams();
+  const asked = params.get("tour") === "1";
+
+  // First visit: open the walkthrough once the map has something to show.
+  // `?tour=1` (the footer link) opens it on request.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!loaded || autoStarted.current || (!asked && tourSeen())) return;
+    const id = setTimeout(() => {
+      autoStarted.current = true;
+      useTour.getState().start();
+      if (asked) setParams((p) => (p.delete("tour"), p), { replace: true });
+    }, 700);
+    return () => clearTimeout(id);
+  }, [loaded, asked, setParams]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ReplayBanner />
+      <Tour />
       <ConnectionNote />
       <TonightContext />
       {failed && loaded && (
@@ -78,16 +140,6 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      <details className="border-b border-ice-scratch bg-surface px-4 text-[13px] sm:hidden">
-        <summary className="flex min-h-[44px] cursor-pointer items-center font-semibold">
-          Reading the map
-        </summary>
-        <p className="max-w-[65ch] pb-3 text-ink-soft">
-          Tap a team for its outlook. Each ring shows playoff odds. Goals send out shockwaves: blue
-          means odds rose, red means they fell. Changes use percentage points (pp); 40% to 42% is +2
-          pp. Game-row percentages show the chance to win that game.
-        </p>
-      </details>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="relative h-[38vh] min-h-[260px] lg:h-auto lg:min-h-0 lg:flex-1">
           {failed && !loaded ? (

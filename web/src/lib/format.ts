@@ -68,6 +68,16 @@ export function localTime(iso: string, opts?: Intl.DateTimeFormatOptions): strin
   });
 }
 
+/** "October 8": a date in the current season, where the year is implied. */
+export function monthDay(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function longDate(isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
   return new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString("en-US", {

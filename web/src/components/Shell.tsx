@@ -27,9 +27,11 @@ export function Shell() {
         <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
           Aftershock
         </Link>
-        <ModeChip />
+        {/* Home states live or replay in its own title block. */}
+        {!home && <ModeChip />}
         <nav
           aria-label="Main"
+          data-tour="nav"
           className="-mx-2 flex w-full justify-between text-[14px] sm:mx-0 sm:ml-auto sm:w-auto sm:justify-start sm:gap-1"
         >
           {NAV.map((n) => (
@@ -56,8 +58,14 @@ export function Shell() {
         NHL and its teams. Aftershock is not affiliated with, endorsed by, or sponsored by the NHL
         or any team.{" "}
         <Link
-          to="/status"
+          to="/?tour=1"
           className="underline decoration-ice-scratch underline-offset-2 hover:text-ink"
+        >
+          Take the tour
+        </Link>{" "}
+        <Link
+          to="/status"
+          className="ml-3 underline decoration-ice-scratch underline-offset-2 hover:text-ink"
         >
           Pipeline status
         </Link>
