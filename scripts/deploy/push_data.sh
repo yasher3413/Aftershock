@@ -17,7 +17,8 @@ ls -lh "$dump"
 
 echo "== Copying the dump and replay bundles to $vm"
 scp "$dump" "$vm:~/aftershock.dump"
-rsync -az --stats data/replays/ "$vm:~/Aftershock/data/replays/"
+# The containers write data/ as root.
+rsync -az --stats --rsync-path="sudo rsync" data/replays/ "$vm:~/Aftershock/data/replays/"
 
 echo "== Restoring on the VM (the worker pauses meanwhile)"
 ssh "$vm" 'set -e
