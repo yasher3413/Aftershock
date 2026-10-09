@@ -222,12 +222,29 @@ built from the recording:
   laptop's connection. 1,000 live sockets opened and stayed connected
   while the api answered health in 73 ms.
 
+- Polish pass and first-visit walkthrough (2026-10-09). A dual critique
+  (design review plus detector and browser metrics) scored 24/40 and found
+  the shockwave quieter than the chrome, a 0.447 layout shift on Home, no
+  page system, an unmounted intro, and phone targets as small as 24 px. Fixed:
+  stronger rings and collision-free labels, a replay title block with no
+  layout shift, one page frame and title size, quieter Pause, chips and
+  leader bars, team-focused tremor lists, a fitted season chart, rank-based
+  calendar shading, a wrapped Nights scoreboard, What-If without an empty
+  change column, larger touch targets, the one axe contrast failure, plurals
+  and Leaders copy, and a tap-to-preview map on phones. Added a seven-step
+  spotlight walkthrough (DESIGN.md "First visit"). Verified on desktop and
+  phone in both themes; the detector is clean; 145 Python, 43 web unit and
+  41 browser tests pass (9 optional media captures skipped).
+
 ## Next
 
 1. Watch the first live night on the VM, then stop the laptop worker.
 2. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
    Shape; free), then set `API_WORKERS=4` in the VM's `.env`.
-3. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
+3. From the critique, still open: one tab component across Home, Leaders
+   and Night; merge Night's two transport rows; open teams and goals in a
+   sheet over the map instead of leaving it.
+4. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
    gap from NHL HTML reports; goalie "PPA saved".
 
 ## Background jobs (this machine)

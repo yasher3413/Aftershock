@@ -162,3 +162,42 @@ controls. Its desktop rail is 440px wide, balancing games against the map.
 The timeline has two distinct layers: the impact trace above, goal controls
 below. Persistent magnitude labels stay off the curve; goal details retain
 them. A short heading/key and current or replay time make the signal readable.
+
+## First visit and the polish pass (2026-10-09)
+
+**The shockwave outranks the chrome.** Rings draw at alpha 0.62 or more
+(0.95 cap) with a thicker front. Change labels claim a free spot above,
+higher above, or below their ring, and are skipped rather than stacked in
+the crowded Northeast. The origin's M label scales with magnitude (17 to 29
+px) and stays four seconds. Competing weights were demoted: Pause is an
+outline button, live score chips are 12 px numbers on the surface color,
+and replay status lives in Home's tinted title block ("October 8,
+replayed" with a Replay tag and the next live time) instead of an ink
+banner that inverted in dark mode and shifted the page when it arrived.
+
+**One page frame.** Content pages share `max-w-6xl` and one title size
+(38 px on phones, 60 px above). A paragraph after a display heading gets
+0.4rem unless it sets its own spacing. Radii are the 6 px token only.
+
+**Paint keeps its meaning.** The rink chart separates teams by tone (ink
+and ink-soft), not blue. Team tremor lists lead with that team's change,
+in blue or red, with magnitude in the details. Overturned goals keep full
+contrast and strike out their number. Magnitudes under 1 drop to a
+lighter weight.
+
+**Touch.** On phones, the first tap on a team previews it (odds, game, an
+Open button); the second opens it. The map key sits behind a Map key
+button instead of disappearing.
+
+**The walkthrough** (`web/src/tour/`). Seven steps over the real page:
+welcome (live or replay, in plain words), the rings, the shockwave (blue,
+red, pp, M), the timeline, the games and stakes, my team, and the other
+pages. A spotlight cut from a dim layer outlines the target in blue (the
+focus color); clicks pass through, so the page stays usable. On desktop
+the card sits beside the target; on phones it docks at the bottom and the
+target scrolls to the top. It opens once for a first visitor after the
+map loads, is skippable from every step and with Esc, moves with the arrow
+keys, and replays from "How to read this" on Home or "Take the tour" in
+the footer (`/?tour=1`). Seen state is `aftershock.tourSeen` in local
+storage.
+

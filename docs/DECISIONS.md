@@ -495,3 +495,27 @@ Each entry: date, decision, alternatives considered, reason.
   any gap since the loaded state, so a few seconds of staleness in page
   data is invisible, and the version in the URL prevents a stale mode
   after games start. Measured results are in PROGRESS.
+
+## 2026-10-09: A spotlight walkthrough over the real page
+
+- **Decision:** first visitors get a seven-step tour anchored to the live
+  page (`web/src/tour/`), opened once after the map loads and replayable.
+  The dim layer passes clicks through and the card never traps focus.
+- **Alternatives:** a welcome modal of static text; a separate tutorial
+  page; a third-party tour library.
+- **Reason:** the critique's first-timer walk found nobody would learn
+  what a ring, M, pp, or the timeline mean, and the old one-line intro was
+  not even mounted. Teaching on the real map, while a replay is running,
+  shows a shockwave as it is explained. A small in-house component keeps
+  the palette, focus color and reduced-motion rules of the rest of the site.
+
+## 2026-10-09: Replay status in Home's title, not a banner
+
+- **Decision:** Home states a replay in its tinted title block ("October 8,
+  replayed", a Replay tag, the next live time) and drops the ink banner;
+  the header's mode chip is hidden on Home.
+- **Reason:** the banner arrived after load and pushed the page down 35 px
+  (layout shift 0.447), inverted to a pale strip in dark mode, and was one
+  of five places saying "replay". The title block keeps one height from
+  first paint and still makes replay impossible to mistake for live.
+
