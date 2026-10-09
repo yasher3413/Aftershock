@@ -37,7 +37,7 @@ from sklearn.linear_model import LogisticRegression
 
 from aftershock.config import Settings, get_settings
 from aftershock.ml import metrics
-from aftershock.ml.overtime import overtime_probs, rate_from_so_share, shootout_home_win_prob
+from aftershock.ml.overtime import feed_shootout_home_win_prob, overtime_probs, rate_from_so_share
 from aftershock.ml.strength import OUTCOMES, Pregame, StrengthParams
 from aftershock.ml.wp_features import CATEGORICAL, FEATURES, MANPOWER_STATES, GameState, wp_rows
 from aftershock.ml.xg import XgModel
@@ -716,7 +716,7 @@ class WinProbModel:
         if final or shootout is not None:
             if shootout is None:
                 return _final_six_way(state, playoff)
-            p_home = shootout_home_win_prob(
+            p_home = feed_shootout_home_win_prob(
                 shootout.home_goals,
                 shootout.away_goals,
                 shootout.home_attempts,
@@ -724,6 +724,10 @@ class WinProbModel:
                 home_shoots_first=shootout.home_shoots_first,
                 p_home=self.so_conv,
             )
+            if p_home is None:
+                # Counts no shootout can reach: keep the pre-shootout split
+                # until the final result arrives.
+                p_home = self.params.p_home_so
             return _six(0, 0, p_home, 0, 0, 1 - p_home)
         if state.period >= 4 or state.period_type == "OT":
             if state.home_score != state.away_score:

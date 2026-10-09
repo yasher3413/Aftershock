@@ -66,6 +66,36 @@ def shootout_home_win_prob(
     return p_first_wins if home_shoots_first else 1.0 - p_first_wins
 
 
+def feed_shootout_home_win_prob(
+    home_goals: int,
+    away_goals: int,
+    home_attempts: int,
+    away_attempts: int,
+    *,
+    home_shoots_first: bool,
+    p_home: float,
+    p_away: float | None = None,
+) -> float | None:
+    """``shootout_home_win_prob`` for counts read from the live feed, which can
+    list the first two attempts in the wrong order. If the counts are
+    impossible with ``home_shoots_first``, the other team shot first. None if
+    they are impossible either way."""
+    for first in (home_shoots_first, not home_shoots_first):
+        try:
+            return shootout_home_win_prob(
+                home_goals,
+                away_goals,
+                home_attempts,
+                away_attempts,
+                home_shoots_first=first,
+                p_home=p_home,
+                p_away=p_away,
+            )
+        except ValueError:
+            continue
+    return None
+
+
 @lru_cache(maxsize=4096)
 def _first_wins(fg: int, sg: int, fn: int, sn: int, pf: float, ps: float) -> float:
     """P(first shooter wins) from a state, by recursion over the next attempt."""
