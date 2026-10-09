@@ -60,14 +60,42 @@ export function ringDurationMs(maxRadius: number, speed: number): number {
   return (maxRadius / speed) * 1000;
 }
 
-/** Ring stroke width and alpha from magnitude (0 to 10). */
+/** Ring stroke width and alpha from magnitude (0 to 10). The ring is the
+ * page's one loud thing, so even a small goal draws a clearly visible front. */
 export function ringStyle(magnitude: number): { width: number; alpha: number; rings: number } {
   const m = Math.max(0, Math.min(10, magnitude));
   return {
-    width: 1.5 + m * 0.9,
-    alpha: 0.35 + m * 0.06,
+    width: 2 + m * 0.9,
+    alpha: Math.min(0.95, 0.62 + m * 0.04),
     rings: m >= 6 ? 3 : m >= 3 ? 2 : 1,
   };
+}
+
+/** A label's screen box and the time it is on screen. */
+export interface LabelBox {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  from: number;
+  to: number;
+}
+
+/** The first candidate box that overlaps no label showing at the same time,
+ * or -1 when every candidate collides (the label is then skipped). */
+export function freeSlot(
+  shown: LabelBox[],
+  candidates: Omit<LabelBox, "from" | "to">[],
+  from: number,
+  to: number,
+): number {
+  return candidates.findIndex(
+    (c) =>
+      !shown.some(
+        (b) =>
+          b.from < to && from < b.to && b.x0 < c.x1 && c.x0 < b.x1 && b.y0 < c.y1 && c.y0 < b.y1,
+      ),
+  );
 }
 
 export function shouldShake(magnitude: number, reducedMotion: boolean): boolean {

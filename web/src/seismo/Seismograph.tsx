@@ -100,14 +100,18 @@ export function Seismograph() {
   const groups = groupSpikes(visible, x, plotW);
 
   return (
-    <section aria-label="Seismograph" className="border-t border-ice-scratch bg-surface">
+    <section
+      aria-label="Seismograph"
+      className="border-t border-ice-scratch bg-surface"
+      data-tour="timeline"
+    >
       <header className="flex items-center justify-between gap-3 border-b border-ice-scratch px-4 py-2">
         <div>
           <h2 className="display text-[19px] font-bold">Goal timeline</h2>
           <p className="mt-0.5 text-[12px] text-ink-soft">Odds moved by goals, fading over time.</p>
         </div>
         <span className="shrink-0 text-[12px] font-semibold text-blue-line">
-          {replay ? "Replay" : "Now"} {timeLabel(now)}
+          {replay ? "Replay" : "Live"} {timeLabel(now)}
         </span>
       </header>
       <div className="flex flex-col items-stretch sm:flex-row">
@@ -115,7 +119,7 @@ export function Seismograph() {
           <div className="flex shrink-0 items-center gap-1 border-b border-ice-scratch px-3 py-2 sm:border-r sm:border-b-0 sm:py-0">
             <button
               type="button"
-              className="min-h-[44px] w-16 rounded-[var(--radius)] bg-ink text-[13px] font-semibold text-ice"
+              className="min-h-[44px] w-16 rounded-[var(--radius)] border border-ink text-[13px] font-semibold text-ink transition-colors hover:bg-ice-land"
               onClick={() => {
                 if (playing) player.pause();
                 else player.play();
@@ -182,7 +186,14 @@ export function Seismograph() {
                     strokeWidth={1}
                   />
                   {i % labelEvery === 0 && (
-                    <text x={x(t) + 4} y={HEIGHT - 5} fontSize={11} fill="var(--ink-soft)">
+                    // Kept inside the plot so the last hour is never clipped.
+                    <text
+                      x={Math.min(x(t) + 4, plotW - 4)}
+                      y={HEIGHT - 5}
+                      fontSize={12}
+                      fill="var(--ink-soft)"
+                      textAnchor={x(t) + 4 > plotW - 60 ? "end" : "start"}
+                    >
                       {timeLabel(t)}
                     </text>
                   )}
@@ -264,7 +275,7 @@ export function Seismograph() {
                   title="Nearby goals: choose one to open"
                   className="relative h-full w-full cursor-pointer list-none [&::-webkit-details-marker]:hidden"
                 >
-                  <span className="absolute bottom-0 left-0 flex h-[20px] w-[24px] items-center justify-center rounded-[3px] bg-surface text-[11px] font-semibold text-goal ring-1 ring-ice-scratch">
+                  <span className="absolute bottom-0 left-0 flex h-[20px] w-[24px] items-center justify-center rounded-[var(--radius)] bg-surface text-[12px] font-semibold text-goal ring-1 ring-ice-scratch">
                     {group.spikes.length}
                   </span>
                 </summary>

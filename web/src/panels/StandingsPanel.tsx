@@ -89,7 +89,7 @@ export function StandingsPanel() {
           ))}
         </div>
       </div>
-      <div className="mt-1 grid grid-cols-[3.8rem_2rem_1fr_3.2rem_2.4rem] gap-2 text-[11px] text-ink-soft">
+      <div className="mt-1 grid grid-cols-[3.8rem_2rem_1fr_3.2rem_2.4rem] gap-2 text-[12px] text-ink-soft">
         <span />
         <span className="text-right">Pts</span>
         <span>Playoff odds</span>

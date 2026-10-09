@@ -3,6 +3,7 @@ import { makeProjection, placeVenue } from "./projection";
 import {
   CROSSING_S,
   easeOut,
+  freeSlot,
   ringRadius,
   ringSpeed,
   ringStyle,
@@ -124,5 +125,24 @@ describe("shockwave schedule", () => {
     expect(shakeOffset(300, 7)).toEqual({ x: 0, y: 0 });
     expect(easeOut(1)).toBe(1);
     expect(easeOut(0)).toBe(0);
+  });
+  it("keeps even a small goal's ring clearly visible", () => {
+    expect(ringStyle(1).alpha).toBeGreaterThanOrEqual(0.6);
+    expect(ringStyle(10).alpha).toBeLessThanOrEqual(0.95);
+  });
+});
+
+describe("label placement", () => {
+  const box = { x0: 100, x1: 140, y0: 50, y1: 64, from: 0, to: 1000 };
+  it("moves a label that would sit on another one showing at the same time", () => {
+    const here = { x0: 110, x1: 150, y0: 55, y1: 69 };
+    const above = { x0: 110, x1: 150, y0: 35, y1: 49 };
+    expect(freeSlot([box], [here, above], 200, 900)).toBe(1);
+  });
+  it("ignores labels that have already faded", () => {
+    expect(freeSlot([box], [{ x0: 110, x1: 150, y0: 55, y1: 69 }], 1000, 1500)).toBe(0);
+  });
+  it("skips a label with nowhere free to go", () => {
+    expect(freeSlot([box], [{ x0: 100, x1: 140, y0: 50, y1: 64 }], 0, 500)).toBe(-1);
   });
 });

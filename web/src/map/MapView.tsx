@@ -1,6 +1,6 @@
 import { MapKey } from "./MapKey";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useLive } from "../live/store";
 import { useMyTeam } from "../lib/myTeam";
 import { useDarkScheme, useReducedMotion } from "../lib/useMedia";
@@ -18,6 +18,10 @@ export function MapView() {
   const [layout, setLayout] = useState<MapLayout | null>(null);
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
+  // On touch there is no hover: the first tap previews a team, the second
+  // (or the card's link) opens it.
+  const pointer = useRef("mouse");
+  const [pinned, setPinned] = useState(false);
   const navigate = useNavigate();
 
   const teams = useLive((s) => s.teams);
@@ -111,7 +115,17 @@ export function MapView() {
   const venueByName = useMemo(() => Object.fromEntries(venues.map((v) => [v.name, v])), [venues]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden" data-testid="map">
+    <div
+      className="relative h-full w-full overflow-hidden"
+      data-testid="map"
+      data-tour="map"
+      onClick={(e) => {
+        if (!(e.target as HTMLElement).closest("button, [role=tooltip]")) {
+          setHover(null);
+          setPinned(false);
+        }
+      }}
+    >
       <div ref={host} className="absolute inset-0" />
       <MapKey />
       <div className="sr-only" aria-live="polite" role="status">
@@ -158,9 +172,23 @@ export function MapView() {
             <button
               type="button"
               aria-label={label}
-              onClick={() => navigate(`/team/${p.id}`)}
-              onMouseEnter={() => setHover(p.id)}
-              onMouseLeave={() => setHover((h) => (h === p.id ? null : h))}
+              onPointerDown={(e) => {
+                pointer.current = e.pointerType;
+              }}
+              onClick={() => {
+                if (pointer.current === "touch" && !(pinned && hover === p.id)) {
+                  setHover(p.id);
+                  setPinned(true);
+                  return;
+                }
+                navigate(`/team/${p.id}`);
+              }}
+              onMouseEnter={() => {
+                if (!pinned) setHover(p.id);
+              }}
+              onMouseLeave={() => {
+                if (!pinned) setHover((h) => (h === p.id ? null : h));
+              }}
               onFocus={() => setHover(p.id)}
               onBlur={() => setHover((h) => (h === p.id ? null : h))}
               data-team={p.id}
@@ -177,8 +205,8 @@ export function MapView() {
             </button>
             {live && g && (
               <span
-                className="pointer-events-none absolute whitespace-nowrap rounded-[var(--radius)] bg-ink px-1.5 py-px text-[11px] font-semibold text-ice"
-                style={{ left: p.x + p.r + 4, top: p.y - 8 }}
+                className="num pointer-events-none absolute whitespace-nowrap rounded-[var(--radius)] border border-ice-scratch bg-surface px-1 text-[12px] font-semibold leading-[16px] text-ink"
+                style={{ left: p.x + p.r + 3, top: p.y - 9 }}
                 aria-hidden
               >
                 {g.home === p.id ? g.home_score : g.away_score}
@@ -187,7 +215,7 @@ export function MapView() {
             {hover === p.id && (
               <div
                 role="tooltip"
-                className="pointer-events-none absolute z-20 w-52 rounded-[var(--radius)] border border-ice-scratch bg-surface p-3 text-[13px] shadow-[0_6px_24px_rgba(10,20,30,0.14)]"
+                className={`${pinned ? "pointer-events-auto" : "pointer-events-none"} absolute z-20 w-52 rounded-[var(--radius)] border border-ice-scratch bg-surface p-3 text-[13px] shadow-[0_6px_24px_rgba(10,20,30,0.14)]`}
                 style={{
                   left: Math.min(p.x + p.r + 8, (layout?.width ?? 9999) - 220),
                   top: Math.max(8, p.y - 30),
@@ -214,6 +242,14 @@ export function MapView() {
                         ? `, ${new Date(g.start_utc).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
                         : `, final ${g.away_score}-${g.home_score}`}
                   </div>
+                )}
+                {pinned && (
+                  <Link
+                    to={`/team/${p.id}`}
+                    className="mt-2 flex min-h-[44px] items-center justify-center rounded-[var(--radius)] border border-ink text-[13px] font-semibold"
+                  >
+                    Open {t.name}
+                  </Link>
                 )}
               </div>
             )}

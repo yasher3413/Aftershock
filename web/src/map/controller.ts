@@ -12,6 +12,8 @@ import {
   ringRadius,
   ringSpeed,
   ringStyle,
+  freeSlot,
+  type LabelBox,
   schedule,
   shakeOffset,
   shouldShake,
@@ -92,6 +94,8 @@ export class MapController {
   private nodes = new Map<string, NodeView>();
   private positions = new Map<string, NodePosition>();
   private anims: Anim[] = [];
+  /** Screen boxes of labels shown or scheduled, so new ones avoid them. */
+  private labelBoxes: LabelBox[] = [];
   private shake: { start: number; magnitude: number } | null = null;
   private running = false;
 
@@ -386,16 +390,15 @@ export class MapController {
       });
     }
 
-    // Magnitude at the origin, or "No goal" when reversed.
-    this.floatText(
-      pos.x,
-      pos.y - 22,
-      reverse ? "No goal" : `M ${q.magnitude.toFixed(1)}`,
-      reverse ? this.pal.ink : this.pal.goal,
-      reverse ? 15 : 22,
-      now + (reverse ? dur : 0),
-      2600,
-    );
+    // Magnitude at the origin, or "No goal" when reversed. It claims its
+    // space first; the teams' change labels then flow around it.
+    const mText = reverse ? "No goal" : `M ${q.magnitude.toFixed(1)}`;
+    // Size follows magnitude: a 0.2 is a footnote, a 6 is a headline.
+    const mSize = reverse ? 15 : Math.round(17 + Math.min(q.magnitude, 6) * 2);
+    const mStart = now + (reverse ? dur : 0);
+    const mLife = reverse ? 2600 : 4000;
+    const mY = this.reserve(pos.x, [pos.y - 22], mText, mSize, mStart, mLife, 6, true)!;
+    this.floatText(pos.x, mY, mText, reverse ? this.pal.ink : this.pal.goal, mSize, mStart, mLife);
 
     if (shouldShake(q.magnitude, this.reducedMotion))
       this.shake = { start: now, magnitude: q.magnitude };
@@ -407,16 +410,44 @@ export class MapController {
     if (!p) return;
     const v = delta * 100;
     const text = `${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
-    this.floatText(
+    // Above the ring, higher, or below it; skipped when all three would
+    // land on another label (the Northeast is crowded).
+    const y = this.reserve(
       p.x,
-      p.y - p.r - 8,
+      [p.y - p.r - 8, p.y - p.r - 26, p.y + p.r + 22],
       text,
-      delta > 0 ? this.pal.blue : this.pal.goal,
       14,
       at,
       LABEL_MS,
       14,
     );
+    if (y === null) return;
+    this.floatText(p.x, y, text, delta > 0 ? this.pal.blue : this.pal.goal, 14, at, LABEL_MS, 14);
+  }
+
+  /** Claims the first free spot among `ys` (label baselines) for a label's
+   * lifetime, including its rise. Null when none is free, unless forced. */
+  private reserve(
+    x: number,
+    ys: number[],
+    text: string,
+    size: number,
+    start: number,
+    life: number,
+    rise: number,
+    force = false,
+  ): number | null {
+    const now = performance.now();
+    this.labelBoxes = this.labelBoxes.filter((b) => b.to > now);
+    const w = text.length * size * 0.5 + 8;
+    const boxes = ys.map((y) => ({ x0: x - w / 2, x1: x + w / 2, y0: y - size - rise, y1: y }));
+    let i = freeSlot(this.labelBoxes, boxes, start, start + life);
+    if (i < 0) {
+      if (!force) return null;
+      i = 0;
+    }
+    this.labelBoxes.push({ ...boxes[i]!, from: start, to: start + life });
+    return ys[i]!;
   }
 
   private floatText(

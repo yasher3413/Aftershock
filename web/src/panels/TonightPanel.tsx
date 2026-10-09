@@ -71,7 +71,7 @@ export function TonightPanel() {
   const maxStakes = Math.max(0, ...list.map((g) => g.stakes ?? 0));
 
   return (
-    <section aria-labelledby="tonight-h" className="px-4 py-3">
+    <section aria-labelledby="tonight-h" className="px-4 py-3" data-tour="games">
       <div className="flex items-baseline justify-between">
         <h2 id="tonight-h" className="display text-[24px] font-bold">
           {mode === "replay" && list[0]
@@ -92,7 +92,7 @@ export function TonightPanel() {
         <span>Game win chance</span>
         <details className="relative text-right">
           <summary className="min-h-8 cursor-pointer py-1">Playoff stakes</summary>
-          <p className="absolute right-0 z-20 mt-1 w-60 rounded-[var(--radius)] border border-ice-scratch bg-surface p-3 text-left text-ink">
+          <p className="absolute right-0 z-20 mt-1 w-60 rounded-[var(--radius)] border border-ice-scratch bg-surface p-3 text-left text-ink shadow-[0_6px_24px_rgba(10,20,30,0.14)]">
             Taller bars mean this game has more potential to change playoff odds, relative to
             tonight's other games.
           </p>
@@ -159,7 +159,9 @@ export function TonightPanel() {
                 </div>
                 {p != null && (
                   <div className="mt-2 flex items-center gap-2 text-[12px] text-ink-soft">
-                    <span className="w-9 tabular-nums">{pct(1 - p, 0)}</span>
+                    <span className="w-[68px] whitespace-nowrap tabular-nums">
+                      {g.away} {pct(1 - p, 0)}
+                    </span>
                     <div
                       className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-ice-scratch"
                       aria-label={`${g.home} win probability ${pct(p)}`}
@@ -171,7 +173,9 @@ export function TonightPanel() {
                       />
                       <div className="h-full bg-ink" style={{ width: `${p * 100}%` }} />
                     </div>
-                    <span className="w-9 text-right tabular-nums">{pct(p, 0)}</span>
+                    <span className="w-[68px] whitespace-nowrap text-right tabular-nums">
+                      {g.home} {pct(p, 0)}
+                    </span>
                   </div>
                 )}
               </Link>

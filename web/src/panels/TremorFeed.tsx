@@ -4,15 +4,58 @@ import { arrow, periodLabel, clock, pp } from "../lib/format";
 import { useLive } from "../live/store";
 import { useMyTeam } from "../lib/myTeam";
 
-export function TremorLine({ t, myTeam }: { t: Tremor; myTeam: string | null }) {
+/** One goal in a list. With `focus`, the list is about that team: its change
+ * is the headline number and the goal's magnitude moves to the details. */
+export function TremorLine({
+  t,
+  myTeam,
+  focus,
+}: {
+  t: Tremor;
+  myTeam: string | null;
+  focus?: string;
+}) {
   const movers = t.deltas.slice(0, 3);
   const mine = myTeam ? t.deltas.find((d) => d.team === myTeam) : undefined;
+  const focused = focus ? t.deltas.find((d) => d.team === focus) : undefined;
+  if (focused) {
+    const v = focused.d_playoffs * 100;
+    return (
+      <Link to={`/tremor/${t.id}`} className="grid grid-cols-[4.2rem_1fr] gap-3 py-2">
+        <div
+          className={`display text-right text-[30px] font-extrabold leading-none ${v > 0 ? "up" : "down"} ${t.overturned ? "line-through decoration-2" : ""}`}
+          aria-label={`${focus} ${pp(focused.d_playoffs)}`}
+        >
+          {v > 0 ? "+" : "−"}
+          {Math.abs(v).toFixed(1)}
+        </div>
+        <div className="min-w-0 text-[13px]">
+          <div className="truncate font-semibold">
+            {t.overturned ? "No goal: " : ""}
+            {t.scorer?.name ?? "Goal"} <span className="font-normal text-ink-soft">({t.team})</span>
+          </div>
+          <div className="text-[12px] text-ink-soft">
+            {t.away} {t.score_after.away}, {t.home} {t.score_after.home},{" "}
+            {periodLabel(t.period, t.period_type)} {clock(t.t_period_s)}. Magnitude{" "}
+            {t.magnitude.toFixed(1)}.
+          </div>
+        </div>
+      </Link>
+    );
+  }
   return (
-    <Link
-      to={`/tremor/${t.id}`}
-      className={`grid grid-cols-[3.2rem_1fr] gap-3 py-2 ${t.overturned ? "opacity-50" : ""}`}
-    >
-      <div className="display text-right text-[30px] font-extrabold leading-none">
+    <Link to={`/tremor/${t.id}`} className="grid grid-cols-[3.2rem_1fr] gap-3 py-2">
+      {/* Weight follows size, so a 0.3 never shouts like a 4.7. An overturned
+          goal keeps full contrast; its number is struck out instead. */}
+      <div
+        className={`display text-right text-[30px] leading-none ${
+          t.overturned
+            ? "font-bold text-ink-soft line-through decoration-2"
+            : t.magnitude < 1
+              ? "font-semibold text-ink-soft"
+              : "font-extrabold"
+        }`}
+      >
         {t.magnitude.toFixed(1)}
       </div>
       <div className="min-w-0 text-[13px]">
