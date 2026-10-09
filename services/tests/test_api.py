@@ -141,7 +141,7 @@ async def seed(engine: AsyncEngine) -> None:
 async def client(db_engine: AsyncEngine) -> AsyncIterator[tuple[httpx.AsyncClient, FakeRedis]]:
     await seed(db_engine)
     fake = FakeRedis()
-    app = create_app(redis=fake, subscribe=False)  # type: ignore[arg-type]
+    app = create_app(redis=fake, subscribe=False, response_cache=False)  # type: ignore[arg-type]
     maker = async_sessionmaker(db_engine, expire_on_commit=False)
 
     async def override() -> AsyncIterator[AsyncSession]:
@@ -232,7 +232,7 @@ async def test_health_status_methodology(client: Any) -> None:
 
 def test_websocket_hello_and_backlog(db_engine: AsyncEngine) -> None:
     fake = FakeRedis()
-    app = create_app(redis=fake, subscribe=False)  # type: ignore[arg-type]
+    app = create_app(redis=fake, subscribe=False, response_cache=False)  # type: ignore[arg-type]
     with TestClient(app) as tc:
         hub = app.state.aftershock.hub
         for s in (1, 2, 3):

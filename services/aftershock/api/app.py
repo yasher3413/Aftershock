@@ -22,6 +22,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from aftershock.api import queries as Q
 from aftershock.api import schemas as S
+from aftershock.api.cache import ResponseCache
 from aftershock.api.hub import Hub
 from aftershock.config import Settings, get_settings
 from aftershock.db.models import JobRun, ReconcileEvent, ReplayBundle, SimRun, Tremor
@@ -61,7 +62,11 @@ async def _subscribe(state: AppState) -> None:
 
 
 def create_app(
-    settings: Settings | None = None, *, redis: Redis | None = None, subscribe: bool = True
+    settings: Settings | None = None,
+    *,
+    redis: Redis | None = None,
+    subscribe: bool = True,
+    response_cache: bool = True,
 ) -> FastAPI:
     s = settings or get_settings()
 
@@ -87,6 +92,7 @@ def create_app(
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
+    app.middleware("http")(ResponseCache(enabled=response_cache))
     app.include_router(router, prefix="/api")
     app.include_router(pages_router)
     app.add_api_websocket_route("/ws/live", live_socket)
