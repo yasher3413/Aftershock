@@ -40,6 +40,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://aftershock:${POSTGRES_PASSWORD}@postgres:5432/aftershock
       REDIS_URL: redis://redis:6379/0
+      # uvicorn processes; each keeps its own sockets and response cache.
+      # About one per core: set API_WORKERS=4 in .env on a 4-core VM.
+      WEB_CONCURRENCY: ${API_WORKERS:-2}
     volumes:
       - ../data:/app/data
     depends_on:
