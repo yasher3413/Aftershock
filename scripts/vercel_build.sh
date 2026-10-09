@@ -5,4 +5,6 @@
 set -euo pipefail
 . "${CARGO_HOME:-$HOME/.cargo}/env"
 wasm-pack build crates/aftershock-wasm --release --target web --out-dir ../../web/src/wasm/pkg
-cd web && pnpm build && mv dist/index.html dist/app.html
+cd web
+npx -y "$(node -p 'require("./package.json").packageManager')" build
+mv dist/index.html dist/app.html

@@ -6,4 +6,8 @@ set -euo pipefail
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --target wasm32-unknown-unknown
 . "${CARGO_HOME:-$HOME/.cargo}/env"
 curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
-cd web && pnpm install --frozen-lockfile
+# The pnpm version web/package.json pins; Vercel's default cannot read its
+# lockfile.
+cd web
+pm="$(node -p 'require("./package.json").packageManager')"
+npx -y "$pm" install --frozen-lockfile
