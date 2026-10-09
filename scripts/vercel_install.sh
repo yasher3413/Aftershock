@@ -4,6 +4,6 @@
 # because Vercel limits the install command to 256 characters.
 set -euo pipefail
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --target wasm32-unknown-unknown
-. "$HOME/.cargo/env"
+. "${CARGO_HOME:-$HOME/.cargo}/env"
 curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
 cd web && pnpm install --frozen-lockfile

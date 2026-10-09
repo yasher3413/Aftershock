@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "bash scripts/vercel_install.sh",
-  "buildCommand": ". \"$HOME/.cargo/env\" && wasm-pack build crates/aftershock-wasm --release --target web --out-dir ../../web/src/wasm/pkg && cd web && pnpm build && mv dist/index.html dist/app.html",
+  "buildCommand": "bash scripts/vercel_build.sh",
   "outputDirectory": "web/dist",
   "framework": null,
   "rewrites": [
