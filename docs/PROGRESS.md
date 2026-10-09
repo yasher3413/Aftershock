@@ -210,14 +210,24 @@ built from the recording:
   the pinned pnpm, the bootstrap's firewall rule placement, and rsync into
   root-owned data on the VM.
 
+- Ready for traffic (2026-10-09). Read-only api responses carry
+  `s-maxage` (state 5 s, status 10 s, most 30 s, methodology 300 s) so
+  Vercel's CDN answers repeats, each api process keeps the same copy with
+  one build per document at a time (api/cache.py), the client adds the
+  state version when it must reload the state, and the VM runs two api
+  processes (`API_WORKERS`). Measured from the laptop against the 1-core
+  VM: directly, 8 to 9 req/s before (p95 2 to 13 s) and 101 to 205 req/s
+  after at 5 to 20 concurrent (p95 120 to 176 ms); through Vercel, 38 of
+  1,742 requests reached the VM, and throughput was limited by the
+  laptop's connection. 1,000 live sockets opened and stayed connected
+  while the api answered health in 73 ms.
+
 ## Next
 
 1. Watch the first live night on the VM, then stop the laptop worker.
-2. Before sharing widely: run 3 to 4 api processes, let Vercel's CDN cache
-   read endpoints for a few seconds, and load-test the VM.
-3. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
-   Shape; free).
-4. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
+2. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
+   Shape; free), then set `API_WORKERS=4` in the VM's `.env`.
+3. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
    gap from NHL HTML reports; goalie "PPA saved".
 
 ## Background jobs (this machine)

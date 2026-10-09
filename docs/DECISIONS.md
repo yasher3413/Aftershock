@@ -477,3 +477,21 @@ Each entry: date, decision, alternatives considered, reason.
   and fill in attempts late. An exception there stopped every update for
   that game. The team with more attempts must have shot first, so the swap
   recovers the real state without guessing at missing attempts.
+
+## 2026-10-09: Cache api reads for seconds, at the CDN and in each process
+
+- **Decision:** GET responses under `/api` without their own policy carry
+  `public, max-age=0, s-maxage=N, stale-while-revalidate` (N = 5 s for the
+  state, 10 s for status, 300 s for methodology and reports, 30 s
+  otherwise; health and push are never cached), and each api process keeps
+  the same response for N seconds, building each document once at a time.
+  The client asks for `/api/state?v=<version>` after a mode change and a
+  unique URL after a lost gap. The VM runs `API_WORKERS` uvicorn processes,
+  two by default.
+- **Alternatives:** longer TTLs with purges from the worker; a cache in
+  Redis shared by processes; precompressed bodies in Caddy.
+- **Reason:** before sharing, the 1-core VM served about 9 req/s with
+  multi-second tails. Live accuracy comes from the WebSocket, which fills
+  any gap since the loaded state, so a few seconds of staleness in page
+  data is invisible, and the version in the URL prevents a stale mode
+  after games start. Measured results are in PROGRESS.

@@ -84,6 +84,9 @@ scripts/deploy/push_data.sh ubuntu@<IP>
 
 ### Later
 
+- **Capacity:** `API_WORKERS` in the VM's `.env` sets the api processes
+  (default 2; about one per core). Read responses are cached for seconds at
+  Vercel's CDN and in each process (`services/aftershock/api/cache.py`).
 - **Updates:** Vercel redeploys on every push. On the VM:
   `cd ~/Aftershock && git pull && sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env up -d --build`.
 - **A domain:** add it to the Vercel project for the site, point `api.<domain>`
