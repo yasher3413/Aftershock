@@ -466,3 +466,14 @@ Each entry: date, decision, alternatives considered, reason.
 - **Reason:** a worker that is down when a night ends otherwise leaves its
   games live forever, and the home page keeps showing the night before.
   Running once at startup covers every outage without changing live polling.
+
+## 2026-10-09: Read impossible shootout counts as a swapped first shooter
+
+- **Decision:** the strict shootout calculation still rejects states no
+  shootout can reach; the live win probability instead retries with the
+  other team shooting first, and keeps the pre-shootout split if neither
+  order fits, until the final result arrives.
+- **Reason:** the NHL feed can list the first attempts in the wrong order
+  and fill in attempts late. An exception there stopped every update for
+  that game. The team with more attempts must have shot first, so the swap
+  recovers the real state without guessing at missing attempts.

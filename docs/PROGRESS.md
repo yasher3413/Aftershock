@@ -189,6 +189,16 @@ built from the recording:
   and a 1,606-frame replay; both recaps were regenerated and validated. A
   tremor shown twice in a replay is a goal the NHL feed briefly removed
   and restored, not a duplicate.
+- The live shootout probability tolerates a feed that lists attempts out
+  of order (2026-10-09). During TOR at VGK on Oct 8 the feed briefly showed
+  Toronto with two more attempts than Vegas; the engine raised "unreachable
+  shootout state" on every poll until the game ended. When the counts are
+  impossible with the recorded first shooter, the other team is taken to
+  have shot first; if neither works, the pre-shootout split is kept. The
+  catch-up also replays a game whose shootout ended on a goal with no
+  tremor. Laptop sleeps on Oct 7 and Oct 8 were repaired by the catch-up
+  without help (20 and 61 tremors, all goals covered).
+
 ## Next
 
 1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,
