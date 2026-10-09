@@ -26,7 +26,10 @@ WebSocket per visitor. Free serverless and sleeping instances stop both.
    public key. If A1 capacity is out in your region, retry later or pick
    another availability domain.
 3. Networking, the instance's subnet, its security list: add ingress rules
-   for TCP 80 and TCP 443 from `0.0.0.0/0`.
+   for TCP 80 and TCP 443 from `0.0.0.0/0`. If A1 capacity is out, upgrading
+   the account to Pay As You Go helps; Always Free resources stay free.
+   If the instance shows no public IP, open its primary VNIC, IP
+   administration, edit the private IP, and choose an ephemeral public IP.
 4. Note the instance's public IP. The api host until you buy a domain is
    `<IP>.sslip.io` (a free name that points at the IP and can get an HTTPS
    certificate).
@@ -45,7 +48,9 @@ git add vercel.json && git commit -m "Point the website at the api host" && git 
 1. vercel.com, Add New Project, import `yasher3413/Aftershock`. Leave the
    root directory as the repo root and the framework as Other; `vercel.json`
    has the build (it installs Rust to build the What-If simulator, so the
-   first build takes a few minutes).
+   first build takes a few minutes). If the import page insists on
+   "Services", use the CLI instead: `vercel link --yes --project aftershock`,
+   `vercel env add VITE_WS_URL production`, `vercel git connect`, then push.
 2. Environment variables: `VITE_WS_URL` = `wss://<IP>.sslip.io/ws/live`.
 3. Deploy, and note the site address, for example `https://aftershock.vercel.app`.
 

@@ -199,19 +199,25 @@ built from the recording:
   tremor. Laptop sleeps on Oct 7 and Oct 8 were repaired by the catch-up
   without help (20 and 61 tremors, all goals covered).
 
+- Deployed (2026-10-09): https://aftershock-fawn.vercel.app on Vercel (Git
+  connected, every push to main redeploys) and an Oracle Always Free VM at
+  140.238.146.151 (Toronto, A1.Flex 1 OCPU / 6 GB, 100 GB disk, 4 GB swap)
+  serving https://140.238.146.151.sslip.io. The local database (17,501
+  tremors) and replays were copied over; checked: health, every api route
+  and share previews through Vercel, the live socket from a browser, and
+  the What-If simulator. Fixed on the way: Vercel's 256-character install
+  limit (scripts/vercel_install.sh, vercel_build.sh), Rust under CARGO_HOME,
+  the pinned pnpm, the bootstrap's firewall rule placement, and rsync into
+  root-owned data on the VM.
+
 ## Next
 
-1. Owner creates the Oracle VM (Ubuntu 24.04, VM.Standard.A1.Flex, 4 OCPU,
-   24 GB, ingress TCP 80 and 443) and sends its public IP.
-2. Run `scripts/set_api_host.sh <IP>.sslip.io`, commit and push `vercel.json`.
-3. Owner imports the repo in Vercel (root = repo root, framework Other) with
-   `VITE_WS_URL=wss://<IP>.sslip.io/ws/live`, and sends the site address.
-4. Owner runs the bootstrap on the VM with the site address, then
-   `scripts/deploy/push_data.sh ubuntu@<IP>` from the laptop.
-5. Verify: `https://<IP>.sslip.io/api/health`, the site and live socket,
-   `/status`, and link previews in an Open Graph checker. The full stack has
-   never run together in Docker; expect to fix small startup issues.
-6. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
+1. Watch the first live night on the VM, then stop the laptop worker.
+2. Before sharing widely: run 3 to 4 api processes, let Vercel's CDN cache
+   read endpoints for a few seconds, and load-test the VM.
+3. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
+   Shape; free).
+4. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
    gap from NHL HTML reports; goalie "PPA saved".
 
 ## Background jobs (this machine)
