@@ -44,3 +44,6 @@ docs/media/raw/
 
 # Playwright MCP session files
 .playwright-mcp/
+
+# Vercel CLI project link
+.vercel
