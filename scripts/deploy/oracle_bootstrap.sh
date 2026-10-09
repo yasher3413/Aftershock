@@ -14,9 +14,13 @@ if ! command -v docker >/dev/null; then
 fi
 
 echo "== Firewall: Oracle's Ubuntu images reject new connections except SSH"
+# The rules must come before the image's catch-all REJECT, whose position
+# varies between images.
 for port in 80 443; do
-  sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null ||
-    sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$port" -j ACCEPT
+  if ! sudo iptables -C INPUT -m state --state NEW -p tcp --dport "$port" -j ACCEPT 2>/dev/null; then
+    reject="$(sudo iptables -L INPUT -n --line-numbers | awk '/REJECT/ {print $1; exit}')"
+    sudo iptables -I INPUT "${reject:-1}" -m state --state NEW -p tcp --dport "$port" -j ACCEPT
+  fi
 done
 sudo apt-get install -y -q netfilter-persistent >/dev/null && sudo netfilter-persistent save >/dev/null
 
