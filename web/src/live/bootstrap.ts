@@ -90,8 +90,9 @@ export function useLiveBootstrap(): boolean {
     let socket: LiveSocket | null = null;
     let player: TimelinePlayer | null = null;
 
-    async function load() {
-      const state = await api<StateResponse>("/state");
+    // `fresh` names a newer state than the CDN may hold (see api/cache.py).
+    async function load(fresh?: string) {
+      const state = await api<StateResponse>(fresh ? `/state?${fresh}` : "/state");
       if (cancelled) return;
       if (state.mode === "demo" && state.replay) {
         const bundle = await api<ReplayBundleOut>(`/replay/${state.replay.night_date}`);
@@ -125,13 +126,13 @@ export function useLiveBootstrap(): boolean {
         onMessage: (msg) => {
           if (msg.type === "hello" && msg.mode !== useLive.getState().mode) {
             // Live games started or ended: reload the page state.
-            void load().catch(onLoadError);
+            void load(`v=${msg.state_version}`).catch(onLoadError);
             return;
           }
           if (useClock.getState().mode === "live") useLive.getState().apply(msg);
         },
         onStatus: (c) => useLive.getState().setConnection(c),
-        onResync: () => void load().catch(onLoadError),
+        onResync: () => void load(`t=${Date.now()}`).catch(onLoadError),
         lastSeq: () => (useClock.getState().mode === "live" ? useLive.getState().lastSeq : 0),
       });
       socket.start();

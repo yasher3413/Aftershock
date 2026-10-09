@@ -15,7 +15,7 @@ test("phone panels support keyboard navigation", async ({ page }) => {
 
 test("initial league failure offers a working retry", async ({ page }) => {
   let failed = true;
-  await page.route("**/api/state", (route) =>
+  await page.route("**/api/state*", (route) =>
     failed
       ? route.fulfill({ status: 503, json: { detail: "temporarily unavailable" } })
       : route.fallback(),
@@ -51,7 +51,7 @@ test("scenario follows browser URL navigation and exposes the win type", async (
 test("a failed background refresh keeps the loaded map available", async ({ page }) => {
   let failed = false;
   let sendResync: (() => void) | undefined;
-  await page.route("**/api/state", (route) =>
+  await page.route("**/api/state*", (route) =>
     failed
       ? route.fulfill({ status: 503, json: { detail: "temporarily unavailable" } })
       : route.fallback(),
