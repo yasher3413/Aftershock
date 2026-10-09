@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --target wasm32-unknown-unknown && . \"$HOME/.cargo/env\" && curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh && cd web && pnpm install --frozen-lockfile",
+  "installCommand": "bash scripts/vercel_install.sh",
   "buildCommand": ". \"$HOME/.cargo/env\" && wasm-pack build crates/aftershock-wasm --release --target web --out-dir ../../web/src/wasm/pkg && cd web && pnpm build && mv dist/index.html dist/app.html",
   "outputDirectory": "web/dist",
   "framework": null,
