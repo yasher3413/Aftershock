@@ -759,9 +759,10 @@ class Worker:
         """Finish earlier nights whose goals the engine never saw, for example
         when the worker was down or the machine asleep at the end of a night.
         The live poller only reads today's scoreboard, so nothing else would.
-        A game counts when it is not final, or when its goals outnumber its
+        A game counts when it is not final, when its goals outnumber its
         tremors (the nightly schedule refresh marks games final and loads
-        their plays without the engine). Their final play-by-play goes
+        their plays without the engine), or when its shootout ended on a goal
+        that has no tremor (one settled by a save has none by design). Their final play-by-play goes
         through the engine, then the night is wrapped up if it is not yet."""
         today = hockey_night(datetime.now(UTC))
         async with session_scope() as s:
@@ -775,7 +776,13 @@ class Worker:
                         "(SELECT count(*) FROM plays p WHERE p.game_id = g.id "
                         "AND p.type = 'goal' AND p.period_type <> 'SO') > "
                         "(SELECT count(*) FROM tremors t WHERE t.game_id = g.id "
-                        "AND NOT t.overturned)) "
+                        "AND NOT t.overturned) OR "
+                        "(g.last_period_type = 'SO' AND NOT EXISTS (SELECT 1 FROM tremors t "
+                        "WHERE t.game_id = g.id AND t.shootout AND NOT t.overturned) AND "
+                        "(SELECT p.type FROM plays p WHERE p.game_id = g.id "
+                        "AND p.period_type = 'SO' AND p.type IN "
+                        "('goal', 'shot-on-goal', 'missed-shot', 'failed-shot-attempt') "
+                        "ORDER BY p.sort_order DESC LIMIT 1) = 'goal')) "
                         "GROUP BY g.night_date ORDER BY g.night_date"
                     ),
                     {"d": today, "since": today - timedelta(seconds=NIGHT_TTL_S)},
