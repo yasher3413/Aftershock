@@ -52,7 +52,7 @@ function GoalLog({ goals, width }: { goals: Tremor[]; width: number }) {
       {ticks.map((t) => (
         <g key={t}>
           <line x1={x(t)} x2={x(t)} y1={pad.t} y2={h - pad.b} stroke="var(--ice-scratch)" />
-          <text x={x(t) + 4} y={h - 8} fontSize={11} fill="var(--ink-soft)">
+          <text x={x(t) + 4} y={h - 8} fontSize={12} fill="var(--ink-soft)">
             {fmt(t)}
           </text>
         </g>
@@ -130,7 +130,7 @@ export default function PlayerPage() {
       ]
     : [
         ["Goals", String(s?.goals ?? 0)],
-        ["Playoff Probability Added", pp(s?.ppa ?? 0)],
+        ["PPA (playoff odds added)", pp(s?.ppa ?? 0)],
         ["Assist PPA", pp(s?.assist_ppa ?? 0)],
         ["On-ice PPA", s?.on_ice_ppa != null ? pp(s.on_ice_ppa) : "-"],
       ];
@@ -146,7 +146,7 @@ export default function PlayerPage() {
   return (
     <div className="w-full">
       <header className="border-b border-ice-scratch bg-ice-land">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center md:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center md:px-6">
           <Headshot playerId={data.id} name={data.name} src={data.headshot} size={168} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[15px] text-ink/80">
@@ -162,7 +162,7 @@ export default function PlayerPage() {
               {data.sweater != null && <span>#{data.sweater}</span>}
               {data.position && <span>{POSITIONS[data.position] ?? data.position}</span>}
             </div>
-            <h1 className="display mt-1 text-[48px] font-extrabold leading-[0.9] md:text-[72px]">
+            <h1 className="display mt-1 text-[38px] font-extrabold leading-[0.95] md:text-[60px]">
               {data.name}
             </h1>
             <dl
@@ -208,7 +208,7 @@ export default function PlayerPage() {
         </div>
       </header>
 
-      <div ref={ref} className="mx-auto w-full max-w-5xl px-4 pb-12 md:px-6">
+      <div ref={ref} className="mx-auto w-full max-w-6xl px-4 pb-12 md:px-6">
         {!goalie && (
           <section aria-labelledby="log-h" className="pt-10">
             <h2 id="log-h" className="display mb-4 text-[30px] font-bold">
@@ -286,7 +286,10 @@ export default function PlayerPage() {
                     `Penalties cost (${s.penalty_goals} PP goals)`,
                     s.penalties ? pp(s.penalty_ppa) : "-",
                   ],
-                  [`Drew ${s.drawn} penalties`, s.drawn ? pp(s.drawn_ppa) : "-"],
+                  [
+                    `Drew ${s.drawn} ${s.drawn === 1 ? "penalty" : "penalties"}`,
+                    s.drawn ? pp(s.drawn_ppa) : "-",
+                  ],
                   ["Giveaways / takeaways", `${s.giveaways} / ${s.takeaways}`],
                   [
                     `Costly giveaways (${s.costly_giveaways})`,

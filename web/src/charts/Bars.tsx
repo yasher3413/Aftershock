@@ -34,7 +34,7 @@ export function Bars({ data, width, height = 140, ariaLabel, formatValue, showEv
                 x={i * bw + bw / 2}
                 y={height - 5}
                 textAnchor="middle"
-                fontSize={11}
+                fontSize={12}
                 fill="var(--ink-soft)"
               >
                 {d.label}
@@ -45,7 +45,7 @@ export function Bars({ data, width, height = 140, ariaLabel, formatValue, showEv
                 x={i * bw + bw / 2}
                 y={height - pad.b - h - 4}
                 textAnchor="middle"
-                fontSize={11}
+                fontSize={12}
                 fill="var(--ink)"
               >
                 {formatValue(d.value)}

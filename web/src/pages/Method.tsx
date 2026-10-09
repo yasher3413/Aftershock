@@ -108,7 +108,7 @@ export default function MethodPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="mb-8 max-w-[72ch] lg:ml-62 lg:mb-12">
-        <h1 className="display text-[52px] font-extrabold leading-none sm:text-[60px]">
+        <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">
           How it works
         </h1>
         <p className="mt-5 text-[19px] leading-relaxed">One goal. A different playoff picture.</p>

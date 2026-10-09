@@ -241,7 +241,9 @@ export default function WhatIfPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="display text-[60px] font-extrabold leading-none">What-If Lab</h1>
+          <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">
+            What-If Lab
+          </h1>
           <p className="mt-2 max-w-[58ch] text-[14px] text-ink-soft">
             Pick winners. See what changes for your team. Each pick reruns the season with the same
             random numbers, so you can compare the effect of your choices.
@@ -297,6 +299,7 @@ export default function WhatIfPage() {
         <label className="inline-flex min-h-[44px] items-center gap-2">
           <input
             type="checkbox"
+            className="h-5 w-5"
             checked={highStakes}
             onChange={(e) => setHighStakes(e.target.checked)}
           />{" "}
@@ -336,7 +339,7 @@ export default function WhatIfPage() {
         </div>
       </div>
 
-      <p className="mt-2 text-[12px] text-ink-soft">
+      <p className="mt-2 max-w-[62ch] text-[12px] text-ink-soft">
         Randomize fills undecided upcoming games shown by your filters. Reset clears picks, not
         filters.
         {undo && (
@@ -376,8 +379,11 @@ export default function WhatIfPage() {
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">
         <section aria-label="Games" className="lg:max-h-[75vh] lg:overflow-y-auto lg:pr-2">
-          <h2 className="display text-[30px] font-bold">Pick the results</h2>
-          <p className="mt-2 mb-5 text-[13px] text-ink-soft">
+          {/* Same header frame as the forecast's, so the two columns align. */}
+          <div className="flex min-h-[56px] flex-wrap items-end border-b-2 border-ink pb-3">
+            <h2 className="display text-[30px] font-bold">Pick the results</h2>
+          </div>
+          <p className="mt-3 mb-5 text-[13px] text-ink-soft">
             Choose a winner, then use the win-type menu. Clicking a chosen team cycles regulation,
             overtime, shootout, and clear.
           </p>
@@ -427,7 +433,7 @@ export default function WhatIfPage() {
                                 return copy;
                               })
                             }
-                            className="rounded-[var(--radius)] hover:bg-ice-land focus-visible:bg-ice-land"
+                            className={`flex min-h-[44px] items-center justify-center rounded-[var(--radius)] transition-colors hover:bg-ice-land focus-visible:bg-ice-land ${o && o.startsWith(side) ? "" : "bg-surface ring-1 ring-ice-scratch ring-inset"}`}
                             aria-label={`${g.away} at ${g.home}, ${o ? outcomeLabel(o, g.home, g.away) : "Not decided"}. ${next ? `Pick ${code} to win ${HOW[next.slice(next.indexOf("_") + 1)]}` : "Clear the pick"}.`}
                           >
                             <PickCode code={code} ringed={!!o && o.startsWith(side)} />
@@ -491,7 +497,7 @@ export default function WhatIfPage() {
           aria-label="Playoff odds under this scenario"
           className="scroll-mt-28"
         >
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b-2 border-ink pb-3">
+          <div className="flex min-h-[56px] flex-wrap items-end justify-between gap-3 border-b-2 border-ink pb-3">
             <h2 className="display text-[30px] font-bold">Your forecast</h2>
             <label className="text-[13px] text-ink-soft">
               Sort{" "}
@@ -507,8 +513,9 @@ export default function WhatIfPage() {
             </label>
           </div>
           <p className="mt-3 text-[13px] text-ink-soft">
-            Change compares your picks with the current forecast, in percentage points. Small
-            differences are estimates, not guarantees.
+            {pickCount > 0
+              ? "Change compares your picks with the current forecast, in percentage points. Small differences are estimates, not guarantees."
+              : "The current forecast for every team. Pick a result to see how it would change."}
           </p>
           {pickCount > 0 && !updating && (
             <ul className="mt-4 divide-y divide-ice-scratch border-y border-ice-scratch">
@@ -537,7 +544,7 @@ export default function WhatIfPage() {
               <tr>
                 <th className="font-normal">Team</th>
                 <th className="text-right font-normal">Playoff odds</th>
-                <th className="text-right font-normal">Change (pp)</th>
+                {pickCount > 0 && <th className="text-right font-normal">Change (pp)</th>}
                 <th className="text-right font-normal">Cup odds</th>
               </tr>
             </thead>
@@ -560,11 +567,13 @@ export default function WhatIfPage() {
                       </Link>
                     </td>
                     <td className="text-right tabular-nums">{pct(t.p_playoffs)}</td>
-                    <td
-                      className={`text-right tabular-nums ${Math.abs(d) < 0.0005 ? "text-ink-soft" : d > 0 ? "up" : "down"}`}
-                    >
-                      {pp(d)}
-                    </td>
+                    {pickCount > 0 && (
+                      <td
+                        className={`text-right tabular-nums ${Math.abs(d) < 0.0005 ? "text-ink-soft" : d > 0 ? "up" : "down"}`}
+                      >
+                        {pp(d)}
+                      </td>
+                    )}
                     <td className="text-right tabular-nums">{pct(t.p_cup)}</td>
                   </motion.tr>
                 );

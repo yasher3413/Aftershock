@@ -42,7 +42,7 @@ export default function TremorPage() {
   const wpAfter = t.wp_after.home_reg + t.wp_after.home_ot + t.wp_after.home_so;
   const scoringHome = t.team === t.home;
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-6">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
       <div className="grid gap-8 md:grid-cols-[1fr_1.1fr]">
         <div>
           <p className="text-[13px] text-ink-soft">

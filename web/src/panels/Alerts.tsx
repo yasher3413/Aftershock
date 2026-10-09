@@ -88,18 +88,22 @@ export function Alerts({ team }: { team: string }) {
       {status === "on" ? (
         <>
           <span>Alerts on for {team} tremors.</span>
-          <button type="button" onClick={disable} className="font-semibold text-blue-line">
+          <button
+            type="button"
+            onClick={disable}
+            className="min-h-[44px] font-semibold text-blue-line"
+          >
             Turn off
           </button>
         </>
       ) : (
         <>
-          <label className="text-ink-soft">
+          <label className="text-ink">
             Alert me for {team} tremors of magnitude{" "}
             <select
               value={min}
               onChange={(e) => setMin(Number(e.target.value))}
-              className="rounded-[var(--radius)] border border-ice-scratch bg-surface px-1 py-0.5 text-ink"
+              className="min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 text-ink"
             >
               {THRESHOLDS.map((t) => (
                 <option key={t} value={t}>
@@ -112,7 +116,7 @@ export function Alerts({ team }: { team: string }) {
             type="button"
             onClick={enable}
             disabled={status === "working"}
-            className="font-semibold text-blue-line"
+            className="min-h-[44px] font-semibold text-blue-line"
           >
             Turn on
           </button>

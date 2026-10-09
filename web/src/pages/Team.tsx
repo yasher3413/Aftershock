@@ -121,12 +121,12 @@ export default function TeamPage() {
     <div className="w-full">
       <header
         className="border-b border-ice-scratch bg-ice-land"
-        style={{ borderTop: `6px solid ${t.color_primary}` }}
+        style={{ borderTop: `3px solid ${t.color_primary}` }}
       >
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center md:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center md:px-6">
           <TeamRing code={abbrev} odds={o?.p_playoffs ?? null} color={t.color_primary} />
           <div className="min-w-0 flex-1">
-            <h1 className="display text-[48px] font-extrabold leading-[0.9] md:text-[76px]">
+            <h1 className="display text-[38px] font-extrabold leading-[0.95] md:text-[60px]">
               {t.name}
             </h1>
             <p className="mt-2 text-[15px] text-ink/80">
@@ -151,7 +151,7 @@ export default function TeamPage() {
               <button
                 type="button"
                 onClick={() => setTeam(myTeam === abbrev ? null : abbrev)}
-                className="font-semibold text-blue-line"
+                className="min-h-[44px] font-semibold text-blue-line"
               >
                 {myTeam === abbrev ? "This is my team" : "Make this my team"}
               </button>
@@ -161,7 +161,7 @@ export default function TeamPage() {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-4 pb-12 md:px-6">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-12 md:px-6">
         <div ref={ref} className="mt-6">
           <Section title="Odds over the season" id="hist-h">
             <SeasonSeismogram
@@ -173,8 +173,9 @@ export default function TeamPage() {
             {toSeries("p_playoffs").length > 0 && (
               <p className="mt-2 max-w-[56ch] text-[13px] text-ink-soft">
                 The trace is {t.name} playoff odds. Spikes are the season's biggest goals: up and
-                blue for them, down and red against them, longer for higher magnitude. Select one to
-                see everyone it moved.
+                blue for them, down and red against them, longer for higher magnitude. A label is
+                the biggest magnitude in a cluster; "+2" means two more goals beside it. Select one
+                to see everyone it moved.
               </p>
             )}
           </Section>
@@ -232,7 +233,7 @@ export default function TeamPage() {
               <ul className="divide-y divide-ice-scratch">
                 {data.tremors_for.map((tr) => (
                   <li key={tr.id}>
-                    <TremorLine t={tr} myTeam={abbrev} />
+                    <TremorLine t={tr} myTeam={abbrev} focus={abbrev} />
                   </li>
                 ))}
                 {data.tremors_for.length === 0 && (
@@ -244,7 +245,7 @@ export default function TeamPage() {
               <ul className="divide-y divide-ice-scratch">
                 {data.tremors_against.map((tr) => (
                   <li key={tr.id}>
-                    <TremorLine t={tr} myTeam={abbrev} />
+                    <TremorLine t={tr} myTeam={abbrev} focus={abbrev} />
                   </li>
                 ))}
                 {data.tremors_against.length === 0 && (

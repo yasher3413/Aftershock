@@ -95,14 +95,14 @@ export function CalibrationChart({
         {ticks.map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={size - pad.r} y1={y(v)} y2={y(v)} stroke="var(--ice-scratch)" />
-            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-soft)">
+            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={12} fill="var(--ink-soft)">
               {pctTick(v)}
             </text>
             <text
               x={x(v)}
               y={size - pad.b + 16}
               textAnchor="middle"
-              fontSize={11}
+              fontSize={12}
               fill="var(--ink-soft)"
             >
               {pctTick(v)}
@@ -121,7 +121,7 @@ export function CalibrationChart({
           x={x(top) - 4}
           y={y(top) + 14}
           textAnchor="end"
-          fontSize={11}
+          fontSize={12}
           fill="var(--ink-soft)"
           transform={`rotate(-45 ${x(top) - 4} ${y(top) + 14})`}
         >
@@ -151,10 +151,10 @@ export function CalibrationChart({
               </g>
             );
           })}
-        <text x={pad.l} y={size - 2} fontSize={11} fill="var(--ink-soft)">
+        <text x={pad.l} y={size - 2} fontSize={12} fill="var(--ink-soft)">
           Predicted
         </text>
-        <text x={pad.l + 4} y={pad.t + 12} fontSize={11} fill="var(--ink-soft)">
+        <text x={pad.l + 4} y={pad.t + 12} fontSize={12} fill="var(--ink-soft)">
           Observed
         </text>
       </svg>
@@ -199,7 +199,7 @@ export function GroupedBars({
         {y.ticks(4).map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={w - pad.r} y1={y(v)} y2={y(v)} stroke="var(--ice-scratch)" />
-            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-soft)">
+            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={12} fill="var(--ink-soft)">
               {v.toFixed(1)}
             </text>
           </g>
@@ -227,7 +227,7 @@ export function GroupedBars({
                 x={pad.l + g * groupW + groupW / 2}
                 y={h - pad.b + 15}
                 textAnchor="middle"
-                fontSize={11}
+                fontSize={12}
                 fill="var(--ink-soft)"
               >
                 {label.replace(" min", "")}
@@ -235,7 +235,7 @@ export function GroupedBars({
             </g>
           );
         })}
-        <text x={pad.l} y={h - 4} fontSize={11} fill="var(--ink-soft)">
+        <text x={pad.l} y={h - 4} fontSize={12} fill="var(--ink-soft)">
           Minutes played
         </text>
       </svg>

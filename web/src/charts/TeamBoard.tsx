@@ -107,8 +107,12 @@ export function SeasonSeismogram({
   const x = scaleTime()
     .domain([t0, t1])
     .range([pad.l, width - pad.r]);
+  // The axis stops a step above the highest odds, so a team living at 5 to
+  // 10% does not get a flat line along the floor of a 0 to 100% plot.
+  const peak = Math.max(...points.map((p) => p.v));
+  const top = peak > 0.7 ? 1 : peak > 0.45 ? 0.75 : peak > 0.2 ? 0.5 : 0.25;
   const y = scaleLinear()
-    .domain([0, 1])
+    .domain([0, top])
     .range([h - pad.b, pad.t]);
   const path = line<{ t: number; v: number }>()
     .x((p) => x(p.t))
@@ -159,7 +163,14 @@ export function SeasonSeismogram({
         height={h - pad.t - pad.b}
         fill="var(--ice-land)"
       />
-      {[0, 0.25, 0.5, 0.75, 1].map((v) => (
+      {(top === 0.25
+        ? [0, 0.05, 0.1, 0.15, 0.2, 0.25]
+        : top === 0.5
+          ? [0, 0.1, 0.2, 0.3, 0.4, 0.5]
+          : top === 0.75
+            ? [0, 0.25, 0.5, 0.75]
+            : [0, 0.25, 0.5, 0.75, 1]
+      ).map((v) => (
         <g key={v}>
           <line
             x1={pad.l}
@@ -167,9 +178,9 @@ export function SeasonSeismogram({
             y1={y(v)}
             y2={y(v)}
             stroke="var(--ice-scratch)"
-            strokeDasharray={v === 0.5 ? undefined : "2 4"}
+            strokeDasharray={Math.abs(v - 0.5) < 1e-9 ? undefined : "2 4"}
           />
-          <text x={pad.l - 8} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-soft)">
+          <text x={pad.l - 8} y={y(v) + 4} textAnchor="end" fontSize={12} fill="var(--ink-soft)">
             {Math.round(v * 100)}%
           </text>
         </g>
@@ -177,7 +188,7 @@ export function SeasonSeismogram({
       {xticks.map((t) => (
         <g key={t}>
           <line x1={x(t)} x2={x(t)} y1={pad.t} y2={h - pad.b} stroke="var(--ice-scratch)" />
-          <text x={x(t) + 4} y={h - 4} fontSize={11} fill="var(--ink-soft)">
+          <text x={x(t) + 4} y={h - 4} fontSize={12} fill="var(--ink-soft)">
             {fmt(t)}
           </text>
         </g>

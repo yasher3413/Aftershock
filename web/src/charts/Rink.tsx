@@ -86,7 +86,8 @@ export function Rink({ shots, home, width }: { shots: ShotOut[]; home: string; w
         const x = isHome ? sh.x : -sh.x;
         const y = isHome ? sh.y : -sh.y;
         const r = 0.9 + Math.sqrt(sh.xg) * 5.5;
-        const color = isHome ? "var(--ink)" : "var(--blue-line)";
+        // Teams differ by tone, not paint: blue and red mean odds on this site.
+        const color = isHome ? "var(--ink)" : "var(--ink-soft)";
         return (
           <circle
             key={sh.event_id}

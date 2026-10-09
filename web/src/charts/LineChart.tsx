@@ -90,7 +90,7 @@ export function LineChart({
         {ticks.map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={width - pad.r} y1={y(v)} y2={y(v)} stroke="var(--ice-scratch)" />
-            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-soft)">
+            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={12} fill="var(--ink-soft)">
               {formatY ? formatY(v) : `${Math.round(v * 100)}%`}
             </text>
           </g>
@@ -101,7 +101,7 @@ export function LineChart({
             x={x(t)}
             y={height - 6}
             textAnchor="middle"
-            fontSize={11}
+            fontSize={12}
             fill="var(--ink-soft)"
           >
             {fx(+t)}

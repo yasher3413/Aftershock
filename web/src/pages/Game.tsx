@@ -10,7 +10,9 @@ import { useDocumentMeta } from "../lib/meta";
 
 function Ripple({ t }: { t: Tremor }) {
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
-  const shown = t.deltas.filter((d) => Math.abs(d.d_playoffs) >= 0.0005);
+  const moved = t.deltas.filter((d) => Math.abs(d.d_playoffs) >= 0.0005);
+  // The four biggest movers; the tremor page has the rest.
+  const shown = moved.slice(0, 4);
   return (
     <div className="py-3">
       <div className="flex items-baseline gap-3">
@@ -50,6 +52,15 @@ function Ripple({ t }: { t: Tremor }) {
           </li>
         ))}
       </ul>
+      {moved.length > shown.length && (
+        <Link
+          to={`/tremor/${t.id}`}
+          className="mt-1 inline-flex min-h-[32px] items-center text-[12px] font-semibold text-blue-line hover:underline"
+        >
+          {moved.length - shown.length} more {moved.length - shown.length === 1 ? "team" : "teams"}{" "}
+          moved
+        </Link>
+      )}
     </div>
   );
 }
@@ -101,7 +112,7 @@ export default function GamePage() {
   return (
     <div className="w-full">
       <header className="border-b border-ice-scratch bg-ice-land">
-        <div className="mx-auto max-w-5xl px-4 py-7 md:px-6">
+        <div className="mx-auto max-w-6xl px-4 py-7 md:px-6">
           <p className="text-[13px] text-ink/80">
             {new Date(g.start_utc).toLocaleDateString(undefined, {
               weekday: "long",
@@ -144,7 +155,7 @@ export default function GamePage() {
                     className="display text-[28px] font-bold leading-none underline-offset-4 hover:underline"
                   >
                     M{biggest.magnitude.toFixed(1)}{" "}
-                    <span className="text-[16px] font-semibold">
+                    <span className="font-[family-name:var(--font-text)] text-[15px] font-semibold tracking-normal">
                       {biggest.scorer?.name ?? biggest.team},{" "}
                       {periodLabel(biggest.period, biggest.period_type)} {clock(biggest.t_period_s)}
                     </span>
@@ -156,7 +167,7 @@ export default function GamePage() {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-4 pb-12 md:px-6">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-12 md:px-6">
         <div ref={ref}>
           <section className="pt-10" aria-labelledby="wp-h">
             <h2 id="wp-h" className="display mb-4 text-[30px] font-bold">
@@ -179,8 +190,8 @@ export default function GamePage() {
             </h2>
             <p className="mb-3 max-w-[56ch] text-[13px] text-ink-soft">
               <span className="font-semibold text-ink">{g.home}</span> shoots right,{" "}
-              <span className="font-semibold text-blue-line">{g.away}</span> shoots left. Bigger
-              dots were likelier to score; filled dots scored.
+              <span className="font-semibold text-ink-soft">{g.away}</span> shoots left (lighter).
+              Bigger dots were likelier to score; filled dots scored.
             </p>
             <Rink shots={data.shots} home={g.home} width={width} />
           </section>

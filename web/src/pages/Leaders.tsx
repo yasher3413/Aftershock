@@ -147,20 +147,21 @@ function LeaderBoard({
     `${r.player?.name ?? ""} ${r.team}`.toLowerCase().includes(search.trim().toLowerCase()),
   );
   const max = Math.max(...data.rows.map((r) => Math.abs(r.value)), 1e-9);
-  const countLabel =
+  const [one, many] =
     kind === "goalie"
-      ? "goals allowed"
+      ? ["goal allowed", "goals allowed"]
       : kind === "assist"
-        ? "assists"
+        ? ["assist", "assists"]
         : kind === "penalty_cost"
-          ? "penalties"
+          ? ["penalty", "penalties"]
           : kind === "drawn"
-            ? "drawn"
+            ? ["drawn", "drawn"]
             : kind === "giveaway_cost"
-              ? "costly giveaways"
+              ? ["costly giveaway", "costly giveaways"]
               : kind === "plus_minus" || kind === "on_ice"
-                ? "goals on ice"
-                : "goals";
+                ? ["goal on ice", "goals on ice"]
+                : ["goal", "goals"];
+  const countLabel = (n: number) => (n === 1 ? one : many);
   const partial = data.onice_coverage != null && data.onice_coverage < 0.99;
   return (
     <>
@@ -172,7 +173,11 @@ function LeaderBoard({
       )}
       <p role="status" className="mb-3 text-[12px] text-ink-soft">
         {matching.length
-          ? `Showing ${Math.min(visible, matching.length)} of ${matching.length} entries${search.trim() ? " matching your search" : " returned by this board"}. Original ranks are preserved.`
+          ? search.trim()
+            ? `${matching.length} ${matching.length === 1 ? "match" : "matches"}, shown at their place on the full board.`
+            : visible < matching.length
+              ? `Top ${visible} of ${matching.length}.`
+              : `All ${matching.length}.`
           : "No player or team matches your search in this board."}
       </p>
       <ol aria-label={`${name} rankings`} className="divide-y divide-ice-scratch">
@@ -211,7 +216,7 @@ function LeaderBoard({
                     {r.player ? (
                       <Link
                         to={`/player/${r.player.id}?season=${season}`}
-                        className="inline-flex min-h-[24px] items-center underline-offset-4 hover:underline"
+                        className="inline-flex min-h-[44px] items-center underline-offset-4 hover:underline sm:min-h-[24px]"
                       >
                         {r.player.name}
                       </Link>
@@ -225,14 +230,14 @@ function LeaderBoard({
                     {r.player && (
                       <Link
                         to={`/team/${r.team}`}
-                        className="display inline-flex min-h-[24px] items-center gap-1 text-[14px] font-bold text-ink"
+                        className="display inline-flex min-h-[44px] items-center gap-1 text-[14px] font-bold text-ink sm:min-h-[24px]"
                       >
                         <TeamLogo team={r.team} size={16} />
                         {r.team}
                       </Link>
                     )}
                     {r.player ? ", " : ""}
-                    {r.count} {countLabel}
+                    {r.count} {countLabel(r.count)}
                   </span>
                 </span>
               </span>
@@ -241,7 +246,14 @@ function LeaderBoard({
                   className="block h-full"
                   style={{
                     width: `${w}%`,
-                    background: r.value < 0 ? "var(--goal)" : "var(--ink)",
+                    // Only the leader's bar is full ink; the rest stay quiet
+                    // so twenty bars do not outweigh the names.
+                    background:
+                      r.value < 0
+                        ? "color-mix(in srgb, var(--goal) 55%, transparent)"
+                        : r.rank === 1
+                          ? "var(--ink)"
+                          : "color-mix(in srgb, var(--ink) 32%, transparent)",
                   }}
                 />
               </span>
@@ -432,10 +444,10 @@ export default function LeadersPage() {
     "Playoff Probability Added leaders and the biggest goals of the season.",
   );
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6 md:py-12">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="display text-[60px] font-extrabold leading-none sm:text-[80px]">
+          <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">
             Leaders
           </h1>
           <p className="mt-3 max-w-[50ch] text-[15px] text-ink-soft">
@@ -529,7 +541,7 @@ export default function LeadersPage() {
               id="leaders-search-scope"
               className="mt-2 block text-[12px] font-normal text-ink-soft"
             >
-              Search the entries returned for {active.label.toLowerCase()} in {seasonLabel}.
+              Find a player or team in this {seasonLabel} board.
             </span>
           </label>
         )}

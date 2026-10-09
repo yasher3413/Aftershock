@@ -225,7 +225,7 @@ function NightReplay({ date }: { date: string }) {
             <h1 className="display text-[38px] font-bold md:text-[48px]">{longDate(date)}</h1>
             <span
               role="note"
-              className="rounded-[3px] bg-ice-land px-2.5 py-1 text-[12px] font-semibold"
+              className="rounded-[var(--radius)] bg-ice-land px-2.5 py-1 text-[12px] font-semibold"
             >
               Replay
             </span>

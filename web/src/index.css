@@ -70,6 +70,12 @@ select {
   letter-spacing: 0.01em;
 }
 
+/* Display headings run tight (0.95); give the line under them room unless
+   it sets its own spacing. */
+:is(h1, h2, h3).display + p:not([class*="mt-"]) {
+  margin-top: 0.4rem;
+}
+
 .up {
   color: var(--blue-line);
 }
@@ -143,5 +149,29 @@ select {
 
   .night-rail {
     max-height: clamp(420px, calc(100dvh - 330px), 720px);
+  }
+}
+
+/* Walkthrough (tour/Tour.tsx): the sample ring fills as each step opens. */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tour-ring {
+  animation: tour-ring 900ms var(--ease-out) 200ms both;
+}
+
+@keyframes tour-ring {
+  from {
+    stroke-dasharray: var(--ring-from) 999;
+  }
+  to {
+    stroke-dasharray: var(--ring-to) 999;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring {
+    animation: none;
   }
 }

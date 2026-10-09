@@ -25,8 +25,9 @@ function seasonMonths(nights: NightInfo[]): { y: number; m: number }[] {
 }
 
 /**
- * Five intensity classes on a log scale of the night's seismic energy, like a
- * seismic intensity scale. The fills skip the mid-greys where neither dark
+ * Five intensity classes by the night's rank in seismic energy within the
+ * season (quintiles), so the shading spreads across the key instead of
+ * saturating the way a log scale did. The fills skip the mid-greys where neither dark
  * nor light numerals stay readable.
  */
 const LEVELS = [
@@ -37,8 +38,12 @@ const LEVELS = [
   { fill: 100, text: "var(--ice)" },
 ];
 
-function level(energy: number, max: number): (typeof LEVELS)[number] {
-  const f = energy <= 0 || max <= 1 ? 0 : Math.log10(1 + energy) / Math.log10(1 + max);
+function level(energy: number, ranked: number[]): (typeof LEVELS)[number] {
+  if (energy <= 0 || ranked.length === 0) return LEVELS[0]!;
+  // Share of the season's nights quieter than this one.
+  let below = 0;
+  while (below < ranked.length && ranked[below]! < energy) below++;
+  const f = ranked.length > 1 ? below / (ranked.length - 1) : 1;
   return LEVELS[Math.min(LEVELS.length - 1, Math.floor(f * LEVELS.length))]!;
 }
 
@@ -46,12 +51,12 @@ function Month({
   y,
   m,
   byDate,
-  max,
+  ranked,
 }: {
   y: number;
   m: number;
   byDate: Map<string, NightInfo>;
-  max: number;
+  ranked: number[];
 }) {
   const first = new Date(Date.UTC(y, m, 1));
   const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
@@ -85,14 +90,14 @@ function Month({
                 {i + 1}
               </div>
             );
-          const lv = level(n.total_energy, max);
+          const lv = level(n.total_energy, ranked);
           return (
             <Link
               key={date}
               to={`/night/${date}`}
               aria-label={`${longDate(date)}: ${n.n_games} games, ${n.n_tremors} goals`}
               title={`${n.n_games} games, ${n.n_tremors} goals`}
-              className="flex h-10 items-center justify-center rounded-[3px] text-[14px] font-semibold tabular-nums outline-offset-1 hover:ring-2 hover:ring-blue-line"
+              className="flex h-11 items-center justify-center rounded-[var(--radius)] text-[14px] font-semibold tabular-nums outline-offset-1 hover:ring-2 hover:ring-blue-line"
               style={{
                 background: `color-mix(in srgb, var(--ink) ${lv.fill}%, var(--ice))`,
                 color: lv.text,
@@ -117,21 +122,22 @@ function LatestNight({ night }: { night: NightInfo }) {
     <section aria-label="Latest replay" className="min-w-0 bg-surface p-5 md:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="display text-[38px] font-bold">{longDate(night.night_date)}</h2>
-        <span className="rounded-[3px] bg-ice-land px-2.5 py-1 text-[12px] font-semibold">
+        <span className="rounded-[var(--radius)] bg-ice-land px-2.5 py-1 text-[12px] font-semibold">
           Latest replay
         </span>
       </div>
       <p className="mt-3 text-[14px] text-ink-soft">
-        {night.n_games} {night.n_games === 1 ? "game" : "games"} / {night.n_tremors}{" "}
+        {night.n_games} {night.n_games === 1 ? "game" : "games"}, {night.n_tremors}{" "}
         {night.n_tremors === 1 ? "goal" : "goals"}
       </p>
       <h3 className="display mt-5 max-w-[30ch] text-[30px] font-bold leading-[1.1] md:text-[38px]">
         {recap.data?.headline ?? "Every goal. Every shift in the playoff race."}
       </h3>
       {games.length > 0 && (
-        <ul className="mt-6 flex gap-5 overflow-x-auto border-y border-ice-scratch py-4">
+        // Every game, wrapped into rows; a sideways scroll hid most of them.
+        <ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(7.25rem,1fr))] gap-x-6 gap-y-4 border-y border-ice-scratch py-4">
           {games.map((g) => (
-            <li key={g.id} className="shrink-0">
+            <li key={g.id} className="min-w-0">
               <Link to={`/game/${g.id}`} className="block hover:text-blue-line">
                 <div className="display flex items-center gap-2 text-[24px] font-bold">
                   <TeamLogo team={g.away} size={28} />
@@ -170,7 +176,7 @@ export default function NightsPage() {
   useDocumentMeta("Every night", "Replay any night of the last three seasons, goal by goal.");
 
   const byDate = useMemo(() => new Map(nights.map((n) => [n.night_date, n])), [nights]);
-  const max = Math.max(1, ...nights.map((n) => n.total_energy));
+  const ranked = nights.map((n) => n.total_energy).sort((a, b) => a - b);
   const months = seasonMonths(nights);
   const latest = [...nights].sort((a, b) => b.night_date.localeCompare(a.night_date))[0];
   const top = [...nights].sort((a, b) => b.total_energy - a.total_energy).slice(0, 5);
@@ -179,7 +185,9 @@ export default function NightsPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="display text-[60px] font-extrabold leading-none">Every night</h1>
+          <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">
+            Every night
+          </h1>
           <p className="mt-2 max-w-[52ch] text-[14px] text-ink-soft">
             The nights that moved the playoff race. Rewind the goals and watch the shockwaves
             unfold.
@@ -190,7 +198,7 @@ export default function NightsPage() {
             value={season}
             onChange={(e) => setParams({ season: e.target.value })}
             aria-label="Season"
-            className="rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1"
+            className="min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-2"
           >
             {SEASONS.map((s) => (
               <option key={s} value={s}>
@@ -216,11 +224,11 @@ export default function NightsPage() {
               type="date"
               value={jump}
               onChange={(e) => setJump(e.target.value)}
-              className="rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1 text-ink"
+              className="min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 text-ink"
             />
             <button
               type="submit"
-              className="rounded-[var(--radius)] bg-ink px-3 py-1 font-semibold text-ice"
+              className="min-h-[44px] rounded-[var(--radius)] border border-ink px-4 font-semibold text-ink transition-colors hover:bg-ice-land"
             >
               Open
             </button>
@@ -256,7 +264,7 @@ export default function NightsPage() {
                         {longDate(n.night_date)}
                       </span>
                       <span className="mt-1 block text-[13px] text-ink-soft">
-                        {n.n_games} {n.n_games === 1 ? "game" : "games"} / {n.n_tremors}{" "}
+                        {n.n_games} {n.n_games === 1 ? "game" : "games"}, {n.n_tremors}{" "}
                         {n.n_tremors === 1 ? "goal" : "goals"}
                       </span>
                     </div>
@@ -304,7 +312,7 @@ export default function NightsPage() {
               {LEVELS.map((lv) => (
                 <span
                   key={lv.fill}
-                  className="h-4 w-4 rounded-[2px]"
+                  className="h-4 w-4 rounded-[var(--radius)]"
                   aria-hidden
                   style={{ background: `color-mix(in srgb, var(--ink) ${lv.fill}%, var(--ice))` }}
                 />
@@ -314,7 +322,7 @@ export default function NightsPage() {
           </div>
           <div className="mt-6 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
             {months.map(({ y, m }) => (
-              <Month key={`${y}-${m}`} y={y} m={m} byDate={byDate} max={max} />
+              <Month key={`${y}-${m}`} y={y} m={m} byDate={byDate} ranked={ranked} />
             ))}
           </div>
         </section>

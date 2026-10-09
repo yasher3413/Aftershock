@@ -56,8 +56,10 @@ export default function StatusPage() {
     return <div className="p-6">The API is not answering. Check that it is running.</div>;
   const h = data.health;
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6">
-      <h1 className="display text-[48px] font-extrabold leading-none">Pipeline status</h1>
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
+      <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">
+        Pipeline status
+      </h1>
       <p className={`mt-2 text-[15px] ${h.ok ? "" : "down"}`}>
         {h.ok ? "The worker is running." : "The worker's heartbeat is stale or missing."}
       </p>

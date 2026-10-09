@@ -60,7 +60,7 @@ export default function EmbedPage() {
             {arrow(change)} {pp(change)} today
           </div>
         )}
-        <div className="mt-1 text-[11px] text-ink-soft">Aftershock. Data from NHL.com.</div>
+        <div className="mt-1 text-[12px] text-ink-soft">Aftershock. Data from NHL.com.</div>
       </div>
     </a>
   );
