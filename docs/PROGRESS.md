@@ -248,6 +248,13 @@ built from the recording:
   instead of the one before it until the 6 a.m. rollover, and the map's
   team card says "Odds in this replay" during a replay.
 
+- Oct 7 and Oct 9 replays rebuilt on the real clock (2026-10-10): both had
+  only caught-up frames (the laptop slept through Oct 7; Oct 9's live frames
+  carried the wrong odds). `SeasonPrecompute(season, relink=True).run(only=
+  {...}, force=True)` replays the final play-by-play on estimated wall time
+  and links the stored tremors (Oct 9: 152 frames over 3.5 hours). Replays
+  are now cached for minutes, not a day, since they can be rebuilt.
+
 ## Next
 
 1. Watch the first live night on the VM, then stop the laptop worker.
