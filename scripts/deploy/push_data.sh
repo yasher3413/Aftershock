@@ -19,6 +19,14 @@ echo "== Copying the dump and replay bundles to $vm"
 scp "$dump" "$vm:~/aftershock.dump"
 # The containers write data/ as root.
 rsync -az --stats --rsync-path="sudo rsync" data/replays/ "$vm:~/Aftershock/data/replays/"
+# Team ratings are rebuilt from the games table in data/features plus the raw
+# play-by-play of games played since it was built (this season's). Without
+# them the worker rates teams from almost nothing and every odds is wrong.
+echo "== Copying the model inputs (games table and this season's play-by-play)"
+rsync -az --stats --rsync-path="sudo rsync" data/features/ "$vm:~/Aftershock/data/features/"
+season=$(date +%Y); [ "$(date +%m)" -lt 8 ] && season=$((season - 1))
+rsync -az --stats --rsync-path="sudo rsync" --include="${season}*" --exclude="*" \
+  data/raw/play-by-play/ "$vm:~/Aftershock/data/raw/play-by-play/"
 
 echo "== Restoring on the VM (the worker pauses meanwhile)"
 ssh "$vm" 'set -e
