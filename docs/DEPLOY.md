@@ -69,7 +69,11 @@ for model-written recaps, then
 
 ### 5. Copy the data
 
-From your laptop (Postgres running locally on port 55432):
+This copies the database, the replay bundles, and the model inputs the
+worker needs to rate teams: `data/features` (the games table) and this
+season's raw play-by-play. Without the inputs the worker logs
+`ratings.games_table_missing` and every odds is wrong. From your laptop
+(Postgres running locally on port 55432):
 
 ```sh
 scripts/deploy/push_data.sh ubuntu@<IP>

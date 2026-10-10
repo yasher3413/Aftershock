@@ -236,6 +236,18 @@ built from the recording:
   phone in both themes; the detector is clean; 145 Python, 43 web unit and
   41 browser tests pass (9 optional media captures skipped).
 
+- First live night on the VM (2026-10-09) ran with wrong odds. push_data.sh
+  copied the database and replays but not data/features (the games table)
+  or this season's raw play-by-play, and the ratings job quietly fell back
+  to cached summaries, so the VM rated teams from almost no history (TOR
+  42.9% against 7.6%). Fixed: the inputs are on the VM and in
+  push_data.sh, a missing games table logs ratings.games_table_missing, and
+  the VM's 101 sim runs from that window plus Oct 9's tremors, recap and
+  replay were deleted and Oct 9 recomputed with the correct model (23
+  tremors, validated recap). Home now replays the night that just ended
+  instead of the one before it until the 6 a.m. rollover, and the map's
+  team card says "Odds in this replay" during a replay.
+
 ## Next
 
 1. Watch the first live night on the VM, then stop the laptop worker.
