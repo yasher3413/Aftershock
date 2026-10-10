@@ -60,6 +60,10 @@ def all_game_rows(settings: Settings | None = None) -> list[dict[str, Any]]:
         df = load_games_table(XG_VERSION, s)
         rows = list(df.iter_rows(named=True))
     except FileNotFoundError:
+        # Ratings from cached summaries alone cover a sliver of history and
+        # give badly wrong odds; say so loudly (a deployment without
+        # data/features ran a night this way).
+        log.error("ratings.games_table_missing", data_dir=str(s.data_dir))
         rows = []
     rows.extend(_missing_summaries({int(r["game_id"]) for r in rows}, s))
     rows.sort(key=lambda r: (r["start_utc"], r["game_id"]))

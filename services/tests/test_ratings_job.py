@@ -78,3 +78,17 @@ def test_future_back_to_back_is_flagged() -> None:
     ]
     out = {r["game_id"]: r for r in predict_future(engine, games)}  # type: ignore[arg-type]
     assert out[11]["exp_home_goals"] < out[12]["exp_home_goals"]
+
+
+def test_missing_games_table_is_reported(tmp_path: Any) -> None:
+    """A deployment without data/features rated teams from almost nothing
+    and served wrong odds all night; the gap must show in the logs."""
+    from structlog.testing import capture_logs
+
+    from aftershock.config import Settings
+    from aftershock.jobs.ratings import all_game_rows
+
+    with capture_logs() as logs:
+        rows = all_game_rows(Settings(data_dir=tmp_path))
+    assert rows == []
+    assert any(e["event"] == "ratings.games_table_missing" for e in logs)
