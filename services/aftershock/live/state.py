@@ -108,13 +108,15 @@ RECENT_NIGHT_DAYS = 3
 
 
 async def recent_night(session: AsyncSession, night: date) -> ReplayBundle | None:
-    """During the season, the latest completed night before ``night`` (within
-    a few days): replaying last night is more useful than an old one."""
+    """During the season, the latest night with a replay up to ``night``
+    (within a few days). ``night`` itself counts once its games are over and
+    its replay is written: after the last game and before the 6 a.m.
+    rollover, the night that just ended is the one to replay."""
     return (
         await session.execute(
             select(ReplayBundle)
             .where(
-                ReplayBundle.night_date < night,
+                ReplayBundle.night_date <= night,
                 ReplayBundle.night_date >= night - timedelta(days=RECENT_NIGHT_DAYS),
                 ReplayBundle.n_tremors > 0,
             )
