@@ -2,6 +2,7 @@ import { MapKey } from "./MapKey";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useLive } from "../live/store";
+import { useClock } from "../live/clock";
 import { useMyTeam } from "../lib/myTeam";
 import { useDarkScheme, useReducedMotion } from "../lib/useMedia";
 import { announceTremor } from "../lib/announce";
@@ -22,6 +23,7 @@ export function MapView() {
   // (or the card's link) opens it.
   const pointer = useRef("mouse");
   const [pinned, setPinned] = useState(false);
+  const replaying = useClock((s) => s.mode === "replay");
   const navigate = useNavigate();
 
   const teams = useLive((s) => s.teams);
@@ -223,7 +225,11 @@ export function MapView() {
               >
                 <div className="font-semibold">{t.name}</div>
                 <div className="mt-1 flex items-baseline justify-between">
-                  <span className="text-ink-soft">Playoff odds</span>
+                  {/* A replay shows the odds as they were then; the team
+                      page shows them now, so say which this is. */}
+                  <span className="text-ink-soft">
+                    {replaying ? "Odds in this replay" : "Playoff odds"}
+                  </span>
                   <span className="display text-[22px] font-bold">
                     {o ? pct(o.p_playoffs) : ""}
                   </span>
