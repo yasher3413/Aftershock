@@ -327,3 +327,34 @@ def test_render_escapes_page_text() -> None:
     )
     assert "&quot;quoted&quot; &lt;b&gt;" in out and "d &amp; e" in out
     assert 'content="https://aftershock.example/api/og/x.png"' in out
+
+
+async def test_replays_are_cached_briefly(
+    client: Any, db_engine: AsyncEngine, tmp_path: Any
+) -> None:
+    """A night's replay can be rebuilt after the fact (catch-up, repairs), so
+    no cache may hold the old one for a day."""
+    import gzip
+
+    from aftershock.db.models import ReplayBundle
+
+    c, _ = client
+    path = tmp_path / "2026-10-09.json.gz"
+    path.write_bytes(gzip.compress(b'{"frames": []}'))
+    maker = async_sessionmaker(db_engine, expire_on_commit=False)
+    async with maker() as s:
+        s.add(
+            ReplayBundle(
+                night_date=date(2026, 10, 9),
+                season=20262027,
+                path=str(path),
+                total_energy=1.0,
+                n_games=4,
+                n_tremors=23,
+            )
+        )
+        await s.commit()
+    r = await c.get("/api/replay/2026-10-09")
+    assert r.status_code == 200
+    cache = r.headers["cache-control"]
+    assert "max-age=300" in cache and "86400" not in cache.split("stale-while-revalidate")[0]

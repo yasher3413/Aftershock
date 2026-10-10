@@ -343,7 +343,13 @@ async def replay_bundle(night: date, session: Db) -> Response:
     return Response(
         data,
         media_type="application/json",
-        headers={"Content-Encoding": "gzip", "Cache-Control": "public, max-age=86400"},
+        # A night's replay can be rebuilt after the fact (catch-up, repairs),
+        # so caches revalidate within minutes; the CDN may serve its copy
+        # while it fetches the new one.
+        headers={
+            "Content-Encoding": "gzip",
+            "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400",
+        },
     )
 
 
