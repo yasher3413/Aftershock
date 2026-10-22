@@ -29,17 +29,19 @@ export function Bars({ data, width, height = 140, ariaLabel, formatValue, showEv
             >
               <title>{`${d.label}: ${formatValue ? formatValue(d.value) : d.value}`}</title>
             </rect>
-            {i % showEvery === 0 && (
-              <text
-                x={i * bw + bw / 2}
-                y={height - 5}
-                textAnchor="middle"
-                fontSize={12}
-                fill="var(--ink-soft)"
-              >
-                {d.label}
-              </text>
-            )}
+            {i % showEvery === 0 &&
+              // A label centered on an edge bar would be cut off by the frame.
+              (showEvery === 1 || (i * bw + bw / 2 > 12 && i * bw + bw / 2 < width - 12)) && (
+                <text
+                  x={i * bw + bw / 2}
+                  y={height - 5}
+                  textAnchor="middle"
+                  fontSize={12}
+                  fill="var(--ink-soft)"
+                >
+                  {d.label}
+                </text>
+              )}
             {formatValue && data.length <= 8 && (
               <text
                 x={i * bw + bw / 2}
