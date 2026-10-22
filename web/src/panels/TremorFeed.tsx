@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import type { Tremor } from "../api/types.gen";
-import { arrow, periodLabel, clock, pp } from "../lib/format";
+import { arrow, clock, direction, periodLabel, pp } from "../lib/format";
 import { useLive } from "../live/store";
 import { useMyTeam } from "../lib/myTeam";
 
@@ -69,7 +69,16 @@ export function TremorLine({
         </div>
         <div className="mt-0.5 flex flex-wrap gap-x-3 text-[12px] tabular-nums">
           {movers.map((d) => (
-            <span key={d.team} className={d.d_playoffs > 0 ? "up" : "down"}>
+            <span
+              key={d.team}
+              className={
+                direction(d.d_playoffs) === "flat"
+                  ? "text-ink-soft"
+                  : d.d_playoffs > 0
+                    ? "up"
+                    : "down"
+              }
+            >
               {d.team} {arrow(d.d_playoffs)} {pp(d.d_playoffs)}
             </span>
           ))}
