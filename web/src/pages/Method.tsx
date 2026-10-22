@@ -387,7 +387,7 @@ export default function MethodPage() {
             {mag?.top25_march_april_share != null &&
               `The map gets more violent as April approaches, but only at the top: ${f(mag.top25_march_april_share * 100, 0)}% of each season's 25 biggest goals came in March or April, while ${f(mag.april_zero_share * 100, 0)}% of April goals read M0.0 because most races are already settled.`}
           </p>
-          <p>
+          <p className="mt-4">
             Playoff Probability Added (PPA) is how much a goal moved the scoring team's own playoff
             odds, in percentage points. A player's PPA is the sum over his goals. Assists earn the
             goal's full PPA as a separate stat, and a goalie's "PPA allowed" is the damage from
