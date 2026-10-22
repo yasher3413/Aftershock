@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter } from "react-router";
 import { Shell } from "./components/Shell";
 import { RouteError } from "./components/RouteError";
+import { PageLoading } from "./components/PageLoading";
 
 const Home = lazy(() => import("./pages/Home"));
 const Night = lazy(() => import("./pages/Night"));
@@ -17,7 +18,7 @@ const Status = lazy(() => import("./pages/Status"));
 const Embed = lazy(() => import("./pages/Embed"));
 
 function page(node: ReactNode) {
-  return <Suspense fallback={<div className="p-6 text-ink-soft">Loading</div>}>{node}</Suspense>;
+  return <Suspense fallback={<PageLoading label="Loading" />}>{node}</Suspense>;
 }
 
 export const router = createBrowserRouter([

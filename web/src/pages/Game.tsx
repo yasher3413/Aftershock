@@ -7,6 +7,7 @@ import { useWidth } from "../charts/useWidth";
 import { clock, localTime, pct, periodLabel, pp } from "../lib/format";
 import { TeamLogo } from "../components/TeamLogo";
 import { useDocumentMeta } from "../lib/meta";
+import { PageLoading } from "../components/PageLoading";
 
 function Ripple({ t }: { t: Tremor }) {
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
@@ -123,7 +124,7 @@ export default function GamePage() {
         : `Win probability, shots, and every tremor from ${g.away} at ${g.home}.`
       : undefined,
   );
-  if (isLoading) return <div className="p-6 text-ink-soft">Loading the game</div>;
+  if (isLoading) return <PageLoading label="Loading the game" />;
   if (isError || !data || !g) return <div className="p-6">That game is not in the database.</div>;
   const wp = data.wp.map((p) => ({ t: p.t_game_s, v: p.p_home }));
   const markers = data.tremors

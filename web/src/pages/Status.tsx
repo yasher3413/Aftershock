@@ -1,5 +1,6 @@
 import { useStatus } from "../api/client";
 import { useDocumentMeta } from "../lib/meta";
+import { PageLoading } from "../components/PageLoading";
 
 function ago(iso: string | null | undefined): string {
   if (!iso) return "never";
@@ -51,7 +52,7 @@ function SimStrip({ runs }: { runs: Record<string, unknown>[] }) {
 export default function StatusPage() {
   const { data, isLoading, isError } = useStatus();
   useDocumentMeta("Pipeline status");
-  if (isLoading) return <div className="p-6 text-ink-soft">Loading status</div>;
+  if (isLoading) return <PageLoading label="Loading status" />;
   if (isError || !data)
     return <div className="p-6">The API is not answering. Check that it is running.</div>;
   const h = data.health;

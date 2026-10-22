@@ -175,3 +175,31 @@ select {
     animation: none;
   }
 }
+
+/* Full-page loading: hidden briefly so quick loads never flash, then a trace
+   draws across like a seismograph pen. */
+.page-loading {
+  animation: page-loading-in 200ms ease-out 400ms both;
+}
+.page-loading-trace {
+  stroke-dasharray: 200;
+  animation: page-loading-draw 1.6s cubic-bezier(0.16, 1, 0.3, 1) 400ms infinite;
+}
+@keyframes page-loading-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-loading-draw {
+  from {
+    stroke-dashoffset: 200;
+  }
+  to {
+    stroke-dashoffset: -200;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-loading-trace {
+    animation: none;
+  }
+}

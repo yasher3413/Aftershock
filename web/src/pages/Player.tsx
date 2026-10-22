@@ -9,6 +9,7 @@ import { longDate, magnitude, pp } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { seasonLabel } from "../lib/season";
 import { TremorLine } from "../panels/TremorFeed";
+import { PageLoading } from "../components/PageLoading";
 
 const POSITIONS: Record<string, string> = {
   C: "Center",
@@ -108,7 +109,7 @@ export default function PlayerPage() {
       ? `${data.name}: Playoff Probability Added and every goal's effect on the playoff race.`
       : undefined,
   );
-  if (isLoading) return <div className="p-6 text-ink-soft">Loading</div>;
+  if (isLoading) return <PageLoading label="Loading the player" />;
   if (isError || !data)
     return (
       <div className="mx-auto max-w-xl px-4 py-12">

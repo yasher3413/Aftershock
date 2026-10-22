@@ -11,6 +11,7 @@ import { TremorLine } from "../panels/TremorFeed";
 import { Alerts } from "../panels/Alerts";
 import { Headshot } from "../components/Headshot";
 import { seasonOf } from "../lib/season";
+import { PageLoading } from "../components/PageLoading";
 
 const SEED_LABELS: Record<string, string> = {
   div1: "1st in division",
@@ -67,7 +68,7 @@ export default function TeamPage() {
     `/api/og/team/${abbrev}.png`,
   );
 
-  if (isLoading) return <div className="p-6 text-ink-soft">Loading {abbrev}</div>;
+  if (isLoading) return <PageLoading label={`Loading ${abbrev}`} />;
   if (isError || !data)
     return (
       <div className="mx-auto max-w-xl px-4 py-12">

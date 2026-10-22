@@ -7,6 +7,7 @@ import { useDocumentMeta } from "../lib/meta";
 import { MiniMap } from "../map/MiniMap";
 import { Headshot } from "../components/Headshot";
 import { TeamLogo } from "../components/TeamLogo";
+import { PageLoading } from "../components/PageLoading";
 
 export default function TremorPage() {
   const id = useParams().id ?? "";
@@ -22,7 +23,7 @@ export default function TremorPage() {
       : undefined,
     `/api/og/tremor/${id}.png`,
   );
-  if (isLoading) return <div className="p-6 text-ink-soft">Loading the tremor</div>;
+  if (isLoading) return <PageLoading label="Loading the goal" />;
   if (isError || !t) return <div className="p-6">No tremor with that id.</div>;
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
   // Teams the goal barely touched collapse into one line.
