@@ -145,7 +145,7 @@ export default function PlayerPage() {
       ]
     : [
         ["Goals", String(s?.goals ?? 0)],
-        ["PPA (playoff odds added)", pp(s?.ppa ?? 0)],
+        ["Goal PPA", pp(s?.ppa ?? 0)],
         ["Assist PPA", pp(s?.assist_ppa ?? 0)],
         ["On-ice PPA", s?.on_ice_ppa != null ? pp(s.on_ice_ppa) : "-"],
       ];
