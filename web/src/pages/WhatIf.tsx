@@ -378,7 +378,10 @@ export default function WhatIfPage() {
       </div>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">
-        <section aria-label="Games" className="lg:max-h-[75vh] lg:overflow-y-auto lg:pr-2">
+        <section
+          aria-label="Games"
+          className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-2"
+        >
           {/* Same header frame as the forecast's, so the two columns align. */}
           <div className="flex min-h-[56px] flex-wrap items-end border-b-2 border-ink pb-3">
             <h2 className="display text-[30px] font-bold">Pick the results</h2>
@@ -581,7 +584,7 @@ export default function WhatIfPage() {
             </tbody>
           </table>
           <details className="mt-8 border-t border-ice-scratch pt-3">
-            <summary className="display flex min-h-[44px] cursor-pointer items-center text-[24px] font-bold">
+            <summary className="display min-h-[44px] cursor-pointer py-1.5 text-[24px] font-bold">
               Explore a projected playoff bracket
             </summary>
             <p className="mt-2 text-[13px] text-ink-soft">
