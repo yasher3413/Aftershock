@@ -62,7 +62,13 @@ function TonightContext() {
           {!loaded ? null : replaying ? (
             <>
               No games are on, so the map is replaying that night's goals.
-              {next != null && next > 0 && <> Next live game in {duration(next)}.</>}{" "}
+              {next != null && next > 0 && (
+                <>
+                  {next < 90_000
+                    ? " The next live game starts any minute."
+                    : ` Next live game in ${duration(next)}.`}
+                </>
+              )}{" "}
               <Link
                 to="/night/today"
                 className="font-semibold text-blue-line underline-offset-2 hover:underline"

@@ -84,7 +84,9 @@ export function TonightPanel() {
         </h2>
         {!started && list.length > 0 && Number.isFinite(firstStart) && firstStart > now && (
           <span className="text-[13px] text-ink-soft">
-            First puck drop in {duration(firstStart - now)}
+            {firstStart - now < 90_000
+              ? "Puck drop any minute"
+              : `First puck drop in ${duration(firstStart - now)}`}
           </span>
         )}
       </div>
