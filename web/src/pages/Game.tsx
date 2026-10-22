@@ -1,10 +1,10 @@
 import { Link, useParams } from "react-router";
 import { useGame } from "../api/client";
-import type { Tremor } from "../api/types.gen";
+import type { GamePreview, Tremor } from "../api/types.gen";
 import { LineChart } from "../charts/LineChart";
 import { Rink } from "../charts/Rink";
 import { useWidth } from "../charts/useWidth";
-import { clock, localTime, periodLabel, pp } from "../lib/format";
+import { clock, localTime, pct, periodLabel, pp } from "../lib/format";
 import { TeamLogo } from "../components/TeamLogo";
 import { useDocumentMeta } from "../lib/meta";
 
@@ -65,6 +65,51 @@ function Ripple({ t }: { t: Tremor }) {
   );
 }
 
+/** Before puck drop: what the game is worth to each team. */
+function Stakes({ preview }: { preview: GamePreview }) {
+  return (
+    <section className="pt-10" aria-labelledby="stakes-h">
+      <h2 id="stakes-h" className="display text-[30px] font-bold">
+        What's at stake
+      </h2>
+      <p className="max-w-[60ch] text-[13px] text-ink-soft">
+        Each team's playoff odds now, and how far apart they land after a win and after a loss, from
+        the latest simulation of the season.
+      </p>
+      <ul className="mt-4 grid gap-x-10 border-t border-ice-scratch md:grid-cols-2">
+        {preview.stakes.map((s) => (
+          <li key={s.team} className="flex items-center gap-4 border-b border-ice-scratch py-4">
+            <Link to={`/team/${s.team}`} className="flex items-center gap-2">
+              <TeamLogo team={s.team} size={36} />
+              <span className="display text-[30px] font-bold leading-none">{s.team}</span>
+            </Link>
+            <div className="ml-auto text-right">
+              <div className="text-[12px] text-ink-soft">Playoff odds now</div>
+              <div className="display text-[30px] font-bold leading-none tabular-nums">
+                {s.p_playoffs != null ? pct(s.p_playoffs) : "-"}
+              </div>
+            </div>
+            <div className="w-[9.5rem] text-right">
+              <div className="text-[12px] text-ink-soft">A win over a loss</div>
+              <div
+                className={`display text-[30px] font-bold leading-none tabular-nums ${s.swing != null && s.swing > 0 ? "up" : ""}`}
+              >
+                {s.swing != null ? pp(s.swing) : "Too close to call"}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-[13px] text-ink-soft">
+        At puck drop this page follows the game: win probability, shots, and every goal's shockwave.{" "}
+        <Link to="/" className="font-semibold text-blue-line hover:underline">
+          Watch tonight's map
+        </Link>
+      </p>
+    </section>
+  );
+}
+
 export default function GamePage() {
   const id = useParams().id ?? "";
   const { data, isLoading, isError } = useGame(id);
@@ -72,7 +117,11 @@ export default function GamePage() {
   const g = data?.game;
   useDocumentMeta(
     g ? `${g.away} at ${g.home}` : "Game",
-    g ? `Win probability, shots, and every tremor from ${g.away} at ${g.home}.` : undefined,
+    g
+      ? g.state === "FUT" || g.state === "PRE"
+        ? `${g.away} at ${g.home}: projected goals, win chances, and what the game means for the playoff race.`
+        : `Win probability, shots, and every tremor from ${g.away} at ${g.home}.`
+      : undefined,
   );
   if (isLoading) return <div className="p-6 text-ink-soft">Loading the game</div>;
   if (isError || !data || !g) return <div className="p-6">That game is not in the database.</div>;
@@ -94,6 +143,11 @@ export default function GamePage() {
     : g.state === "FUT" || g.state === "PRE"
       ? localTime(g.start_utc)
       : `${periodLabel(g.period, g.period_type)} ${clock(g.clock_seconds)}`;
+  const preview = data.preview;
+  const upcoming = (g.state === "FUT" || g.state === "PRE") && !!preview;
+  const pre = g.pregame;
+  const homeWin = pre ? pre.home_reg + pre.home_ot + pre.home_so : null;
+  const overtime = pre ? pre.home_ot + pre.home_so + pre.away_ot + pre.away_so : null;
   const biggest = [...data.tremors]
     .filter((t) => !t.overturned)
     .sort((a, b) => b.magnitude - a.magnitude)[0];
@@ -104,9 +158,11 @@ export default function GamePage() {
     >
       <TeamLogo team={team} size={56} />
       <span className="display text-[34px] font-bold leading-none md:text-[44px]">{team}</span>
-      <span className="display w-14 text-center text-[56px] font-extrabold leading-none tabular-nums md:text-[72px]">
-        {score ?? "-"}
-      </span>
+      {!upcoming && (
+        <span className="display w-14 text-center text-[56px] font-extrabold leading-none tabular-nums md:text-[72px]">
+          {score ?? "-"}
+        </span>
+      )}
     </Link>
   );
   return (
@@ -132,88 +188,123 @@ export default function GamePage() {
             </div>
             <div className="flex sm:justify-end">{side(g.home, g.home_score, true)}</div>
           </div>
-          <dl className="mt-6 grid grid-cols-2 divide-ice-scratch border-y border-ice-scratch sm:grid-cols-3 sm:divide-x">
-            <div className="py-2 pr-3 sm:first:pl-0">
-              <dt className="text-[12px] text-ink/80">Expected goals</dt>
-              <dd className="display text-[28px] font-bold leading-none tabular-nums">
-                {data.xg_away.toFixed(1)} <span className="text-ink-soft">to</span>{" "}
-                {data.xg_home.toFixed(1)}
-              </dd>
-            </div>
-            <div className="py-2 pr-3 sm:px-3">
-              <dt className="text-[12px] text-ink/80">Shots on goal</dt>
-              <dd className="display text-[28px] font-bold leading-none tabular-nums">
-                {g.away_sog ?? "-"} <span className="text-ink-soft">to</span> {g.home_sog ?? "-"}
-              </dd>
-            </div>
-            {biggest && (
-              <div className="col-span-2 py-2 sm:col-span-1 sm:px-3">
-                <dt className="text-[12px] text-ink/80">Biggest tremor</dt>
-                <dd>
-                  <Link
-                    to={`/tremor/${biggest.id}`}
-                    className="display text-[28px] font-bold leading-none underline-offset-4 hover:underline"
-                  >
-                    M{biggest.magnitude.toFixed(1)}{" "}
-                    <span className="font-[family-name:var(--font-text)] text-[15px] font-semibold tracking-normal">
-                      {biggest.scorer?.name ?? biggest.team},{" "}
-                      {periodLabel(biggest.period, biggest.period_type)} {clock(biggest.t_period_s)}
-                    </span>
-                  </Link>
+          {upcoming && preview ? (
+            <dl className="mt-6 grid grid-cols-2 divide-ice-scratch border-y border-ice-scratch sm:grid-cols-3 sm:divide-x">
+              <div className="py-2 pr-3">
+                <dt className="text-[12px] text-ink/80">Projected goals</dt>
+                <dd className="display text-[28px] font-bold leading-none tabular-nums">
+                  {preview.exp_away_goals.toFixed(1)} <span className="text-ink-soft">to</span>{" "}
+                  {preview.exp_home_goals.toFixed(1)}
                 </dd>
               </div>
-            )}
-          </dl>
+              {homeWin != null && (
+                <div className="order-first col-span-2 py-2 pr-3 sm:order-none sm:col-span-1 sm:px-3">
+                  <dt className="text-[12px] text-ink/80">Win chance</dt>
+                  <dd className="display text-[28px] font-bold leading-none tabular-nums">
+                    {g.away} {pct(1 - homeWin, 0)} <span className="text-ink-soft">to</span>{" "}
+                    {g.home} {pct(homeWin, 0)}
+                  </dd>
+                </div>
+              )}
+              {overtime != null && (
+                <div className="py-2 sm:px-3">
+                  <dt className="text-[12px] text-ink/80">Past regulation</dt>
+                  <dd className="display text-[28px] font-bold leading-none tabular-nums">
+                    {pct(overtime, 0)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          ) : (
+            <dl className="mt-6 grid grid-cols-2 divide-ice-scratch border-y border-ice-scratch sm:grid-cols-3 sm:divide-x">
+              <div className="py-2 pr-3 sm:first:pl-0">
+                <dt className="text-[12px] text-ink/80">Expected goals</dt>
+                <dd className="display text-[28px] font-bold leading-none tabular-nums">
+                  {data.xg_away.toFixed(1)} <span className="text-ink-soft">to</span>{" "}
+                  {data.xg_home.toFixed(1)}
+                </dd>
+              </div>
+              <div className="py-2 pr-3 sm:px-3">
+                <dt className="text-[12px] text-ink/80">Shots on goal</dt>
+                <dd className="display text-[28px] font-bold leading-none tabular-nums">
+                  {g.away_sog ?? "-"} <span className="text-ink-soft">to</span> {g.home_sog ?? "-"}
+                </dd>
+              </div>
+              {biggest && (
+                <div className="col-span-2 py-2 sm:col-span-1 sm:px-3">
+                  <dt className="text-[12px] text-ink/80">Biggest tremor</dt>
+                  <dd>
+                    <Link
+                      to={`/tremor/${biggest.id}`}
+                      className="display text-[28px] font-bold leading-none underline-offset-4 hover:underline"
+                    >
+                      M{biggest.magnitude.toFixed(1)}{" "}
+                      <span className="font-[family-name:var(--font-text)] text-[15px] font-semibold tracking-normal">
+                        {biggest.scorer?.name ?? biggest.team},{" "}
+                        {periodLabel(biggest.period, biggest.period_type)}{" "}
+                        {clock(biggest.t_period_s)}
+                      </span>
+                    </Link>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-6xl px-4 pb-12 md:px-6">
         <div ref={ref}>
-          <section className="pt-10" aria-labelledby="wp-h">
-            <h2 id="wp-h" className="display mb-4 text-[30px] font-bold">
-              {g.home} win probability
-            </h2>
-            <LineChart
-              width={width}
-              height={200}
-              ariaLabel={`${g.home} win probability through the game`}
-              series={[{ name: `${g.home} wins`, color: "var(--ink)", points: wp }]}
-              markers={markers}
-              formatX={(t) => (t >= 3600 ? "OT" : t === 0 ? "Start" : `End of P${t / 1200}`)}
-              xTicks={[0, 1200, 2400, 3600, ...(wp.some((p) => p.t > 3600) ? [3900] : [])]}
-            />
-          </section>
+          {upcoming && preview && <Stakes preview={preview} />}
+          {!upcoming && (
+            <>
+              <section className="pt-10" aria-labelledby="wp-h">
+                <h2 id="wp-h" className="display mb-4 text-[30px] font-bold">
+                  {g.home} win probability
+                </h2>
+                <LineChart
+                  width={width}
+                  height={200}
+                  ariaLabel={`${g.home} win probability through the game`}
+                  series={[{ name: `${g.home} wins`, color: "var(--ink)", points: wp }]}
+                  markers={markers}
+                  formatX={(t) => (t >= 3600 ? "OT" : t === 0 ? "Start" : `End of P${t / 1200}`)}
+                  xTicks={[0, 1200, 2400, 3600, ...(wp.some((p) => p.t > 3600) ? [3900] : [])]}
+                />
+              </section>
 
-          <section className="pt-10" aria-labelledby="shots-h">
-            <h2 id="shots-h" className="display mb-2 text-[30px] font-bold">
-              Shots
-            </h2>
-            <p className="mb-3 max-w-[56ch] text-[13px] text-ink-soft">
-              <span className="font-semibold text-ink">{g.home}</span> shoots right,{" "}
-              <span className="font-semibold text-ink-soft">{g.away}</span> shoots left (lighter).
-              Bigger dots were likelier to score; filled dots scored.
-            </p>
-            <Rink shots={data.shots} home={g.home} width={width} />
-          </section>
+              <section className="pt-10" aria-labelledby="shots-h">
+                <h2 id="shots-h" className="display mb-2 text-[30px] font-bold">
+                  Shots
+                </h2>
+                <p className="mb-3 max-w-[56ch] text-[13px] text-ink-soft">
+                  <span className="font-semibold text-ink">{g.home}</span> shoots right,{" "}
+                  <span className="font-semibold text-ink-soft">{g.away}</span> shoots left
+                  (lighter). Bigger dots were likelier to score; filled dots scored.
+                </p>
+                <Rink shots={data.shots} home={g.home} width={width} />
+              </section>
 
-          <section className="pt-10" aria-labelledby="ripples-h">
-            <h2 id="ripples-h" className="display text-[30px] font-bold">
-              Every goal's ripple
-            </h2>
-            {data.tremors.length > 0 && (
-              <p className="text-[13px] text-ink-soft">
-                Change in each team's playoff odds, in percentage points.
-              </p>
-            )}
-            {data.tremors.length === 0 && (
-              <p className="mt-2 text-[14px] text-ink-soft">No goals yet.</p>
-            )}
-            <div className="divide-y divide-ice-scratch">
-              {data.tremors.map((t) => (
-                <Ripple key={t.id} t={t} />
-              ))}
-            </div>
-          </section>
+              <section className="pt-10" aria-labelledby="ripples-h">
+                <h2 id="ripples-h" className="display text-[30px] font-bold">
+                  Every goal's ripple
+                </h2>
+                {data.tremors.length > 0 && (
+                  <p className="text-[13px] text-ink-soft">
+                    Change in each team's playoff odds, in percentage points.
+                  </p>
+                )}
+                {data.tremors.length === 0 && (
+                  <p className="mt-2 text-[14px] text-ink-soft">No goals yet.</p>
+                )}
+                <div className="divide-y divide-ice-scratch">
+                  {data.tremors.map((t) => (
+                    <Ripple key={t.id} t={t} />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </div>
     </div>
