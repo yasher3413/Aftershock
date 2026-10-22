@@ -34,8 +34,22 @@ function GoalLog({ goals, width }: { goals: Tremor[]; width: number }) {
   const y = scaleLinear()
     .domain([0, 10])
     .range([h - pad.b, pad.t]);
+  // Early in a season a month label alone says nothing; label days instead.
+  const short = t1 - t0 < 86_400_000 * 75;
   const fmt = (t: number) =>
-    new Date(t).toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
+    new Date(t).toLocaleDateString(undefined, {
+      month: "short",
+      day: short ? "numeric" : undefined,
+      timeZone: "UTC",
+    });
+  // Goals on the same night sit side by side instead of on top of each other.
+  const order = goals.map((g, i) => ({ g, i })).sort((a, b) => a.g.t_game_s - b.g.t_game_s);
+  const offset = new Map<number, number>();
+  const perNight = new Map<string, number[]>();
+  for (const { g, i } of order)
+    perNight.set(g.night_date, [...(perNight.get(g.night_date) ?? []), i]);
+  for (const idx of perNight.values())
+    idx.forEach((i, k) => offset.set(i, (k - (idx.length - 1) / 2) * 6));
   const ticks = x
     .ticks(Math.max(2, Math.floor(width / 110)))
     .map(Number)
@@ -60,14 +74,14 @@ function GoalLog({ goals, width }: { goals: Tremor[]; width: number }) {
       ))}
       <line x1={pad.l} x2={width - pad.r} y1={y(0)} y2={y(0)} stroke="var(--ink)" />
       {goals.map((g, i) => {
-        const gx = x(times[i]!);
+        const gx = x(times[i]!) + (offset.get(i) ?? 0);
         return (
           <Link
             key={g.id}
             to={`/tremor/${g.id}`}
             aria-label={`${longDate(g.night_date)}, magnitude ${magnitude(g.magnitude)}, ${pp(g.ppa)} for ${g.team}`}
           >
-            <rect x={gx - 6} y={pad.t} width={12} height={h - pad.t - pad.b} fill="transparent" />
+            <rect x={gx - 3} y={pad.t} width={6} height={h - pad.t - pad.b} fill="transparent" />
             <line
               x1={gx}
               x2={gx}
