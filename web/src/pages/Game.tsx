@@ -267,9 +267,17 @@ export default function GamePage() {
                   width={width}
                   height={200}
                   ariaLabel={`${g.home} win probability through the game`}
-                  series={[{ name: `${g.home} wins`, color: "var(--ink)", points: wp }]}
+                  series={[{ name: `${g.home} win chance`, color: "var(--ink)", points: wp }]}
                   markers={markers}
-                  formatX={(t) => (t >= 3600 ? "OT" : t === 0 ? "Start" : `End of P${t / 1200}`)}
+                  formatX={(t) => {
+                    const ot = wp.some((p) => p.t > 3600);
+                    if (t === 0) return "Start";
+                    if (t === 3600) return ot ? "OT" : "Final";
+                    if (t < 3600 && t % 1200 === 0) return `End of P${t / 1200}`;
+                    // Hover readout: the game clock at that moment.
+                    if (t > 3600) return `OT ${clock(t - 3600)}`;
+                    return `${periodLabel(Math.floor(t / 1200) + 1)} ${clock(t % 1200)}`;
+                  }}
                   xTicks={[0, 1200, 2400, 3600, ...(wp.some((p) => p.t > 3600) ? [3900] : [])]}
                 />
               </section>
