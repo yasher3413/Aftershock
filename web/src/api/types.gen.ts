@@ -51,6 +51,7 @@ export interface EnergyPoint {
  */
 export interface GameResponse {
   game: GameSummary;
+  preview: GamePreview | null;
   shots: ShotOut[];
   tremors: Tremor[];
   wp: WpPoint[];
@@ -95,6 +96,26 @@ export interface SixWay {
   home_ot: number;
   home_reg: number;
   home_so: number;
+}
+/**
+ * Before puck drop: the model's projection instead of empty stats.
+ *
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "GamePreview".
+ */
+export interface GamePreview {
+  exp_away_goals: number;
+  exp_home_goals: number;
+  stakes: GameStake[];
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "GameStake".
+ */
+export interface GameStake {
+  p_playoffs: number | null;
+  swing: number | null;
+  team: string;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema

@@ -326,6 +326,22 @@ class ShotOut(Model):
     shot_type: str | None = None
 
 
+class GameStake(Model):
+    team: str
+    p_playoffs: Prob | None = None
+    # P(playoffs | this team wins) - P(playoffs | it loses); None when the
+    # simulation cannot tell the two apart.
+    swing: float | None = None
+
+
+class GamePreview(Model):
+    """Before puck drop: the model's projection instead of empty stats."""
+
+    exp_home_goals: float
+    exp_away_goals: float
+    stakes: list[GameStake]
+
+
 class GameResponse(Model):
     game: GameSummary
     wp: list[WpPoint]
@@ -333,6 +349,7 @@ class GameResponse(Model):
     xg_home: float
     xg_away: float
     tremors: list[Tremor]
+    preview: GamePreview | None = None
 
 
 class TremorPage(Model):

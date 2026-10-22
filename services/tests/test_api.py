@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 import pytest
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from starlette.testclient import TestClient
 
@@ -358,3 +358,73 @@ async def test_replays_are_cached_briefly(
     assert r.status_code == 200
     cache = r.headers["cache-control"]
     assert "max-age=300" in cache and "86400" not in cache.split("stale-while-revalidate")[0]
+
+
+async def test_upcoming_game_has_a_preview(client: Any, db_engine: AsyncEngine) -> None:
+    """Before puck drop there are no shots to measure, so the game page shows
+    the model's projected goals and what the game is worth to each team
+    instead of zeros."""
+    from aftershock.db.models import GamePregame, RootingGuide
+
+    c, _ = client
+    maker = async_sessionmaker(db_engine, expire_on_commit=False)
+    async with maker() as s:
+        s.add(
+            Game(
+                id=2026020150,
+                season=20262027,
+                game_type=2,
+                night_date=date(2026, 10, 22),
+                start_utc=datetime(2026, 10, 22, 23, 0, tzinfo=UTC),
+                home="TOR",
+                away="NYI",
+                venue="Scotiabank Arena",
+                state="FUT",
+            )
+        )
+        s.add(
+            GamePregame(
+                game_id=2026020150,
+                p_home_reg=0.46,
+                p_away_reg=0.31,
+                p_home_ot=0.08,
+                p_away_ot=0.07,
+                p_home_so=0.04,
+                p_away_so=0.04,
+                exp_home_goals=3.1,
+                exp_away_goals=2.6,
+                model_version="test",
+            )
+        )
+        run_id = (await s.execute(select(SimRun.id).order_by(SimRun.id.desc()))).scalars().first()
+        line = {
+            "game_id": 2026020150,
+            "start_utc": "2026-10-22T23:00:00Z",
+            "home": "TOR",
+            "away": "NYI",
+            "involves_team": True,
+            "stderr": 0.003,
+            "root_for": "TOR",
+            "best_outcome": "home_reg",
+            "best_outcome_p": 0.6,
+            "worst_outcome": "away_reg",
+            "worst_outcome_p": 0.5,
+        }
+        # Impact is P(playoffs | home wins) - P(playoffs | away wins).
+        s.add(
+            RootingGuide(sim_run_id=run_id, team="TOR", data={"lines": [{**line, "impact": 0.031}]})
+        )
+        s.add(
+            RootingGuide(
+                sim_run_id=run_id, team="NYI", data={"lines": [{**line, "impact": -0.024}]}
+            )
+        )
+        await s.commit()
+    body = (await c.get("/api/games/2026020150")).json()
+    p = body["preview"]
+    assert p["exp_home_goals"] == 3.1 and p["exp_away_goals"] == 2.6
+    stakes = {x["team"]: x for x in p["stakes"]}
+    assert stakes["TOR"]["swing"] == 0.031 and stakes["NYI"]["swing"] == 0.024
+    assert stakes["TOR"]["p_playoffs"] == 0.6
+    # A game under way has no preview.
+    assert (await c.get("/api/games/2026020008")).json()["preview"] is None

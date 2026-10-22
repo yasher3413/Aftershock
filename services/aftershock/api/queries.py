@@ -419,6 +419,34 @@ async def game_page(session: AsyncSession, game_id: int) -> S.GameResponse | Non
         xg_home=xg.get(g.home, 0.0),
         xg_away=xg.get(g.away, 0.0),
         tremors=await tremors_out(session, trem),
+        preview=await game_preview(session, g, pg) if g.state in ("FUT", "PRE") else None,
+    )
+
+
+async def game_preview(
+    session: AsyncSession, g: Game, pg: GamePregame | None
+) -> S.GamePreview | None:
+    """Projected goals and what the game is worth to each team, from the
+    latest simulation run (its rooting guide holds each team's playoff odds
+    conditional on this game's result)."""
+    if pg is None:
+        return None
+    run = await latest_run(session, g.season)
+    stakes = []
+    for team in (g.away, g.home):
+        odds = await session.get(TeamOdds, (run.id, team)) if run else None
+        guide = await session.get(RootingGuide, (run.id, team)) if run else None
+        line = next(
+            (r for r in (guide.data.get("lines", []) if guide else []) if r["game_id"] == g.id),
+            None,
+        )
+        # Impact is home-win minus away-win; flip it for the away team.
+        swing = None if line is None else line["impact"] * (1 if team == g.home else -1)
+        stakes.append(
+            S.GameStake(team=team, p_playoffs=odds.p_playoffs if odds else None, swing=swing)
+        )
+    return S.GamePreview(
+        exp_home_goals=pg.exp_home_goals, exp_away_goals=pg.exp_away_goals, stakes=stakes
     )
 
 

@@ -170,10 +170,48 @@
       "title": "EventMsg",
       "type": "object"
     },
+    "GamePreview": {
+      "description": "Before puck drop: the model's projection instead of empty stats.",
+      "properties": {
+        "exp_away_goals": {
+          "title": "Exp Away Goals",
+          "type": "number"
+        },
+        "exp_home_goals": {
+          "title": "Exp Home Goals",
+          "type": "number"
+        },
+        "stakes": {
+          "items": {
+            "$ref": "#/$defs/GameStake"
+          },
+          "title": "Stakes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "exp_home_goals",
+        "exp_away_goals",
+        "stakes"
+      ],
+      "title": "GamePreview",
+      "type": "object"
+    },
     "GameResponse": {
       "properties": {
         "game": {
           "$ref": "#/$defs/GameSummary"
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GamePreview"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "shots": {
           "items": {
@@ -211,9 +249,51 @@
         "shots",
         "xg_home",
         "xg_away",
-        "tremors"
+        "tremors",
+        "preview"
       ],
       "title": "GameResponse",
+      "type": "object"
+    },
+    "GameStake": {
+      "properties": {
+        "p_playoffs": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Playoffs"
+        },
+        "swing": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Swing"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "p_playoffs",
+        "swing"
+      ],
+      "title": "GameStake",
       "type": "object"
     },
     "GameSummary": {
