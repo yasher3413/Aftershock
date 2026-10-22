@@ -516,7 +516,9 @@ export default function LeadersPage() {
               ? `${SEASONS[0]!.label} current season only`
               : tab === "energy"
                 ? "Three-season comparison"
-                : `${seasonLabel}${season === SEASONS[0]!.id ? " current season" : " selected season"}`}
+                : season === SEASONS[0]!.id
+                  ? null
+                  : `${seasonLabel} season`}
           </p>
         </div>
         <p className="mt-3 max-w-[70ch] text-[14px] text-ink-soft">{active.blurb}</p>
@@ -534,15 +536,8 @@ export default function LeadersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Player name or team code"
-              aria-describedby="leaders-search-scope"
               className="mt-2 block min-h-[44px] w-full rounded-[var(--radius)] border border-ice-scratch bg-surface px-3 text-[15px] text-ink"
             />
-            <span
-              id="leaders-search-scope"
-              className="mt-2 block text-[12px] font-normal text-ink-soft"
-            >
-              Find a player or team in this {seasonLabel} board.
-            </span>
           </label>
         )}
         <div className="mt-5">
