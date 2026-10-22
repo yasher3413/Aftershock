@@ -7,7 +7,8 @@ function ago(iso: string | null | undefined): string {
   const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
   if (s < 90) return `${s} s ago`;
   if (s < 5400) return `${Math.round(s / 60)} min ago`;
-  return `${Math.round(s / 3600)} h ago`;
+  if (s < 172800) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
 }
 
 /** Every recent run as a bar, oldest to newest; taller took longer. */
