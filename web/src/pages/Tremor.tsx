@@ -82,9 +82,13 @@ export default function TremorPage() {
               ) : (
                 "Goal"
               )}{" "}
-              <span className="inline-flex items-center gap-1 align-middle text-ink-soft">
-                <TeamLogo team={t.team} size={26} />({t.team})
-              </span>
+              <Link
+                to={`/team/${t.team}`}
+                className="display ml-1 inline-flex items-center gap-1 align-middle text-[22px] font-bold text-ink-soft hover:text-ink"
+              >
+                <TeamLogo team={t.team} size={22} />
+                {t.team}
+              </Link>
             </span>
           </h1>
           <p className="mt-1 text-[15px]">
