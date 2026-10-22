@@ -12,6 +12,8 @@ import { Alerts } from "../panels/Alerts";
 import { Headshot } from "../components/Headshot";
 import { seasonOf } from "../lib/season";
 import { PageLoading } from "../components/PageLoading";
+import { teamTickColor } from "../lib/teamColor";
+import { useDarkScheme } from "../lib/useMedia";
 
 const SEED_LABELS: Record<string, string> = {
   div1: "1st in division",
@@ -58,6 +60,7 @@ function Section({
 export default function TeamPage() {
   const abbrev = (useParams().abbrev ?? "").toUpperCase();
   const { data, isLoading, isError } = useTeam(abbrev);
+  const dark = useDarkScheme();
   const [ref, width] = useWidth<HTMLDivElement>(720);
   const { team: myTeam, setTeam } = useMyTeam();
   useDocumentMeta(
@@ -122,10 +125,16 @@ export default function TeamPage() {
     <div className="w-full">
       <header
         className="border-b border-ice-scratch bg-ice-land"
-        style={{ borderTop: `3px solid ${t.color_primary}` }}
+        style={{
+          borderTop: `3px solid ${teamTickColor(t.color_primary, t.color_secondary, dark)}`,
+        }}
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center md:px-6">
-          <TeamRing code={abbrev} odds={o?.p_playoffs ?? null} color={t.color_primary} />
+          <TeamRing
+            code={abbrev}
+            odds={o?.p_playoffs ?? null}
+            color={teamTickColor(t.color_primary, t.color_secondary, dark)}
+          />
           <div className="min-w-0 flex-1">
             <h1 className="display text-[38px] font-extrabold leading-[0.95] md:text-[60px]">
               {t.name}

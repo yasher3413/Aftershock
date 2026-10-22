@@ -10,6 +10,7 @@ import { arrow, clock, pct, periodLabel, pp } from "../lib/format";
 import { MapController, type MapLayout } from "./controller";
 import { TeamLogo } from "../components/TeamLogo";
 import type { GameSummary } from "../api/types.gen";
+import { teamTickColor } from "../lib/teamColor";
 
 const LIVE = new Set(["LIVE", "CRIT"]);
 
@@ -60,9 +61,14 @@ export function MapView() {
   useEffect(() => {
     if (!ready || !ctrl.current) return;
     ctrl.current.setTeams(
-      teamList.map((t) => ({ abbrev: t.abbrev, lat: t.lat, lon: t.lon, color: t.color_primary })),
+      teamList.map((t) => ({
+        abbrev: t.abbrev,
+        lat: t.lat,
+        lon: t.lon,
+        color: teamTickColor(t.color_primary, t.color_secondary, dark),
+      })),
     );
-  }, [ready, teamList]);
+  }, [ready, teamList, dark]);
 
   useEffect(() => {
     if (ctrl.current) ctrl.current.reducedMotion = reduced;
