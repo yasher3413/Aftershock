@@ -7,6 +7,7 @@ import { StandingsPanel } from "../panels/StandingsPanel";
 import { TremorFeed } from "../panels/TremorFeed";
 import { MyTeamPicker } from "../panels/MyTeamPicker";
 import { ConnectionNote } from "../panels/ConnectionNote";
+import { PageLoading } from "../components/PageLoading";
 import { RecapCard } from "../panels/RecapCard";
 import { useLiveBootstrap } from "../live/bootstrap";
 import { Tour } from "../tour/Tour";
@@ -165,9 +166,7 @@ export default function HomePage() {
           ) : loaded ? (
             <MapView />
           ) : (
-            <div role="status" className="p-6 text-ink-soft">
-              Loading the league
-            </div>
+            <PageLoading label="Loading the league" />
           )}
         </div>
         {wide ? (
@@ -175,12 +174,16 @@ export default function HomePage() {
             className="w-[440px] shrink-0 overflow-y-auto border-l border-ice-scratch"
             aria-label="Tonight, standings, and tremors"
           >
-            <div className="divide-y divide-ice-scratch">
-              <TonightPanel />
-              <TremorFeed limit={6} />
-              <StandingsPanel />
-              <RecapCard />
-            </div>
+            {/* Until the league snapshot lands, the panels' empty states
+                ("No games tonight") would be false, so they wait for it. */}
+            {loaded && (
+              <div className="divide-y divide-ice-scratch">
+                <TonightPanel />
+                <TremorFeed limit={6} />
+                <StandingsPanel />
+                <RecapCard />
+              </div>
+            )}
           </aside>
         ) : (
           <Seismograph />
@@ -227,14 +230,14 @@ export default function HomePage() {
             ))}
           </div>
           <div id="home-panel" role="tabpanel" aria-labelledby={`home-tab-${tab}`} className="pb-4">
-            {tab === "Tonight" && (
+            {loaded && tab === "Tonight" && (
               <>
                 <TonightPanel />
                 <RecapCard />
               </>
             )}
-            {tab === "Standings" && <StandingsPanel />}
-            {tab === "Tremors" && <TremorFeed />}
+            {loaded && tab === "Standings" && <StandingsPanel />}
+            {loaded && tab === "Tremors" && <TremorFeed />}
           </div>
         </section>
       )}
