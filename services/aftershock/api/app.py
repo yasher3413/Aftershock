@@ -125,7 +125,9 @@ async def page(path: str, session: Db, request: Request) -> Response:
         body,
         status_code=200 if meta.found else 404,
         media_type="text/html",
-        headers={"Cache-Control": "public, max-age=60"},
+        # After a minute the CDN serves its copy while it fetches a new one,
+        # so no visitor waits on the round trip to this server.
+        headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=600"},
     )
 
 
