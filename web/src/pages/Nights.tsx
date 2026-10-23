@@ -118,6 +118,8 @@ function LatestNight({ night }: { night: NightInfo }) {
     queryKey: ["games", night.night_date],
     queryFn: () => api<GameSummary[]>(`/games?date=${night.night_date}`),
   });
+  // The recap's opening paragraph: what happened, before the scores.
+  const lede = recap.data?.body.split(/\n\s*\n/)[0]?.trim();
   return (
     <section aria-label="Latest replay" className="min-w-0 bg-surface p-5 md:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -133,6 +135,11 @@ function LatestNight({ night }: { night: NightInfo }) {
       <h3 className="display mt-5 max-w-[30ch] text-[30px] font-bold leading-[1.1] md:text-[38px]">
         {recap.data?.headline ?? "Every goal. Every shift in the playoff race."}
       </h3>
+      {lede && (
+        <p className="mt-3 line-clamp-3 max-w-[62ch] text-[15px] leading-relaxed text-ink/80">
+          {lede}
+        </p>
+      )}
       {games.length > 0 && (
         // Every game, wrapped into rows; a sideways scroll hid most of them.
         <ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(7.25rem,1fr))] gap-x-6 gap-y-4 border-y border-ice-scratch py-4">
