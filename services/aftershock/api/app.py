@@ -121,7 +121,12 @@ async def page(path: str, session: Db, request: Request) -> Response:
         raise HTTPException(503, "index.html is not available")
     meta = await page_meta(session, path)
     body = render(template, meta, settings.public_base_url, "/" + path.strip("/"))
-    return Response(body, media_type="text/html", headers={"Cache-Control": "public, max-age=60"})
+    return Response(
+        body,
+        status_code=200 if meta.found else 404,
+        media_type="text/html",
+        headers={"Cache-Control": "public, max-age=60"},
+    )
 
 
 def current_season(now: datetime | None = None) -> int:

@@ -63,6 +63,10 @@ class PageMeta:
     title: str
     description: str
     image: str | None = None  # path under the site, made absolute on render
+    found: bool = True  # False sends a 404, so search engines skip dead addresses
+
+
+NOT_FOUND = PageMeta(SITE, TAGLINE, found=False)
 
 
 def _pct(p: float) -> str:
@@ -71,6 +75,8 @@ def _pct(p: float) -> str:
 
 async def page_meta(session: AsyncSession, path: str) -> PageMeta:
     path = "/" + path.strip("/")
+    if re.fullmatch(r"/embed/[A-Za-z]{3}", path):
+        return PageMeta(SITE, TAGLINE)
     if path in STATIC:
         title, desc_ = STATIC[path]
         return PageMeta(f"{title} | {SITE}", desc_)
@@ -86,7 +92,7 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
         abbrev = m.group(1).upper()
         team = await session.get(Team, abbrev)
         if team is None:
-            return PageMeta(SITE, TAGLINE)
+            return NOT_FOUND
         odds = (
             await session.execute(
                 text(
@@ -105,7 +111,7 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
     if m := re.fullmatch(r"/tremor/(\d+)", path):
         t = await session.get(Tremor, int(m.group(1)))
         if t is None:
-            return PageMeta(SITE, TAGLINE)
+            return NOT_FOUND
         scorer = await session.scalar(
             text("SELECT name FROM players WHERE id = :p"), {"p": t.scorer_id}
         )
@@ -117,7 +123,10 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
             f"/api/og/tremor/{t.id}.png",
         )
     if m := re.fullmatch(r"/night/(\d{4}-\d{2}-\d{2})", path):
-        night = date.fromisoformat(m.group(1))
+        try:
+            night = date.fromisoformat(m.group(1))
+        except ValueError:
+            return NOT_FOUND
         label = night.strftime("%B %-d, %Y")
         return PageMeta(
             f"{label}: every goal, replayed | {SITE}",
@@ -127,7 +136,7 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
     if m := re.fullmatch(r"/game/(\d+)", path):
         g = await session.get(Game, int(m.group(1)))
         if g is None:
-            return PageMeta(SITE, TAGLINE)
+            return NOT_FOUND
         score = (
             f"{g.away} {g.away_score}, {g.home} {g.home_score}"
             if g.home_score is not None
@@ -149,7 +158,7 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
                 f"{name}: every goal's effect on the NHL playoff race, plus discipline "
                 "and defense.",
             )
-    return PageMeta(SITE, TAGLINE)
+    return NOT_FOUND
 
 
 def render(template: str, meta: PageMeta, base_url: str, path: str) -> str:

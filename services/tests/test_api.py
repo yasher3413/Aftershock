@@ -290,8 +290,13 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
     leaders = (await c.get("/page/leaders")).text
     assert "<title>Leaders | Aftershock</title>" in leaders
     assert 'name="twitter:card" content="summary"' in leaders
-    unknown = (await c.get("/page/nope")).text
-    assert "<title>Aftershock</title>" in unknown
+    # Unknown addresses still get the app (which shows its own "Nothing here"),
+    # but with a 404 so search engines drop them.
+    for dead in ("/page/nope", "/page/team/xyz", "/page/player/999", "/page/night/2026-13-40"):
+        r = await c.get(dead)
+        assert r.status_code == 404, dead
+        assert "<title>Aftershock</title>" in r.text
+    assert (await c.get("/page/embed/TOR")).status_code == 200
     pages._template.clear()
 
 
