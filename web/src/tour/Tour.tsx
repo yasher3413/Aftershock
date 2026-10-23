@@ -162,6 +162,16 @@ function RingSample() {
   );
 }
 
+/** True when the target is on the page and laid out, on screen or not. A
+ * step is skipped only when this is false (a hidden panel), never merely
+ * because the target is scrolled out of view. */
+function present(target: string): boolean {
+  const el = document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.width >= 4 && r.height >= 4;
+}
+
 function measure(target: string | undefined): Box | null {
   if (!target) return null;
   const el = document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
@@ -240,7 +250,7 @@ export function Tour() {
     if (!open || !current) return;
     const dir = step >= prevStep.current ? 1 : -1;
     prevStep.current = step;
-    if (current.target && !measure(current.target)) {
+    if (current.target && !present(current.target)) {
       const next = step + dir;
       if (next >= 0 && next < steps.length) go(next);
       else close();
