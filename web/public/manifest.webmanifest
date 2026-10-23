@@ -1,0 +1,14 @@
+{
+  "name": "Aftershock",
+  "short_name": "Aftershock",
+  "description": "Every goal in the NHL is an earthquake. See how far it travels.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef3f6",
+  "theme_color": "#eef3f6",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
