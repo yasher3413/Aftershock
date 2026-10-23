@@ -51,6 +51,15 @@ function GoalLog({ goals, width }: { goals: Tremor[]; width: number }) {
     perNight.set(g.night_date, [...(perNight.get(g.night_date) ?? []), i]);
   for (const idx of perNight.values())
     idx.forEach((i, k) => offset.set(i, (k - (idx.length - 1) / 2) * 6));
+  const xs = goals.map((_, i) => x(times[i]!) + (offset.get(i) ?? 0));
+  // Each bar's tap area reaches halfway to its neighbors, up to 12 px a side.
+  const sorted = [...xs].sort((a, b) => a - b);
+  const hit = xs.map((gx) => {
+    const k = sorted.indexOf(gx);
+    const left = k > 0 ? Math.min(12, (gx - sorted[k - 1]!) / 2) : 12;
+    const right = k < sorted.length - 1 ? Math.min(12, (sorted[k + 1]! - gx) / 2) : 12;
+    return { x: gx - Math.max(left, 1.5), w: Math.max(left, 1.5) + Math.max(right, 1.5) };
+  });
   const ticks = x
     .ticks(Math.max(2, Math.floor(width / 110)))
     .map(Number)
@@ -75,14 +84,20 @@ function GoalLog({ goals, width }: { goals: Tremor[]; width: number }) {
       ))}
       <line x1={pad.l} x2={width - pad.r} y1={y(0)} y2={y(0)} stroke="var(--ink)" />
       {goals.map((g, i) => {
-        const gx = x(times[i]!) + (offset.get(i) ?? 0);
+        const gx = xs[i]!;
         return (
           <Link
             key={g.id}
             to={`/tremor/${g.id}`}
             aria-label={`${longDate(g.night_date)}, magnitude ${magnitude(g.magnitude)}, ${pp(g.ppa)} for ${g.team}`}
           >
-            <rect x={gx - 3} y={pad.t} width={6} height={h - pad.t - pad.b} fill="transparent" />
+            <rect
+              x={hit[i]!.x}
+              y={pad.t}
+              width={hit[i]!.w}
+              height={h - pad.t - pad.b}
+              fill="transparent"
+            />
             <line
               x1={gx}
               x2={gx}
