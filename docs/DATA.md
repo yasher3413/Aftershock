@@ -1,6 +1,6 @@
 # Data
 
-Aftershock reads the NHL's public web API at `https://api-web.nhle.com/v1`.
+Puckquake reads the NHL's public web API at `https://api-web.nhle.com/v1`.
 The API is unofficial and undocumented. Everything below was observed by
 hitting the real endpoints in September 2026 (2026-27 opening week) and by
 scanning the cached play-by-play of every game since 2015-16 with
@@ -9,10 +9,10 @@ scanning the cached play-by-play of every game since 2015-16 with
 ## Legal and attribution
 
 - NHL data belongs to the NHL. The API is not an officially supported
-  product, and Aftershock is not affiliated with or endorsed by the NHL.
+  product, and Puckquake is not affiliated with or endorsed by the NHL.
 - Every page footer carries the source and a trademark notice: "Data from
   NHL.com. NHL and team logos and marks, and player photos, are the property
-  of the NHL and its teams. Aftershock is not affiliated with, endorsed by,
+  of the NHL and its teams. Puckquake is not affiliated with, endorsed by,
   or sponsored by the NHL or any team."
 - Team logos and player headshots are loaded by the browser from the NHL's
   public asset server (`assets.nhle.com`) and never copied into this

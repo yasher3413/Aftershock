@@ -32,7 +32,7 @@ GOAL = "#c8102e"
 BLUE = "#0b4fa8"
 DISPLAY = "Big Shoulders Display"
 TEXT = "Overpass"
-ATTRIBUTION = "Data from NHL.com. Aftershock is not affiliated with or endorsed by the NHL."
+ATTRIBUTION = "Data from NHL.com. Puckquake is not affiliated with or endorsed by the NHL."
 
 
 class CairoUnavailable(RuntimeError):
@@ -212,7 +212,7 @@ def tremor_og(t: S.Tremor, teams: list[S.TeamInfo]) -> str:
         parts.append(_text(140, y, _pp(d.d_playoffs), 26, fill=BLUE if d.d_playoffs > 0 else GOAL))
         y += 36
     parts.append(_mini_map(t, teams, 560, 100, 600, 470))
-    parts.append(_text(1140, 88, "Aftershock", 40, family=DISPLAY, weight=800, anchor="end"))
+    parts.append(_text(1140, 88, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"))
     parts.append(_text(1140, 605, ATTRIBUTION, 15, fill=INK_SOFT, anchor="end"))
     return _svg(w, h, "".join(parts))
 
@@ -221,7 +221,7 @@ def tremor_card(t: S.Tremor, teams: list[S.TeamInfo]) -> str:
     w, h = 1080, 1350
     who, line = _headline(t)
     parts = [
-        _text(70, 110, "Aftershock", 52, family=DISPLAY, weight=800),
+        _text(70, 110, "Puckquake", 52, family=DISPLAY, weight=800),
         _text(70, 160, f"{t.night_date:%B %-d, %Y}", 30, fill=INK_SOFT),
         _text(60, 400, f"{t.magnitude:.1f}", 260, family=DISPLAY, weight=800, fill=GOAL),
         _text(70, 450, "Magnitude", 30, fill=INK_SOFT),
@@ -270,7 +270,7 @@ def team_og(team: S.TeamInfo, odds: S.TeamOdds | None) -> str:
                 fill=INK_SOFT,
             ),
         ]
-    parts.append(_text(1140, 590, "Aftershock", 40, family=DISPLAY, weight=800, anchor="end"))
+    parts.append(_text(1140, 590, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"))
     parts.append(_text(60, 600, ATTRIBUTION, 15, fill=INK_SOFT))
     return _svg(w, h, "".join(parts))
 
@@ -288,6 +288,6 @@ def night_og(night: Any, tremors: list[S.Tremor], n_games: int) -> str:
         parts.append(_text(190, y - 10, f"{who} ({t.team})", 32, weight=600))
         parts.append(_text(190, y + 22, f"{t.team} playoff odds {_pp(t.ppa)}", 24, fill=INK_SOFT))
         y += 80
-    parts.append(_text(1140, 590, "Aftershock", 40, family=DISPLAY, weight=800, anchor="end"))
+    parts.append(_text(1140, 590, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"))
     parts.append(_text(60, 600, ATTRIBUTION, 15, fill=INK_SOFT))
     return _svg(w, h, "".join(parts))

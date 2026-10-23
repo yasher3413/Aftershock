@@ -42,7 +42,7 @@ export function PageMessage({
 export function Unreachable({ onRetry }: { onRetry: () => void }) {
   return (
     <PageMessage title="This page could not load" onRetry={onRetry}>
-      The Aftershock server did not answer. It usually comes back within a minute.
+      The Puckquake server did not answer. It usually comes back within a minute.
     </PageMessage>
   );
 }

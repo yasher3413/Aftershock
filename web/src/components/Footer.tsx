@@ -5,7 +5,7 @@ import { DIVISIONS } from "../lib/teams";
 import { TeamLogo } from "./TeamLogo";
 
 const DISCLAIMER =
-  "Data from NHL.com. NHL and team logos and marks, and player photos, are the property of the NHL and its teams. Aftershock is not affiliated with, endorsed by, or sponsored by the NHL or any team.";
+  "Data from NHL.com. NHL and team logos and marks, and player photos, are the property of the NHL and its teams. Puckquake is not affiliated with, endorsed by, or sponsored by the NHL or any team.";
 
 const EXPLORE = [
   { to: "/", label: "Tonight" },
@@ -44,7 +44,7 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.6fr_1fr_1fr] lg:gap-x-10">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight">
-              Aftershock
+              Puckquake
             </Link>
             <p className="mt-2 max-w-[36ch] text-[14px] text-ink-soft">
               Every goal in the NHL is an earthquake. See how far it travels.

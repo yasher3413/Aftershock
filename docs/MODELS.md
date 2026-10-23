@@ -1,6 +1,6 @@
 # Models
 
-Aftershock runs four measured components. Full cards with data, features,
+Puckquake runs four measured components. Full cards with data, features,
 splits, metrics, and limitations are in [`ml/MODEL_CARDS.md`](../ml/MODEL_CARDS.md).
 
 | Component | Artifact | Report | Headline test result |

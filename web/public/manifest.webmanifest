@@ -1,6 +1,6 @@
 {
-  "name": "Aftershock",
-  "short_name": "Aftershock",
+  "name": "Puckquake",
+  "short_name": "Puckquake",
   "description": "Every goal in the NHL is an earthquake. See how far it travels.",
   "start_url": "/",
   "display": "standalone",

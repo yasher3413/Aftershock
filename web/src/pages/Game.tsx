@@ -133,7 +133,7 @@ export default function GamePage() {
         title="No game with that id"
         link={{ to: "/nights", label: "Browse every night" }}
       >
-        It may be from a season Aftershock has not recorded.
+        It may be from a season Puckquake has not recorded.
       </PageMessage>
     );
   const wp = data.wp.map((p) => ({ t: p.t_game_s, v: p.p_home }));

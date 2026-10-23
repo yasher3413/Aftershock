@@ -51,14 +51,14 @@ export default function AboutPage() {
   }, [hash]);
   useDocumentMeta(
     "About",
-    "Who makes Aftershock, how to send feedback, and the math behind it in five steps.",
+    "Who makes Puckquake, how to send feedback, and the math behind it in five steps.",
   );
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-12">
       <article className="max-w-[72ch] text-[16px] leading-relaxed">
         <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">About</h1>
         <p className="mt-5 text-[19px] leading-relaxed">
-          Aftershock treats every NHL goal like an earthquake and shows how far it travels through
+          Puckquake treats every NHL goal like an earthquake and shows how far it travels through
           the playoff race.
         </p>
         <p className="mt-3 text-ink-soft">
@@ -140,7 +140,7 @@ export default function AboutPage() {
         <H id="data">Data</H>
         <p>
           Data from NHL.com, through the league's public play-by-play feed. NHL and team logos and
-          marks, and player photos, are the property of the NHL and its teams. Aftershock is not
+          marks, and player photos, are the property of the NHL and its teams. Puckquake is not
           affiliated with, endorsed by, or sponsored by the NHL or any team.
         </p>
       </article>

@@ -160,7 +160,7 @@ export default function TremorPage() {
             </button>
             <a
               href={`/api/og/tremor/${t.id}.png?size=card`}
-              download={`aftershock-tremor-${t.id}.png`}
+              download={`puckquake-tremor-${t.id}.png`}
               className="rounded-[var(--radius)] border border-ice-scratch px-3 py-2 text-[14px] font-semibold"
             >
               Download card

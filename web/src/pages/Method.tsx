@@ -113,7 +113,7 @@ export default function MethodPage() {
         </h1>
         <p className="mt-5 text-[19px] leading-relaxed">One goal. A different playoff picture.</p>
         <p className="mt-3 text-[16px] leading-relaxed text-ink-soft">
-          Aftershock watches every NHL game at once. When anyone scores, it reruns the rest of the
+          Puckquake watches every NHL game at once. When anyone scores, it reruns the rest of the
           season thousands of times and measures how that one goal changed every team's chances.
           Start with the map, then follow the models behind it.
         </p>
@@ -367,7 +367,7 @@ export default function MethodPage() {
 
           <H id="crn">5. Why one goal can be measured</H>
           <p>
-            To measure a goal, Aftershock runs the season twice: once as if the goal had not
+            To measure a goal, Puckquake runs the season twice: once as if the goal had not
             happened, once with it. The trick is that both runs use exactly the same random numbers
             for every game. Each simulated game draws its randomness from a fixed recipe keyed to
             that game and that simulation, so the only thing that differs between the two runs is
@@ -490,9 +490,9 @@ export default function MethodPage() {
 
           <H id="data">Data and attribution</H>
           <p>
-            Data from NHL.com. Aftershock uses the league's public play-by-play feed, asks for it
+            Data from NHL.com. Puckquake uses the league's public play-by-play feed, asks for it
             politely, and never redistributes it. NHL and team logos and marks, and player photos,
-            are the property of the NHL and its teams. Aftershock is not affiliated with, endorsed
+            are the property of the NHL and its teams. Puckquake is not affiliated with, endorsed
             by, or sponsored by the NHL or any team.
           </p>
         </article>

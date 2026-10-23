@@ -11,7 +11,7 @@ export interface Curve {
 /**
  * Ink only: red and blue mean falling and rising odds everywhere else on the
  * site, so model comparisons use weight and dash instead of hue. The first
- * curve is always Aftershock's own model.
+ * curve is always Puckquake's own model.
  */
 const STYLES = [
   { stroke: "var(--ink)", width: 2, dash: undefined },

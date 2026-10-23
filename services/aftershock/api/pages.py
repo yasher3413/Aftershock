@@ -28,9 +28,9 @@ from aftershock.db.models import Game, ReplayBundle, Team, Tremor
 
 log = structlog.get_logger(__name__)
 
-SITE = "Aftershock"
+SITE = "Puckquake"
 TAGLINE = "Every goal in the NHL is an earthquake. See how far it travels."
-HOME_TITLE = "Aftershock: how every NHL goal moves the playoff race"
+HOME_TITLE = "Puckquake: how every NHL goal moves the playoff race"
 HOME_DESC = (
     "A live map of the NHL: every goal sends a shockwave across the league, and every "
     "team's playoff odds move as it passes."
@@ -47,13 +47,13 @@ STATIC = {
     "/nights": ("Every night", "Replay any NHL night of the last three seasons, goal by goal."),
     "/method": (
         "How it works",
-        "The models and the simulator behind Aftershock, with measured results.",
+        "The models and the simulator behind Puckquake, with measured results.",
     ),
     "/status": ("Pipeline status", TAGLINE),
     "/teams": ("Teams", "Every NHL team's playoff and Stanley Cup odds, by division."),
     "/about": (
         "About",
-        "Who makes Aftershock, how to send feedback, and the math behind it in five steps.",
+        "Who makes Puckquake, how to send feedback, and the math behind it in five steps.",
     ),
 }
 

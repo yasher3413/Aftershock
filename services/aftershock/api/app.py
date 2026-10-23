@@ -87,7 +87,7 @@ def create_app(
             await r.aclose()
 
     app = FastAPI(
-        title="Aftershock API",
+        title="Puckquake API",
         version="1.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",

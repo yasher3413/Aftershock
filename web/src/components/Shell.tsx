@@ -38,7 +38,7 @@ export function Shell() {
             className={`flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-6 ${home ? "" : "mx-auto max-w-6xl"}`}
           >
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
-              Aftershock
+              Puckquake
             </Link>
             {/* Home states live or replay in its own title block. */}
             {!home && <ModeChip />}

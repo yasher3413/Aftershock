@@ -1,6 +1,6 @@
-// Aftershock service worker: shows tremor alerts and opens them on click.
+// Puckquake service worker: shows tremor alerts and opens them on click.
 self.addEventListener("push", (event) => {
-  let data = { title: "Aftershock", body: "A big tremor just hit.", url: "/" };
+  let data = { title: "Puckquake", body: "A big tremor just hit.", url: "/" };
   try {
     data = { ...data, ...event.data.json() };
   } catch {

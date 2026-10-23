@@ -1,6 +1,6 @@
 # Deploying
 
-Aftershock has three processes (api, worker, web) plus Postgres 16 and
+Puckquake has three processes (api, worker, web) plus Postgres 16 and
 Redis 7.
 
 ## Free: Vercel for the website, Oracle Cloud for everything else

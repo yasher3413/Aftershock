@@ -1,6 +1,6 @@
-# Aftershock
+# Puckquake
 
-**Every goal in the NHL is an earthquake. Aftershock shows how far it travels.**
+**Every goal in the NHL is an earthquake. Puckquake shows how far it travels.**
 
 ![A Detroit goal on April 5, 2026 sends a shockwave across the continent; every team's playoff odds shift as it passes.](docs/media/hero.gif)
 
@@ -56,7 +56,7 @@ reproduces nine seasons of official final standings exactly, including a
 pulled-goalie overtime loss that the league counts as a regulation loss. It
 runs 20,000 full seasons in about 120 ms on a laptop.
 
-**Why one goal can be measured.** To isolate a goal, Aftershock runs the
+**Why one goal can be measured.** To isolate a goal, Puckquake runs the
 season twice, once without the goal and once with it, using exactly the same
 random numbers for every game. Each simulated game draws its randomness from a
 fixed recipe keyed to that game and that simulation, so the only difference
@@ -156,7 +156,7 @@ docs/                    architecture, data, models, simulator, API, design, dep
 
 ## Data
 
-Data from NHL.com. Aftershock is not affiliated with, endorsed by, or
+Data from NHL.com. Puckquake is not affiliated with, endorsed by, or
 sponsored by the NHL or any team. It reads the league's public play-by-play
 feed politely (a descriptive user agent, at most 8 requests a second, cached
 so finished games are never fetched twice) and never redistributes raw data.

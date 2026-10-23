@@ -3,7 +3,7 @@ import { useEffect } from "react";
 /** Set the document title and description (and their Open Graph copies). */
 export function useDocumentMeta(title: string, description?: string, image?: string): void {
   useEffect(() => {
-    document.title = title ? `${title} | Aftershock` : "Aftershock";
+    document.title = title ? `${title} | Puckquake` : "Puckquake";
     const set = (selector: string, attr: string, key: string, value?: string) => {
       if (!value) return;
       let el = document.head.querySelector<HTMLMetaElement>(selector);

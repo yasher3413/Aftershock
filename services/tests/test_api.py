@@ -275,7 +275,7 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
     index = tmp_path / "index.html"
     index.write_text(
         '<html><head><meta name="description" content="generic" />'
-        "<title>Aftershock</title></head><body></body></html>"
+        "<title>Puckquake</title></head><body></body></html>"
     )
     pages._template.clear()
     pages._template.update(html=index.read_text(), at=time.monotonic())
@@ -288,14 +288,14 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
     home = (await c.get("/page/")).text
     assert "how every NHL goal moves the playoff race" in home
     leaders = (await c.get("/page/leaders")).text
-    assert "<title>Leaders | Aftershock</title>" in leaders
+    assert "<title>Leaders | Puckquake</title>" in leaders
     assert 'name="twitter:card" content="summary"' in leaders
     # Unknown addresses still get the app (which shows its own "Nothing here"),
     # but with a 404 so search engines drop them.
     for dead in ("/page/nope", "/page/team/xyz", "/page/player/999", "/page/night/2026-13-40"):
         r = await c.get(dead)
         assert r.status_code == 404, dead
-        assert "<title>Aftershock</title>" in r.text
+        assert "<title>Puckquake</title>" in r.text
     assert (await c.get("/page/embed/TOR")).status_code == 200
     pages._template.clear()
 

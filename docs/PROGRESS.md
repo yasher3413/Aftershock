@@ -1,6 +1,6 @@
 # Progress
 
-Resume point for the Aftershock build. Read this, `docs/DECISIONS.md`, and
+Resume point for the Puckquake build. Read this, `docs/DECISIONS.md`, and
 `git log --oneline -30` before doing anything after a restart.
 
 ## Status: v1.0.0 (2026-10-01)

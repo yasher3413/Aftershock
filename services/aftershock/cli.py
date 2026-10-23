@@ -14,12 +14,12 @@ from aftershock import __version__
 from aftershock.config import get_settings
 from aftershock.logging import configure_logging
 
-app = typer.Typer(help="Aftershock command line tools.", no_args_is_help=True)
+app = typer.Typer(help="Puckquake command line tools.", no_args_is_help=True)
 
 
 @app.callback()
 def main(json_logs: Annotated[bool, typer.Option(help="Emit JSON log lines.")] = False) -> None:
-    """Aftershock command line tools."""
+    """Puckquake command line tools."""
     configure_logging(get_settings().log_level, json_output=json_logs)
 
 

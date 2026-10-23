@@ -107,7 +107,7 @@ function useSteps(): Step[] {
       title: "Make it yours",
       body: (
         <p>
-          Pick your team and Aftershock follows it: its odds stay at the top of this page, and every
+          Pick your team and Puckquake follows it: its odds stay at the top of this page, and every
           goal tells you what it did to them.
         </p>
       ),

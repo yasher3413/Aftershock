@@ -1,6 +1,6 @@
 # Design
 
-Aftershock is a seismograph for a hockey league. The page should feel like
+Puckquake is a seismograph for a hockey league. The page should feel like
 standing at the glass of a freshly resurfaced rink while the arena lights
 are on: pale, cool, quiet. Then a goal horn goes off somewhere on the
 continent and the ice cracks outward. All of the visual boldness is spent on
@@ -55,7 +55,7 @@ the strip under a real seismometer.
 
 ```
 +----------------------------------------------------------------+
-| Aftershock        Live now: 3 games      Leaders  What if  How |
+| Puckquake        Live now: 3 games      Leaders  What if  How |
 +-----------------------------------------------+----------------+
 |                                               | Tonight        |
 |              MAP (ice sheet, 32 nodes)        |  game rows     |
@@ -66,7 +66,7 @@ the strip under a real seismometer.
 +-----------------------------------------------+----------------+
 | seismograph trace ~~~^~~~~~~~~^^~~~~~~~~~ needle |  scrubber     |
 +----------------------------------------------------------------+
-| Data from NHL.com. Aftershock is not affiliated with ...       |
+| Data from NHL.com. Puckquake is not affiliated with ...       |
 +----------------------------------------------------------------+
 ```
 

@@ -93,7 +93,7 @@ async def discord_tremor(
     base = settings.public_base_url.rstrip("/")
     movers = ", ".join(f"{d.team} {d.d_playoffs * 100:+.1f} pp" for d in t.deltas[:3])
     payload: dict[str, Any] = {
-        "username": "Aftershock",
+        "username": "Puckquake",
         "embeds": [
             {
                 "title": title,
