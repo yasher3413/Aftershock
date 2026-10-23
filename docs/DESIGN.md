@@ -189,6 +189,12 @@ lighter weight.
 Open button); the second opens it. The map key sits behind a Map key
 button instead of disappearing.
 
+**The key never covers a team.** Team logos and score chips draw above
+the key, so a team under it showed through. From tablet width the key
+looks for a spot along the bottom edge, then the top, that clears every
+team and live score chip: tall and narrow first, then wide and short.
+When no spot is clear it folds behind the same Map key button as phones.
+
 **The walkthrough** (`web/src/tour/`). Seven steps over the real page:
 welcome (live or replay, in plain words), the rings, the shockwave (blue,
 red, pp, M), the timeline, the games and stakes, my team, and the other

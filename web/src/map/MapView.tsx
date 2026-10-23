@@ -120,6 +120,14 @@ export function MapView() {
     }
     return m;
   }, [games]);
+  const keyNodes = useMemo(
+    () =>
+      (layout?.nodes ?? []).map((p) => {
+        const g = gameByTeam[p.id];
+        return { x: p.x, y: p.y, r: p.r, chip: !!g && LIVE.has(g.state) };
+      }),
+    [layout, gameByTeam],
+  );
   const venueByName = useMemo(() => Object.fromEntries(venues.map((v) => [v.name, v])), [venues]);
 
   return (
@@ -135,7 +143,7 @@ export function MapView() {
       }}
     >
       <div ref={host} className="absolute inset-0" />
-      <MapKey />
+      <MapKey nodes={keyNodes} width={layout?.width ?? 0} height={layout?.height ?? 0} />
       <div className="sr-only" aria-live="polite" role="status">
         {announcement}
       </div>
