@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, Link, useLocation } from "react-router";
 import { useLive } from "../live/store";
 import { useClock } from "../live/clock";
@@ -7,6 +8,7 @@ const NAV = [
   { to: "/", label: "Tonight", end: true },
   { to: "/nights", label: "Nights" },
   { to: "/leaders", label: "Leaders" },
+  { to: "/teams", label: "Teams" },
   { to: "/what-if", label: "What if" },
   { to: "/method", label: "How it works" },
 ];
@@ -34,26 +36,7 @@ export function Shell() {
           </Link>
           {/* Home states live or replay in its own title block. */}
           {!home && <ModeChip />}
-          <nav
-            aria-label="Main"
-            data-tour="nav"
-            className="-mx-2 flex w-full justify-between text-[14px] sm:mx-0 sm:ml-auto sm:w-auto sm:justify-start sm:gap-1"
-          >
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.end}
-                className={({ isActive }) =>
-                  `inline-flex min-h-[44px] items-center whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors sm:px-2.5 sm:py-1.5 ${
-                    isActive ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"
-                  }`
-                }
-              >
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
+          <MainNav />
         </div>
       </header>
       <main id="main" className="flex min-h-0 flex-1 flex-col">
@@ -77,6 +60,55 @@ export function Shell() {
         </Link>
       </footer>
     </div>
+  );
+}
+
+/** On narrow screens the links scroll sideways, and the edge fades while
+ * more of them sit off screen, so a cut-off label reads as "scroll", not a bug. */
+function MainNav() {
+  const ref = useRef<HTMLElement>(null);
+  const [more, setMore] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    ref.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  }, [pathname]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", check);
+      ro.disconnect();
+    };
+  }, []);
+  return (
+    <nav
+      ref={ref}
+      aria-label="Main"
+      data-tour="nav"
+      className={`-mx-2 flex w-[calc(100%+1rem)] overflow-x-auto text-[14px] [scrollbar-width:none] lg:mx-0 lg:ml-auto lg:w-auto lg:gap-1 lg:overflow-visible ${more ? "[mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]" : ""}`}
+    >
+      {NAV.map((n) => (
+        <NavLink
+          key={n.to}
+          to={n.to}
+          end={n.end}
+          className={({ isActive }) =>
+            `inline-flex min-h-[44px] items-center whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors lg:px-2.5 lg:py-1.5 ${
+              isActive ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"
+            }`
+          }
+        >
+          {n.label}
+        </NavLink>
+      ))}
+    </nav>
   );
 }
 
