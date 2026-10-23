@@ -24,7 +24,9 @@ test("saved controls survive reload and Back; search keeps original rank", async
   await expect(page.getByRole("link", { name: /^Player / })).toHaveCount(25);
   await page.getByLabel("Find a player or team").fill("MTL");
   await expect(page.getByRole("link", { name: /^Player / })).toHaveCount(1);
-  await expect(page.getByRole("list").last().getByRole("listitem")).toContainText("25");
+  await expect(page.getByRole("main").getByRole("list").last().getByRole("listitem")).toContainText(
+    "25",
+  );
   await page.getByRole("button", { name: "Goals", exact: true }).click();
   await expect(page).toHaveURL(/view=skater/);
   await page.goBack();
