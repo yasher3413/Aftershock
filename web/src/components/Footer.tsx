@@ -41,9 +41,7 @@ const linkClass = "inline-flex min-h-[32px] items-center hover:text-blue-line ho
 export function Footer({ compact }: { compact: boolean }) {
   return (
     <footer className="border-t border-ice-scratch">
-      <div
-        className={`${compact ? "lg:hidden" : ""} mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6`}
-      >
+      <div className={`${compact ? "lg:hidden" : ""} mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6`}>
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.6fr_1fr_1fr] lg:gap-x-10">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight">
@@ -99,7 +97,10 @@ export function Footer({ compact }: { compact: boolean }) {
               <Column key={d.name} title={d.name}>
                 {d.teams.map(([abbrev, name]) => (
                   <li key={abbrev}>
-                    <Link to={`/team/${abbrev}`} className={`${linkClass} gap-2`}>
+                    <Link
+                      to={`/team/${abbrev}`}
+                      className="flex min-h-[32px] min-w-0 items-center gap-2 hover:text-blue-line hover:underline"
+                    >
                       <TeamLogo team={abbrev} size={18} />
                       <span className="truncate">{name}</span>
                     </Link>
