@@ -36,12 +36,11 @@ function Column({ title, children }: { title: string; children: ReactNode }) {
 
 const linkClass = "inline-flex min-h-[32px] items-center hover:text-blue-line hover:underline";
 
-/** The site footer. The home screen on a desktop is pinned to the viewport,
- * so there it keeps a one-line footer and the full one shows everywhere else. */
-export function Footer({ compact }: { compact: boolean }) {
+/** The site footer: every section, all 32 teams, and who made the site. */
+export function Footer() {
   return (
     <footer className="border-t border-ice-scratch">
-      <div className={`${compact ? "lg:hidden" : ""} mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6`}>
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.6fr_1fr_1fr] lg:gap-x-10">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight">
@@ -116,20 +115,6 @@ export function Footer({ compact }: { compact: boolean }) {
           <p className="shrink-0">© {new Date().getFullYear()} Yash Gandhi</p>
         </div>
       </div>
-      {compact && (
-        <p className="hidden px-6 py-3 text-[12px] text-ink-soft lg:block">
-          {DISCLAIMER}{" "}
-          <Link to="/about" className="ml-2 underline decoration-ice-scratch hover:text-ink">
-            About
-          </Link>
-          <Link to="/teams" className="ml-3 underline decoration-ice-scratch hover:text-ink">
-            All teams
-          </Link>
-          <Link to="/status" className="ml-3 underline decoration-ice-scratch hover:text-ink">
-            Pipeline status
-          </Link>
-        </p>
-      )}
     </footer>
   );
 }

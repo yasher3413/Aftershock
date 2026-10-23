@@ -16,36 +16,39 @@ const NAV = [
 ];
 
 export function Shell() {
-  // The home view is an app-like screen pinned to the viewport on desktop.
+  // The home view is an app-like screen that fills the viewport on desktop;
+  // the footer sits below it, a scroll away, as on every other page.
   const path = useLocation().pathname;
   const home = path === "/";
   return (
-    <div className={`flex flex-col ${home ? "min-h-dvh lg:h-dvh" : "min-h-dvh"}`}>
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2"
-      >
-        Skip to content
-      </a>
-      <header className="border-b border-ice-scratch">
-        {/* The home map runs edge to edge; every other page sits in the
-            max-w-6xl column, so the header lines up with it. */}
-        <div
-          className={`flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-6 ${home ? "" : "mx-auto max-w-6xl"}`}
+    <div className="flex min-h-dvh flex-col">
+      <div className={`flex flex-col ${home ? "min-h-dvh lg:h-dvh" : "flex-1"}`}>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2"
         >
-          <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
-            Aftershock
-          </Link>
-          {/* Home states live or replay in its own title block. */}
-          {!home && <ModeChip />}
-          <Search />
-          <MainNav />
-        </div>
-      </header>
-      <main id="main" className="flex min-h-0 flex-1 flex-col">
-        <Outlet />
-      </main>
-      <Footer compact={home} />
+          Skip to content
+        </a>
+        <header className="border-b border-ice-scratch">
+          {/* The home map runs edge to edge; every other page sits in the
+            max-w-6xl column, so the header lines up with it. */}
+          <div
+            className={`flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-6 ${home ? "" : "mx-auto max-w-6xl"}`}
+          >
+            <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
+              Aftershock
+            </Link>
+            {/* Home states live or replay in its own title block. */}
+            {!home && <ModeChip />}
+            <Search />
+            <MainNav />
+          </div>
+        </header>
+        <main id="main" className="flex min-h-0 flex-1 flex-col">
+          <Outlet />
+        </main>
+      </div>
+      <Footer />
       <ScrollRestoration />
     </div>
   );
