@@ -17,12 +17,14 @@ const NAV = [
 
 export function Shell() {
   // The home view is an app-like screen that fills the viewport on desktop;
-  // the footer sits below it, a scroll away, as on every other page.
+  // the footer sits below it, a scroll away, as on every other page. Every
+  // page starts at least a screen tall, so the footer never shows while a
+  // page is still loading and then jumps away.
   const path = useLocation().pathname;
   const home = path === "/";
   return (
-    <div className="flex min-h-dvh flex-col">
-      <div className={`flex flex-col ${home ? "min-h-dvh lg:h-dvh" : "flex-1"}`}>
+    <div className="flex flex-col">
+      <div className={`flex min-h-dvh flex-col ${home ? "lg:h-dvh" : ""}`}>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2"
