@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { useEffect, type ReactNode } from "react";
+import { Link, useLocation } from "react-router";
 import { useDocumentMeta } from "../lib/meta";
 import { ELSEWHERE, EMAIL, REPO } from "../lib/contact";
 
@@ -43,6 +43,12 @@ const STEPS: { title: string; body: ReactNode; math?: string }[] = [
 ];
 
 export default function AboutPage() {
+  // The page loads lazily, after the router has tried to scroll to the
+  // footer's #nerds or #maker link, so scroll once it exists.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
   useDocumentMeta(
     "About",
     "Who makes Aftershock, how to send feedback, and the math behind it in five steps.",

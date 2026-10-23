@@ -4,6 +4,7 @@ import { useLive } from "../live/store";
 import { useClock } from "../live/clock";
 import { longDate } from "../lib/format";
 import { Search } from "./Search";
+import { Footer } from "./Footer";
 
 const NAV = [
   { to: "/", label: "Tonight", end: true },
@@ -44,23 +45,7 @@ export function Shell() {
       <main id="main" className="flex min-h-0 flex-1 flex-col">
         <Outlet />
       </main>
-      <footer className="border-t border-ice-scratch px-4 py-3 text-[12px] text-ink-soft md:px-6">
-        Data from NHL.com. NHL and team logos and marks, and player photos, are the property of the
-        NHL and its teams. Aftershock is not affiliated with, endorsed by, or sponsored by the NHL
-        or any team.{" "}
-        <Link
-          to="/?tour=1"
-          className="underline decoration-ice-scratch underline-offset-2 hover:text-ink"
-        >
-          Take the tour
-        </Link>{" "}
-        <Link
-          to="/status"
-          className="ml-3 underline decoration-ice-scratch underline-offset-2 hover:text-ink"
-        >
-          Pipeline status
-        </Link>
-      </footer>
+      <Footer compact={home} />
       <ScrollRestoration />
     </div>
   );
