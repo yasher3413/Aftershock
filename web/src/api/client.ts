@@ -13,10 +13,6 @@ import type {
   TremorPage,
 } from "./types.gen";
 
-export const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 2, refetchOnWindowFocus: false } },
-});
-
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -24,6 +20,23 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+/** True when the api answered that the thing does not exist. */
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      // A missing game or player will not appear on a retry; say so at once.
+      retry: (failures, error) =>
+        !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, init);

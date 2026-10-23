@@ -1,6 +1,6 @@
 import { Link, useParams, useSearchParams } from "react-router";
 import { scaleLinear, scaleTime } from "d3-scale";
-import { usePlayer } from "../api/client";
+import { usePlayer, isNotFound } from "../api/client";
 import type { Tremor } from "../api/types.gen";
 import { useWidth } from "../charts/useWidth";
 import { Headshot } from "../components/Headshot";
@@ -10,6 +10,7 @@ import { useDocumentMeta } from "../lib/meta";
 import { seasonLabel } from "../lib/season";
 import { TremorLine } from "../panels/TremorFeed";
 import { PageLoading } from "../components/PageLoading";
+import { PageMessage, Unreachable } from "../components/PageMessage";
 
 const POSITIONS: Record<string, string> = {
   C: "Center",
@@ -115,7 +116,7 @@ export default function PlayerPage() {
   const id = useParams().id ?? "";
   const [params, setParams] = useSearchParams();
   const season = Number(params.get("season")) || undefined;
-  const { data, isLoading, isError } = usePlayer(id, season);
+  const { data, isLoading, isError, error, refetch } = usePlayer(id, season);
   const [ref, width] = useWidth<HTMLDivElement>(720);
   useDocumentMeta(
     data ? `${data.name}` : "Player",
@@ -124,17 +125,13 @@ export default function PlayerPage() {
       : undefined,
   );
   if (isLoading) return <PageLoading label="Loading the player" />;
-  if (isError || !data)
+  if (isError && !isNotFound(error)) return <Unreachable onRetry={() => void refetch()} />;
+  if (!data)
     return (
-      <div className="mx-auto max-w-xl px-4 py-12">
-        <h1 className="display text-[38px] font-bold">No player with that id</h1>
-        <Link
-          to="/leaders"
-          className="mt-4 inline-block text-blue-line underline underline-offset-4"
-        >
-          See the leaders
-        </Link>
-      </div>
+      <PageMessage
+        title="No player with that id"
+        link={{ to: "/leaders", label: "See the leaders" }}
+      />
     );
   const s = data.seasons.find((x) => x.season === data.season);
   const goalie = data.position === "G";

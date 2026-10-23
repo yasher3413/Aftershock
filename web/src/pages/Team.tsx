@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router";
-import { useTeam } from "../api/client";
+import { useTeam, isNotFound } from "../api/client";
 import type { RootingLine } from "../api/types.gen";
 import { Bars } from "../charts/Bars";
 import { SeasonSeismogram, TeamRing, type Spike } from "../charts/TeamBoard";
@@ -12,6 +12,7 @@ import { Alerts } from "../panels/Alerts";
 import { Headshot } from "../components/Headshot";
 import { seasonOf } from "../lib/season";
 import { PageLoading } from "../components/PageLoading";
+import { PageMessage, Unreachable } from "../components/PageMessage";
 import { teamTickColor } from "../lib/teamColor";
 import { useDarkScheme } from "../lib/useMedia";
 
@@ -59,7 +60,7 @@ function Section({
 
 export default function TeamPage() {
   const abbrev = (useParams().abbrev ?? "").toUpperCase();
-  const { data, isLoading, isError } = useTeam(abbrev);
+  const { data, isLoading, isError, error, refetch } = useTeam(abbrev);
   const dark = useDarkScheme();
   const [ref, width] = useWidth<HTMLDivElement>(720);
   const { team: myTeam, setTeam } = useMyTeam();
@@ -72,15 +73,8 @@ export default function TeamPage() {
   );
 
   if (isLoading) return <PageLoading label={`Loading ${abbrev}`} />;
-  if (isError || !data)
-    return (
-      <div className="mx-auto max-w-xl px-4 py-12">
-        <h1 className="display text-[38px] font-bold">No team called {abbrev}</h1>
-        <Link to="/" className="mt-4 inline-block text-blue-line underline underline-offset-4">
-          Back to tonight
-        </Link>
-      </div>
-    );
+  if (isError && !isNotFound(error)) return <Unreachable onRetry={() => void refetch()} />;
+  if (!data) return <PageMessage title={`No team called ${abbrev}`} />;
 
   const t = data.team;
   const o = data.odds;

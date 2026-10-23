@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { useStateQuery, useTremor } from "../api/client";
+import { useStateQuery, useTremor, isNotFound } from "../api/client";
 import { useWidth } from "../charts/useWidth";
 import { clock, periodLabel, pp, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
@@ -8,10 +8,11 @@ import { MiniMap } from "../map/MiniMap";
 import { Headshot } from "../components/Headshot";
 import { TeamLogo } from "../components/TeamLogo";
 import { PageLoading } from "../components/PageLoading";
+import { PageMessage, Unreachable } from "../components/PageMessage";
 
 export default function TremorPage() {
   const id = useParams().id ?? "";
-  const { data: t, isLoading, isError } = useTremor(id);
+  const { data: t, isLoading, isError, error, refetch } = useTremor(id);
   const state = useStateQuery();
   const [ref, width] = useWidth<HTMLDivElement>(640);
   const [copied, setCopied] = useState(false);
@@ -24,7 +25,14 @@ export default function TremorPage() {
     `/api/og/tremor/${id}.png`,
   );
   if (isLoading) return <PageLoading label="Loading the goal" />;
-  if (isError || !t) return <div className="p-6">No tremor with that id.</div>;
+  if (isError && !isNotFound(error)) return <Unreachable onRetry={() => void refetch()} />;
+  if (!t)
+    return (
+      <PageMessage
+        title="No goal with that id"
+        link={{ to: "/leaders", label: "See the season's biggest goals" }}
+      />
+    );
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
   // Teams the goal barely touched collapse into one line.
   const moved = t.deltas.filter((d) => Math.abs(d.d_playoffs) >= 0.0005);

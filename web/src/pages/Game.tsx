@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router";
-import { useGame } from "../api/client";
+import { useGame, isNotFound } from "../api/client";
 import type { GamePreview, Tremor } from "../api/types.gen";
 import { LineChart } from "../charts/LineChart";
 import { Rink } from "../charts/Rink";
@@ -8,6 +8,7 @@ import { clock, localTime, pct, periodLabel, pp } from "../lib/format";
 import { TeamLogo } from "../components/TeamLogo";
 import { useDocumentMeta } from "../lib/meta";
 import { PageLoading } from "../components/PageLoading";
+import { PageMessage, Unreachable } from "../components/PageMessage";
 
 function Ripple({ t }: { t: Tremor }) {
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
@@ -113,7 +114,7 @@ function Stakes({ preview }: { preview: GamePreview }) {
 
 export default function GamePage() {
   const id = useParams().id ?? "";
-  const { data, isLoading, isError } = useGame(id);
+  const { data, isLoading, isError, error, refetch } = useGame(id);
   const [ref, width] = useWidth<HTMLDivElement>(800);
   const g = data?.game;
   useDocumentMeta(
@@ -125,7 +126,16 @@ export default function GamePage() {
       : undefined,
   );
   if (isLoading) return <PageLoading label="Loading the game" />;
-  if (isError || !data || !g) return <div className="p-6">That game is not in the database.</div>;
+  if (isError && !isNotFound(error)) return <Unreachable onRetry={() => void refetch()} />;
+  if (!data || !g)
+    return (
+      <PageMessage
+        title="No game with that id"
+        link={{ to: "/nights", label: "Browse every night" }}
+      >
+        It may be from a season Aftershock has not recorded.
+      </PageMessage>
+    );
   const wp = data.wp.map((p) => ({ t: p.t_game_s, v: p.p_home }));
   const markers = data.tremors
     .filter((t) => !t.overturned)
