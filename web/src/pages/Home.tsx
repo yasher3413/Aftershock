@@ -129,7 +129,6 @@ export default function HomePage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Tour />
-      <ConnectionNote />
       <TonightContext />
       {failed && loaded && (
         <div
@@ -148,6 +147,7 @@ export default function HomePage() {
       )}
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="relative h-[38vh] min-h-[260px] lg:h-auto lg:min-h-0 lg:flex-1">
+          <ConnectionNote />
           {failed && !loaded ? (
             <div role="alert" className="mx-auto max-w-md p-6">
               <h2 className="display text-[30px] font-bold">The league could not load</h2>

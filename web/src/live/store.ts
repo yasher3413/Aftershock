@@ -7,6 +7,8 @@ export type Connection = "idle" | "connecting" | "open" | "retrying";
 
 interface LiveStore extends LiveData {
   connection: Connection;
+  /** When the feed last went from working (or never tried) to down, in ms. */
+  downSince: number | null;
   loaded: boolean;
   bootstrap: (s: StateResponse) => void;
   apply: (msg: LiveMessage) => void;
@@ -19,6 +21,7 @@ interface LiveStore extends LiveData {
 export const useLive = create<LiveStore>((set) => ({
   ...emptyLiveData,
   connection: "idle",
+  downSince: null,
   loaded: false,
   bootstrap: (s) => set({ ...fromState(s), loaded: true }),
   apply: (msg) => set((st) => applyMessage(st, msg)),
@@ -29,6 +32,10 @@ export const useLive = create<LiveStore>((set) => ({
       return next;
     }),
   reset: (data) => set({ ...data, loaded: true }),
-  setConnection: (connection) => set({ connection }),
+  setConnection: (connection) =>
+    set((st) => {
+      const down = connection === "connecting" || connection === "retrying";
+      return { connection, downSince: down ? (st.downSince ?? Date.now()) : null };
+    }),
   consumeQuakes: (upToSeq) => set((st) => ({ quakes: st.quakes.filter((q) => q.seq > upToSeq) })),
 }));
