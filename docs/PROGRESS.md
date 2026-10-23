@@ -270,6 +270,10 @@ built from the recording:
    Generate a key pair, put both in the VM's `.env`, restart, and check a
    notification arrives. Until then, About's privacy section describes a
    feature nobody can turn on; drop that sentence if alerts stay off.
+6. Later, before the April playoffs: the X goal bot's playoff version (see
+   docs/superpowers/specs/2026-10-23-goal-bot-design.md, "Playoffs,
+   later"), starting with checking that the simulator honours playoff
+   series already in progress.
 
 ## Background jobs (this machine)
 
