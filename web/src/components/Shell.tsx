@@ -3,6 +3,7 @@ import { NavLink, Outlet, Link, useLocation } from "react-router";
 import { useLive } from "../live/store";
 import { useClock } from "../live/clock";
 import { longDate } from "../lib/format";
+import { Search } from "./Search";
 
 const NAV = [
   { to: "/", label: "Tonight", end: true },
@@ -36,6 +37,7 @@ export function Shell() {
           </Link>
           {/* Home states live or replay in its own title block. */}
           {!home && <ModeChip />}
+          <Search />
           <MainNav />
         </div>
       </header>
