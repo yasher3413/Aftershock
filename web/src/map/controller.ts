@@ -101,6 +101,9 @@ export class MapController {
 
   onLayout: (layout: MapLayout) => void = () => {};
   reducedMotion = false;
+  /** The element holding the canvas and the HTML team logos. A screen shake
+   * moves it whole, so logos and score chips stay on their rings. */
+  shakeTarget: HTMLElement | null = null;
 
   private host: HTMLElement;
 
@@ -522,10 +525,10 @@ export class MapController {
     if (this.shake) {
       const el = now - this.shake.start;
       const o = shakeOffset(el, this.shake.magnitude);
-      this.stage.position.set(o.x, o.y);
+      this.moveBy(o.x, o.y);
       if (el >= SHAKE_MS) {
         this.shake = null;
-        this.stage.position.set(0, 0);
+        this.moveBy(0, 0);
       }
     }
     this.redrawNodes();
@@ -534,6 +537,12 @@ export class MapController {
       this.running = false;
       this.app.ticker.stop();
     }
+  }
+
+  private moveBy(x: number, y: number): void {
+    if (this.shakeTarget)
+      this.shakeTarget.style.transform = x || y ? `translate3d(${x}px, ${y}px, 0)` : "";
+    else this.stage.position.set(x, y);
   }
 
   private render(): void {
