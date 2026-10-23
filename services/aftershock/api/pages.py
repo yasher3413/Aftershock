@@ -50,6 +50,11 @@ STATIC = {
         "The models and the simulator behind Aftershock, with measured results.",
     ),
     "/status": ("Pipeline status", TAGLINE),
+    "/teams": ("Teams", "Every NHL team's playoff and Stanley Cup odds, by division."),
+    "/about": (
+        "About",
+        "Who makes Aftershock, how to send feedback, and the math behind it in five steps.",
+    ),
 }
 
 
