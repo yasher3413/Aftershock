@@ -15,6 +15,7 @@ import { StandingsPanel } from "../panels/StandingsPanel";
 import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { seasonOf } from "../lib/season";
+import { PageLoading } from "../components/PageLoading";
 
 function todayEastern(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -241,13 +242,7 @@ function NightReplay({ date }: { date: string }) {
         className="night-stage grid lg:grid-cols-[minmax(0,1fr)_360px]"
       >
         <div className="night-map relative min-w-0 flex-1">
-          {loaded && status === "ready" ? (
-            <MapView />
-          ) : (
-            <div role="status" className="p-6 text-ink-soft">
-              Loading the night
-            </div>
-          )}
+          {loaded && status === "ready" ? <MapView /> : <PageLoading label="Loading the night" />}
         </div>
         <div className="night-transport order-1 min-w-0 lg:order-2 lg:col-span-2">
           {bundle && <ReplayActions bundle={bundle} />}
