@@ -23,32 +23,38 @@ export function Shell() {
       >
         Skip to content
       </a>
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-ice-scratch px-4 py-2 md:px-6">
-        <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
-          Aftershock
-        </Link>
-        {/* Home states live or replay in its own title block. */}
-        {!home && <ModeChip />}
-        <nav
-          aria-label="Main"
-          data-tour="nav"
-          className="-mx-2 flex w-full justify-between text-[14px] sm:mx-0 sm:ml-auto sm:w-auto sm:justify-start sm:gap-1"
+      <header className="border-b border-ice-scratch">
+        {/* The home map runs edge to edge; every other page sits in the
+            max-w-6xl column, so the header lines up with it. */}
+        <div
+          className={`flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-6 ${home ? "" : "mx-auto max-w-6xl"}`}
         >
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.end}
-              className={({ isActive }) =>
-                `inline-flex min-h-[44px] items-center whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors sm:px-2.5 sm:py-1.5 ${
-                  isActive ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"
-                }`
-              }
-            >
-              {n.label}
-            </NavLink>
-          ))}
-        </nav>
+          <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
+            Aftershock
+          </Link>
+          {/* Home states live or replay in its own title block. */}
+          {!home && <ModeChip />}
+          <nav
+            aria-label="Main"
+            data-tour="nav"
+            className="-mx-2 flex w-full justify-between text-[14px] sm:mx-0 sm:ml-auto sm:w-auto sm:justify-start sm:gap-1"
+          >
+            {NAV.map((n) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end={n.end}
+                className={({ isActive }) =>
+                  `inline-flex min-h-[44px] items-center whitespace-nowrap rounded-[var(--radius)] px-2 py-1 transition-colors sm:px-2.5 sm:py-1.5 ${
+                    isActive ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"
+                  }`
+                }
+              >
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
       </header>
       <main id="main" className="flex min-h-0 flex-1 flex-col">
         <Outlet />
