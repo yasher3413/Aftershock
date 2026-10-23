@@ -199,18 +199,21 @@ def _headline(t: S.Tremor) -> tuple[str, str]:
 def tremor_og(t: S.Tremor, teams: list[S.TeamInfo]) -> str:
     w, h = 1200, 630
     who, line = _headline(t)
+    # The magnitude leads without crowding out the scorer and the odds, which
+    # are what people read once the number has caught their eye in a feed.
     parts = [
         _text(60, 88, f"{t.night_date:%B %-d, %Y}", 26, fill=INK_SOFT),
-        _text(52, 300, f"{t.magnitude:.1f}", 250, family=DISPLAY, weight=800, fill=GOAL),
-        _text(60, 340, "Magnitude", 24, fill=INK_SOFT),
-        _text(60, 410, who, 46, weight=600),
-        _text(60, 455, line, 26, fill=INK_SOFT),
+        _text(54, 228, f"{t.magnitude:.1f}", 150, family=DISPLAY, weight=800, fill=GOAL),
+        _text(60, 268, "Magnitude", 24, fill=INK_SOFT),
+        # Long names step down so they stop short of the map at x=560.
+        _text(60, 354, who, min(56, int(480 / (0.56 * max(len(who), 1)))), weight=600),
+        _text(60, 402, line, 30, fill=INK_SOFT),
     ]
-    y = 510
+    y = 466
     for d in t.deltas[:3]:
-        parts.append(_text(60, y, d.team, 30, family=DISPLAY, weight=800))
-        parts.append(_text(140, y, _pp(d.d_playoffs), 26, fill=BLUE if d.d_playoffs > 0 else GOAL))
-        y += 36
+        parts.append(_text(60, y, d.team, 38, family=DISPLAY, weight=800))
+        parts.append(_text(163, y, _pp(d.d_playoffs), 32, fill=BLUE if d.d_playoffs > 0 else GOAL))
+        y += 44
     parts.append(_mini_map(t, teams, 560, 100, 600, 470))
     parts.append(_text(1140, 88, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"))
     parts.append(_text(1140, 605, ATTRIBUTION, 15, fill=INK_SOFT, anchor="end"))
