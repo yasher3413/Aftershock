@@ -4,11 +4,17 @@
   "buildCommand": "bash scripts/vercel_build.sh",
   "outputDirectory": "web/dist",
   "framework": null,
+  "images": {
+    "sizes": [64, 128, 384],
+    "formats": ["image/avif", "image/webp"],
+    "minimumCacheTTL": 604800,
+    "remotePatterns": [{ "protocol": "https", "hostname": "assets.nhle.com", "pathname": "/mugs/**" }]
+  },
   "rewrites": [
     { "source": "/robots.txt", "destination": "https://140.238.146.151.sslip.io/api/robots.txt" },
     { "source": "/sitemap.xml", "destination": "https://140.238.146.151.sslip.io/api/sitemap.xml" },
     { "source": "/api/:path*", "destination": "https://140.238.146.151.sslip.io/api/:path*" },
-    { "source": "/((?!assets/|app\\.html|favicon|sw\\.js|.*\\.[a-z0-9]+$).*)", "destination": "https://140.238.146.151.sslip.io/page/$1" }
+    { "source": "/((?!assets/|_vercel/|app\\.html|favicon|sw\\.js|.*\\.[a-z0-9]+$).*)", "destination": "https://140.238.146.151.sslip.io/page/$1" }
   ],
   "headers": [
     {
