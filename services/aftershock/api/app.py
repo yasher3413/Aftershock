@@ -24,6 +24,7 @@ from aftershock.api import queries as Q
 from aftershock.api import schemas as S
 from aftershock.api.cache import ResponseCache
 from aftershock.api.hub import Hub
+from aftershock.api.replay import compacted_bytes
 from aftershock.config import Settings, get_settings
 from aftershock.db.models import JobRun, ReconcileEvent, ReplayBundle, SimRun, Tremor
 from aftershock.db.session import session_factory
@@ -337,7 +338,7 @@ async def replay_bundle(night: date, session: Db) -> Response:
         path = Path(b.path)
         if not path.is_absolute():
             path = get_settings().data_dir / path
-    data = await asyncio.to_thread(_read_bytes, path) if path else None
+    data = await asyncio.to_thread(compacted_bytes, path) if path else None
     if data is None:
         raise HTTPException(404, f"No replay for {night.isoformat()}")
     return Response(
@@ -612,10 +613,6 @@ async def og_night(night: date, session: Db) -> Response:
     )
     games = await Q.games_on(session, night)
     return await _png(night_og(night, await Q.tremors_out(session, rows), len(games)))
-
-
-def _read_bytes(path: Path) -> bytes | None:
-    return path.read_bytes() if path.exists() else None
 
 
 def read_gz_json(path: Path) -> Any:

@@ -100,7 +100,8 @@ export function applyMessage(state: LiveData, msg: LiveMessage, now = Date.now()
     case "heartbeat":
       return base;
     case "game_update": {
-      const g = msg.game;
+      // Replay bundles send only the fields that changed, so merge onto the old copy.
+      const g = { ...base.games[msg.game.id], ...msg.game };
       const tonight = base.tonight.includes(g.id) ? base.tonight : [...base.tonight, g.id];
       return { ...base, games: { ...base.games, [g.id]: g }, tonight };
     }
@@ -134,8 +135,12 @@ export function applyMessage(state: LiveData, msg: LiveMessage, now = Date.now()
         : base.quakes;
       return { ...base, tremors, quakes };
     }
-    case "odds_update":
-      return { ...base, simRunId: msg.sim_run_id, odds: { ...base.odds, ...byTeam(msg.odds) } };
+    case "odds_update": {
+      // Replay bundles send only the fields that moved, so merge field by field.
+      const odds = { ...base.odds };
+      for (const o of msg.odds) odds[o.team] = { ...odds[o.team], ...o };
+      return { ...base, simRunId: msg.sim_run_id, odds };
+    }
     case "standings_update":
       return { ...base, standings: msg.standings };
     case "recap_ready":

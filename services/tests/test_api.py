@@ -340,7 +340,7 @@ async def test_replays_are_cached_briefly(
 
     c, _ = client
     path = tmp_path / "2026-10-09.json.gz"
-    path.write_bytes(gzip.compress(b'{"frames": []}'))
+    path.write_bytes(gzip.compress(b'{"initial": {"odds": [], "games": []}, "frames": []}'))
     maker = async_sessionmaker(db_engine, expire_on_commit=False)
     async with maker() as s:
         s.add(
