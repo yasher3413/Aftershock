@@ -265,6 +265,11 @@ built from the recording:
    sheet over the map instead of leaving it.
 4. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
    gap from NHL HTML reports; goalie "PPA saved".
+5. Later: goal alerts. The code is done, but the VM has no VAPID keys, so
+   `/api/push/key` returns 404 and the team page hides the alerts option.
+   Generate a key pair, put both in the VM's `.env`, restart, and check a
+   notification arrives. Until then, About's privacy section describes a
+   feature nobody can turn on; drop that sentence if alerts stay off.
 
 ## Background jobs (this machine)
 
