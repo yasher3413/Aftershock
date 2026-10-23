@@ -86,8 +86,22 @@ export function Seismograph() {
   const ticks: number[] = [];
   const hour = 3600_000;
   for (let t = Math.ceil(win.from / hour) * hour; t < win.to; t += hour) ticks.push(t);
-  // Label only as many hours as fit; every hour keeps its gridline.
+  // Label only as many hours as fit; every hour keeps its gridline. A label
+  // runs right from its line, or ends at the right edge when there is no room,
+  // and is dropped if that would run into the label before it.
   const labelEvery = Math.max(1, Math.ceil(64 / Math.max(1, (plotW * hour) / (win.to - win.from))));
+  const LABEL_W = 60;
+  const labels = new Map<number, { x: number; anchor: "start" | "end" }>();
+  let prevEnd = -Infinity;
+  ticks.forEach((t, i) => {
+    if (i % labelEvery) return;
+    const start = x(t) + 4;
+    const fits = start + LABEL_W <= plotW - 4;
+    const left = fits ? start : plotW - 4 - LABEL_W;
+    if (left < prevEnd + 8) return;
+    labels.set(t, fits ? { x: start, anchor: "start" } : { x: plotW - 4, anchor: "end" });
+    prevEnd = left + LABEL_W;
+  });
 
   const seek = (clientX: number) => {
     const el = boxRef.current;
@@ -175,7 +189,7 @@ export function Seismograph() {
             }}
           >
             <svg width={plotW} height={HEIGHT} className="block" aria-hidden>
-              {ticks.map((t, i) => (
+              {ticks.map((t) => (
                 <g key={t}>
                   <line
                     x1={x(t)}
@@ -185,14 +199,13 @@ export function Seismograph() {
                     stroke="var(--ice-scratch)"
                     strokeWidth={1}
                   />
-                  {i % labelEvery === 0 && (
-                    // Kept inside the plot so the last hour is never clipped.
+                  {labels.has(t) && (
                     <text
-                      x={Math.min(x(t) + 4, plotW - 4)}
+                      x={labels.get(t)!.x}
                       y={HEIGHT - 5}
                       fontSize={12}
                       fill="var(--ink-soft)"
-                      textAnchor={x(t) + 4 > plotW - 60 ? "end" : "start"}
+                      textAnchor={labels.get(t)!.anchor}
                     >
                       {timeLabel(t)}
                     </text>
