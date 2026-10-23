@@ -129,6 +129,29 @@ async def page(path: str, session: Db, request: Request) -> Response:
     )
 
 
+@router.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml(session: Db, request: Request) -> Response:
+    from aftershock.api.pages import sitemap
+
+    settings: Settings = request.app.state.aftershock.settings
+    body = await sitemap(session, settings.public_base_url)
+    return Response(
+        body, media_type="application/xml", headers={"Cache-Control": "public, s-maxage=3600"}
+    )
+
+
+@router.get("/robots.txt", include_in_schema=False)
+async def robots_txt(request: Request) -> Response:
+    from aftershock.api.pages import robots
+
+    settings: Settings = request.app.state.aftershock.settings
+    return Response(
+        robots(settings.public_base_url),
+        media_type="text/plain",
+        headers={"Cache-Control": "public, s-maxage=86400"},
+    )
+
+
 def current_season(now: datetime | None = None) -> int:
     n = now or datetime.now(UTC)
     start = n.year if n.month >= 8 else n.year - 1

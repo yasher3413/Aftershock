@@ -300,6 +300,24 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
     pages._template.clear()
 
 
+async def test_sitemap_lists_teams_nights_and_players(client: Any) -> None:
+    c, _ = client
+    r = await c.get("/api/sitemap.xml")
+    assert r.status_code == 200 and "xml" in r.headers["content-type"]
+    body = r.text
+    for path in (
+        "/</loc>",
+        "/teams</loc>",
+        "/team/TOR</loc>",
+        "/player/1</loc>",
+        "/player/2</loc>",
+    ):
+        assert path in body, path
+    assert "/status" not in body
+    robots = (await c.get("/api/robots.txt")).text
+    assert "Sitemap: http" in robots and robots.rstrip().endswith("/sitemap.xml")
+
+
 async def test_page_shell_follows_site_redeploys(tmp_path: Any) -> None:
     """Each site deploy renames its hashed assets, so the cached shell must
     expire; if the site cannot be reached, the last copy is kept."""

@@ -5,6 +5,8 @@
   "outputDirectory": "web/dist",
   "framework": null,
   "rewrites": [
+    { "source": "/robots.txt", "destination": "https://140.238.146.151.sslip.io/api/robots.txt" },
+    { "source": "/sitemap.xml", "destination": "https://140.238.146.151.sslip.io/api/sitemap.xml" },
     { "source": "/api/:path*", "destination": "https://140.238.146.151.sslip.io/api/:path*" },
     { "source": "/((?!assets/|app\\.html|favicon|sw\\.js|.*\\.[a-z0-9]+$).*)", "destination": "https://140.238.146.151.sslip.io/page/$1" }
   ],

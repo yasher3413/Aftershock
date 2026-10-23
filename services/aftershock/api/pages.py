@@ -161,6 +161,54 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
     return NOT_FOUND
 
 
+# Pages worth a search result: the sections, every team, every night replayed
+# this season, and everyone who scored or assisted on a goal this season.
+SECTIONS = ["/", *STATIC]
+
+
+async def sitemap(session: AsyncSession, base_url: str) -> str:
+    base = base_url.rstrip("/")
+    season = await session.scalar(select(Tremor.season).order_by(desc(Tremor.season)).limit(1))
+    teams = (await session.execute(select(Team.abbrev).order_by(Team.abbrev))).scalars()
+    paths = [p for p in SECTIONS if p != "/status"] + [f"/team/{t}" for t in teams]
+    if season is not None:
+        nights = (
+            await session.execute(
+                select(ReplayBundle.night_date)
+                .where(ReplayBundle.season == season, ReplayBundle.n_tremors > 0)
+                .order_by(ReplayBundle.night_date)
+            )
+        ).scalars()
+        paths += [f"/night/{n}" for n in nights]
+        players: list[int] = list(
+            (
+                await session.execute(
+                    text(
+                        "SELECT DISTINCT p FROM tremors, "
+                        "unnest(ARRAY[scorer_id, assist1_id, assist2_id]) AS p "
+                        "WHERE season = :s AND p IS NOT NULL ORDER BY p"
+                    ),
+                    {"s": season},
+                )
+            ).scalars()
+        )
+        paths += [f"/player/{p}" for p in players]
+    urls = "".join(f"<url><loc>{html.escape(base + p)}</loc></url>" for p in paths)
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+    )
+
+
+def robots(base_url: str) -> str:
+    return (
+        "User-agent: *\n"
+        "Disallow: /embed/\n"
+        "Disallow: /status\n"
+        f"\nSitemap: {base_url.rstrip('/')}/sitemap.xml\n"
+    )
+
+
 def render(template: str, meta: PageMeta, base_url: str, path: str) -> str:
     """Fill the page's tags into index.html (replacing the generic title and
     description)."""
