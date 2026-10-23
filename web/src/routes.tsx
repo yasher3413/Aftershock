@@ -8,6 +8,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Night = lazy(() => import("./pages/Night"));
 const Nights = lazy(() => import("./pages/Nights"));
 const Team = lazy(() => import("./pages/Team"));
+const Teams = lazy(() => import("./pages/Teams"));
 const Player = lazy(() => import("./pages/Player"));
 const Game = lazy(() => import("./pages/Game"));
 const TremorPage = lazy(() => import("./pages/Tremor"));
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "/", element: page(<Home />) },
       { path: "/nights", element: page(<Nights />) },
       { path: "/night/:date", element: page(<Night />) },
+      { path: "/teams", element: page(<Teams />) },
       { path: "/team/:abbrev", element: page(<Team />) },
       { path: "/player/:id", element: page(<Player />) },
       { path: "/game/:id", element: page(<Game />) },
