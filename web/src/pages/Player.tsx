@@ -77,9 +77,12 @@ function GoalLog({ goals, width }: { goals: Tremor[]; width: number }) {
       {ticks.map((t) => (
         <g key={t}>
           <line x1={x(t)} x2={x(t)} y1={pad.t} y2={h - pad.b} stroke="var(--ice-scratch)" />
-          <text x={x(t) + 4} y={h - 8} fontSize={12} fill="var(--ink-soft)">
-            {fmt(t)}
-          </text>
+          {/* A label that would run off the right edge is left off; its line stays. */}
+          {x(t) + 4 + (short ? 44 : 28) <= width && (
+            <text x={x(t) + 4} y={h - 8} fontSize={12} fill="var(--ink-soft)">
+              {fmt(t)}
+            </text>
+          )}
         </g>
       ))}
       <line x1={pad.l} x2={width - pad.r} y1={y(0)} y2={y(0)} stroke="var(--ink)" />
