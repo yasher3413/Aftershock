@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, Link, useLocation } from "react-router";
+import { NavLink, Outlet, Link, ScrollRestoration, useLocation } from "react-router";
 import { useLive } from "../live/store";
 import { useClock } from "../live/clock";
 import { longDate } from "../lib/format";
@@ -61,6 +61,7 @@ export function Shell() {
           Pipeline status
         </Link>
       </footer>
+      <ScrollRestoration />
     </div>
   );
 }
