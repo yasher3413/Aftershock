@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PageMessage } from "../components/PageMessage";
 import { Link, useParams } from "react-router";
 import { api, useNights, useRecap } from "../api/client";
 import type { GameSummary, ReplayBundleOut, StateResponse } from "../api/types.gen";
@@ -16,6 +17,14 @@ import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { seasonOf } from "../lib/season";
 import { PageLoading } from "../components/PageLoading";
+
+/** A real calendar date as YYYY-MM-DD (2026-13-40 would roll into 2027). */
+function realDate(s: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const d = new Date(Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!));
+  return d.toISOString().slice(0, 10) === s;
+}
 
 function todayEastern(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -84,7 +93,7 @@ function NightSchedule({ date }: { date: string }) {
         <p className="mt-3 text-ink-soft">Loading the schedule</p>
       ) : list.length === 0 ? (
         <p className="mt-3 text-ink-soft">
-          No games this night. Replays exist for every night of the 2024-25 and 2025-26 seasons.
+          No games this night. Every night since the start of 2024-25 has a replay.
         </p>
       ) : (
         <>
@@ -142,6 +151,12 @@ function NightSchedule({ date }: { date: string }) {
 export default function NightPage() {
   const params = useParams();
   const date = params.date === "today" || !params.date ? todayEastern() : params.date;
+  if (!realDate(date))
+    return (
+      <PageMessage title="No such date" link={{ to: "/nights", label: "Browse every night" }}>
+        Night addresses look like /night/2026-10-24.
+      </PageMessage>
+    );
   return <NightReplay key={date} date={date} />;
 }
 

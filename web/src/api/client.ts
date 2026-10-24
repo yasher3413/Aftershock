@@ -22,8 +22,10 @@ export class ApiError extends Error {
 }
 
 /** True when the api answered that the thing does not exist. */
+/** Nothing to show: no such record (404), or an id that cannot be one (422,
+ * like /player/abc). */
 export function isNotFound(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 404;
+  return error instanceof ApiError && (error.status === 404 || error.status === 422);
 }
 
 export const queryClient = new QueryClient({

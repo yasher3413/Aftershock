@@ -19,6 +19,12 @@ export default function EmbedPage() {
   const p = odds?.p_playoffs ?? 0;
   const r = 44;
   const c = 2 * Math.PI * r;
+  if (data && !team)
+    return (
+      <p className="flex h-dvh items-center bg-ice p-3 text-[14px] text-ink-soft">
+        No team called {abbrev}.
+      </p>
+    );
   return (
     <a
       href={`/team/${abbrev}`}
