@@ -36,7 +36,15 @@ function Swatch({ i }: { i: number }) {
   );
 }
 
-function Legend({ names, notes }: { names: string[]; notes?: string[] }) {
+function Legend({
+  names,
+  notes,
+  perfect,
+}: {
+  names: string[];
+  notes?: string[];
+  perfect?: boolean;
+}) {
   return (
     <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-ink-soft">
       {names.map((n, i) => (
@@ -48,6 +56,14 @@ function Legend({ names, notes }: { names: string[]; notes?: string[] }) {
           </span>
         </li>
       ))}
+      {perfect && (
+        <li className="flex items-center gap-2">
+          <svg width={22} height={8} aria-hidden className="shrink-0">
+            <line x1={0} x2={22} y1={4} y2={4} stroke="var(--ice-scratch)" strokeWidth={1.5} />
+          </svg>
+          <span>Perfect calibration</span>
+        </li>
+      )}
     </ul>
   );
 }
@@ -67,13 +83,18 @@ export function CalibrationChart({
   if (!names.length) return null;
   const all = names.flatMap((n) => [...curves[n]!.pred, ...curves[n]!.obs]);
   const top = max ?? Math.min(1, Math.ceil(Math.max(...all) * 1.08 * 20) / 20);
+  // Zoom in when every prediction sits well above zero, so the curves are
+  // not squeezed into one corner of an empty chart.
+  const floor = Math.floor(Math.min(...all) * 0.92 * 10) / 10;
+  const lo = floor >= 0.2 ? floor : 0;
   const size = Math.min(width, 480);
-  const pad = { l: 40, r: 10, t: 8, b: 34 };
+  // Room on the right for the last tick label, which is centered on its line.
+  const pad = { l: 40, r: 22, t: 8, b: 34 };
   const x = scaleLinear()
-    .domain([0, top])
+    .domain([lo, top])
     .range([pad.l, size - pad.r]);
   const y = scaleLinear()
-    .domain([0, top])
+    .domain([lo, top])
     .range([size - pad.b, pad.t]);
   const ticks = x.ticks(5);
   const pctTick = (v: number) => `${Math.round(v * 100)}%`;
@@ -95,9 +116,18 @@ export function CalibrationChart({
         {ticks.map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={size - pad.r} y1={y(v)} y2={y(v)} stroke="var(--ice-scratch)" />
-            <text x={pad.l - 6} y={y(v) + 4} textAnchor="end" fontSize={12} fill="var(--ink-soft)">
-              {pctTick(v)}
-            </text>
+            {/* The corner is shared: its value is labeled once, on the x axis. */}
+            {v > lo + 1e-9 && (
+              <text
+                x={pad.l - 6}
+                y={y(v) + 4}
+                textAnchor="end"
+                fontSize={12}
+                fill="var(--ink-soft)"
+              >
+                {pctTick(v)}
+              </text>
+            )}
             <text
               x={x(v)}
               y={size - pad.b + 16}
@@ -110,23 +140,13 @@ export function CalibrationChart({
           </g>
         ))}
         <line
-          x1={x(0)}
-          y1={y(0)}
+          x1={x(lo)}
+          y1={y(lo)}
           x2={x(top)}
           y2={y(top)}
           stroke="var(--ice-scratch)"
           strokeWidth={1.5}
         />
-        <text
-          x={x(top) - 4}
-          y={y(top) + 14}
-          textAnchor="end"
-          fontSize={12}
-          fill="var(--ink-soft)"
-          transform={`rotate(-45 ${x(top) - 4} ${y(top) + 14})`}
-        >
-          perfect
-        </text>
         {names
           .map((n, i) => ({ n, i }))
           .reverse()
@@ -161,6 +181,7 @@ export function CalibrationChart({
       <Legend
         names={names}
         notes={names.map((n) => `(calibration error ${curves[n]!.ece.toFixed(4)})`)}
+        perfect
       />
     </figure>
   );

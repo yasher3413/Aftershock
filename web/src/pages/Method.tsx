@@ -287,7 +287,6 @@ export default function MethodPage() {
                 <CalibrationChart
                   title="Home team wins: predicted against actual, 2021-22 to 2025-26"
                   curves={charts.strength_reliability}
-                  max={1}
                 />
               )}
             </Evidence>
