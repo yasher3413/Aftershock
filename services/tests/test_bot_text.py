@@ -130,5 +130,10 @@ def test_correction_and_alt_text() -> None:
     )
 
 
+def test_clock_and_goalie_corrections_say_nothing() -> None:
+    assert correction({"t_period_s": 1182, "t_game_s": 3582}, {"scorer": "A B"}) == ""
+    assert correction({"goalie": {"id": 1, "name": "C D"}}, {}) == ""
+
+
 def test_every_team_has_a_voice() -> None:
     assert len(TEAM_VOICE) == 32 and all(tag.startswith("#") for _, tag in TEAM_VOICE.values())

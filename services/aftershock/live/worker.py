@@ -558,21 +558,19 @@ class Worker:
             for rec, changes in eff.corrections:
                 if rec.id is None:
                     continue
-                names = await Q.player_names(s, {v for v in changes.values() if v})
-                published.append(
-                    (
-                        "tremor_updated",
-                        {
-                            "tremor_id": rec.id,
-                            "changes": {
-                                k.removesuffix("_id"): (
-                                    {"id": v, "name": names.get(v, str(v))} if v else None
-                                )
-                                for k, v in changes.items()
-                            },
-                        },
-                    )
+                players = {k: v for k, v in changes.items() if k.endswith("_id")}
+                names = await Q.player_names(s, {v for v in players.values() if v})
+                # Players as references; clock fields (t_period_s, t_game_s) as they are.
+                out = {k: v for k, v in changes.items() if k not in players}
+                out.update(
+                    {
+                        k.removesuffix("_id"): (
+                            {"id": v, "name": names.get(v, str(v))} if v else None
+                        )
+                        for k, v in players.items()
+                    }
                 )
+                published.append(("tremor_updated", {"tremor_id": rec.id, "changes": out}))
             if g is not None and lg is not None:
                 summary = Q.game_summary(g)
                 if lg.wp:

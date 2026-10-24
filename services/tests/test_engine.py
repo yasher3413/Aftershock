@@ -159,6 +159,28 @@ def test_scorer_correction_updates_attribution(
     assert not eff.tremors and not eff.reversals
 
 
+def test_clock_correction_updates_the_goal_time(
+    fixture: Fixture, models: tuple[WinProbModel, XgModel]
+) -> None:
+    raw = fixture("pbp_regulation_en")
+    game = ReplayGame(raw)
+    goal_idx = next(i for i, p in enumerate(game.plays) if p["typeDescKey"] == "goal")
+    engine = make_engine(raw, models)
+    doc = game.at_index(goal_idx + 1)
+    first = engine.handle(doc, parse_play_by_play(doc))
+    rec = first.tremors[0]
+    period_s, game_s = rec.t_period_s, rec.t_game_s
+    fixed = copy.deepcopy(doc)
+    m, sec = divmod(period_s + 2, 60)
+    fixed["plays"][goal_idx]["timeInPeriod"] = f"{m:02d}:{sec:02d}"
+    eff = engine.handle(fixed, parse_play_by_play(fixed))
+    assert eff.corrections and eff.corrections[0][1] == {
+        "t_period_s": period_s + 2,
+        "t_game_s": game_s + 2,
+    }
+    assert not eff.tremors and not eff.reversals
+
+
 def test_final_lands_in_engine_inputs_not_the_ones_passed_in(
     fixture: Fixture, models: tuple[WinProbModel, XgModel]
 ) -> None:

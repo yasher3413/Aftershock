@@ -462,7 +462,14 @@ class SeasonEngine:
 
     def _attribution(self, rec: TremorRecord, play: Play) -> dict[str, Any]:
         changes: dict[str, Any] = {}
-        for attr in ("scorer_id", "assist1_id", "assist2_id", "goalie_id"):
+        for attr in (
+            "scorer_id",
+            "assist1_id",
+            "assist2_id",
+            "goalie_id",
+            "t_period_s",
+            "t_game_s",
+        ):
             new = getattr(play, attr)
             if getattr(rec, attr) != new:
                 setattr(rec, attr, new)

@@ -19,7 +19,15 @@ from typing import Any
 from aftershock.ingest.load import content_hash
 from aftershock.nhl.parse import GameMeta, Play, parse_meta, parse_play
 
-ATTRIBUTION_FIELDS = ("scoringPlayerId", "assist1PlayerId", "assist2PlayerId", "goalieInNetId")
+# Fields whose correction the stored goal follows: credit, and the clock
+# (the NHL sometimes moves a goal's time by a second or two after posting it).
+ATTRIBUTION_FIELDS = (
+    "scoringPlayerId",
+    "assist1PlayerId",
+    "assist2PlayerId",
+    "goalieInNetId",
+    "timeInPeriod",
+)
 
 
 @dataclass(frozen=True)
