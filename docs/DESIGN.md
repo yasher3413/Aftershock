@@ -253,7 +253,11 @@ chance to win the series. Picks never move the page. Share scenario opens a
 menu (a sheet along the bottom on phones): Post to X, Copy link, Share image
 (only where the browser can hand files to other apps), and Download image.
 Links are short (`/what-if?id=...`, saved picks) and their preview is the
-server's 1200 by 630 card of the same scenario. The downloaded card is 1200
+server's 1200 by 630 card of the same scenario. Post to X copies the card
+picture as it opens X's composer, so the post carries the picture (paste
+it in) and X shows no link preview; X's share link cannot attach a
+picture itself, and where a browser will not copy one, the card downloads
+instead. The downloaded card is 1200
 by 675, drawn on a canvas in the viewer's light or dark palette, with no
 logos so the canvas is never tainted. How it works has a "Use the What-If Lab" guide, linked from the lab.
 

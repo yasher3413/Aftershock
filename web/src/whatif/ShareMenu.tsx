@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import { useMedia } from "../lib/useMedia";
 import { drawScenarioCard, type CardInput } from "./shareCard";
 
-type Status = "idle" | "working" | "copied" | "saved" | "error";
+type Status = "idle" | "working" | "copied" | "saved" | "error" | "card";
 
 /** Phones can hand an image to other apps. Most desktop browsers cannot, and
  * there a Share image option would only download it. */
@@ -14,6 +14,15 @@ function canShareFiles(): boolean {
   } catch {
     return false;
   }
+}
+
+// The last card drawn, by its contents.
+let drawn: { key: string; blob: Promise<Blob> } | null = null;
+
+function cardFor(card: CardInput): Promise<Blob> {
+  const key = JSON.stringify(card);
+  if (drawn?.key !== key) drawn = { key, blob: drawScenarioCard(card) };
+  return drawn.blob;
 }
 
 // Short links already made this visit, by scenario.
@@ -68,6 +77,7 @@ export function ShareMenu({
   // a click).
   const [link, setLink] = useState<{ encoded: string; url: string } | null>(null);
   const url = link?.encoded === encoded ? link.url : null;
+  const cardBlob = () => cardFor(card);
 
   useEffect(() => {
     if (!open) return;
@@ -77,6 +87,12 @@ export function ShareMenu({
       live = false;
     };
   }, [open, encoded]);
+
+  // The card is drawn when the menu opens, so Post to X can copy it while the
+  // click still allows copying.
+  useEffect(() => {
+    if (open) void cardFor(card).catch(() => undefined);
+  }, [open, card]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +118,7 @@ export function ShareMenu({
     setTimeout(() => setStatus("idle"), 2000);
   };
   const image = async () =>
-    new File([await drawScenarioCard(card)], "puckquake-what-if.png", {
+    new File([await cardBlob()], "puckquake-what-if.png", {
       type: "image/png",
     });
   const download = (file: File) => {
@@ -116,25 +132,40 @@ export function ShareMenu({
   const actions: { label: string; hint: string; run: () => Promise<void> | void }[] = [
     {
       label: "Post to X",
-      hint: "A ready-made post with your biggest swings",
+      hint: "Opens a ready-made post and copies the card: paste it in",
       run: async () => {
+        // X's post link cannot attach a picture, so the card goes on the
+        // clipboard (started before X opens, while this page has focus) and
+        // is pasted into the post. With a picture attached, X shows no link
+        // preview.
+        const copied =
+          typeof ClipboardItem === "undefined"
+            ? Promise.resolve(false)
+            : navigator.clipboard.write([new ClipboardItem({ "image/png": cardBlob() })]).then(
+                () => true,
+                () => false,
+              );
         const intent = (u: string) => {
           const x = new URL("https://x.com/intent/post");
           x.searchParams.set("text", tweet);
           x.searchParams.set("url", u);
           return x.toString();
         };
-        if (url) {
-          window.open(intent(url), "_blank", "noopener");
-          return;
+        if (url) window.open(intent(url), "_blank", "noopener");
+        else {
+          // Open the tab during the click (later would be blocked), then fill it.
+          const tab = window.open("about:blank", "_blank");
+          const u = await shortLink(encoded);
+          if (tab) {
+            tab.opener = null;
+            tab.location.href = intent(u);
+          } else window.open(intent(u), "_blank", "noopener");
         }
-        // Open the tab during the click (later would be blocked), then fill it.
-        const tab = window.open("about:blank", "_blank");
-        const u = await shortLink(encoded);
-        if (tab) {
-          tab.opener = null;
-          tab.location.href = intent(u);
-        } else window.open(intent(u), "_blank", "noopener");
+        // Where the browser will not copy a picture, save it to attach instead.
+        const ok = await copied;
+        if (!ok) download(await image());
+        setStatus(ok ? "card" : "saved");
+        setTimeout(() => setStatus("idle"), 8000);
       },
     },
     {
@@ -236,15 +267,17 @@ export function ShareMenu({
         >
           <path d="M10 3v10M6 7l4-4 4 4M4 11v5h12v-5" />
         </svg>
-        {status === "copied"
-          ? "Link copied"
-          : status === "saved"
-            ? "Image saved"
-            : status === "working"
-              ? "Making image"
-              : status === "error"
-                ? "Could not copy"
-                : "Share scenario"}
+        {status === "card"
+          ? "Card copied"
+          : status === "copied"
+            ? "Link copied"
+            : status === "saved"
+              ? "Image saved"
+              : status === "working"
+                ? "Making image"
+                : status === "error"
+                  ? "Could not copy"
+                  : "Share scenario"}
       </button>
       {open &&
         (phone ? (
