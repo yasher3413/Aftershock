@@ -19,6 +19,26 @@
     <meta name="theme-color" content="#eef3f6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0d1822" media="(prefers-color-scheme: dark)" />
     <title>Puckquake</title>
+    <script>
+      // A cached page from before a deploy can name app files that are gone;
+      // reload once (at most every minute) to get the current page.
+      window.addEventListener(
+        "error",
+        function (e) {
+          var t = e.target;
+          if (!t || (t.tagName !== "SCRIPT" && t.tagName !== "LINK")) return;
+          var src = t.src || t.href;
+          if (!src || src.indexOf("/assets/") < 0) return;
+          try {
+            var k = "aftershock.reloadedForDeploy";
+            if (Date.now() - Number(sessionStorage.getItem(k) || 0) < 60000) return;
+            sessionStorage.setItem(k, String(Date.now()));
+          } catch (_) {}
+          location.reload();
+        },
+        true,
+      );
+    </script>
   </head>
   <body>
     <div id="root"></div>
