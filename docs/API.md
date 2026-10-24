@@ -28,6 +28,9 @@ the generated file is stale.
 | `GET /status` | Health, recent simulations, reconciliation events, job runs |
 | `GET /og/tremor/{id}.png?size=og|card` | Share image: 1200 by 630, or the 1080 by 1350 card |
 | `GET /og/team/{abbrev}.png`, `GET /og/night/{date}.png` | Share images, 1200 by 630 |
+| `POST /scenarios` | Save What-If picks (`{"encoded": "2026020170.hr_..."}`, the Lab's `s` format, up to 1,400 picks of scheduled games) for a short link; returns `{"id", "encoded"}` with an 8-character id, the same id for the same picks. Limited to 30 saves per visitor per 10 minutes (`429`) |
+| `GET /scenarios/{id}` | A saved scenario (`404` if unknown); cached for a day |
+| `GET /og/scenario/{id}.png` | A saved scenario's share image, 1200 by 630: its picks rerun on the current forecast (10,000 seasons, the Lab's seed), cached for six hours |
 | `GET /push/key` | `{"key": ...}`: the web push public key, or `null` when alerts are not set up (the team page then hides them) |
 | `POST /push/subscribe`, `POST /push/unsubscribe` | Store or delete a browser's alert subscription (team and minimum magnitude) |
 | `GET /sitemap.xml` | Sitemap of the sections, every team, every night replayed this season, and every player who scored or assisted this season (served at `/sitemap.xml` on the site) |
@@ -66,5 +69,6 @@ built `index.html` with that page's title, description, and share image
 filled in (`api/pages.py`), so link previews work without JavaScript. Unknown
 addresses (a team, player, game, or goal that does not exist, an impossible
 date) get the same shell with a `404` status; `/night/today` and `/embed/X`
-are real pages. Responses are cached for a minute, then served stale for up
+are real pages. `/what-if?id=` with a saved scenario gets that scenario's
+title and image. Responses are cached for a minute, then served stale for up
 to two minutes while the CDN refetches.

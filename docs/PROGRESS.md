@@ -280,6 +280,11 @@ built from the recording:
     0.6/0.7 and team noise to 0. Season backtest Brier 0.110 to 0.106
     (October 1: 0.192 to 0.182). A roster-based prior was tested and did not
     help. Details in DECISIONS and the model cards.
+  - What-If sharing: short links (`/what-if?id=`, a `scenarios` table,
+    migration 0008), link previews with the scenario's own card (the api
+    image now builds the simulator for it), menu order Post to X, Copy link,
+    Share image (only where files can be shared), Download image, a bottom
+    sheet on phones, and the downloaded card in the viewer's theme.
   - Goal bot for X: design and build plan written and approved
     (`docs/superpowers/specs/2026-10-23-goal-bot-design.md`,
     `docs/superpowers/plans/2026-10-24-goal-bot.md`); not built yet.

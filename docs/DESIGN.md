@@ -250,10 +250,12 @@ The home team's logo sits faded (14 percent) at center ice.
 change shows before, with your picks, and change. The projected bracket is a
 full-width section below the picks, every round showing the favorite's
 chance to win the series. Picks never move the page. Share scenario opens a
-menu: share or download a 1200 by 675 card of the picks and the five biggest
-swings (drawn on a canvas in the browser, in the light palette, with no logos
-so the canvas is never tainted), copy the link, or open a ready-made post on
-X. How it works has a "Use the What-If Lab" guide, linked from the lab.
+menu (a sheet along the bottom on phones): Post to X, Copy link, Share image
+(only where the browser can hand files to other apps), and Download image.
+Links are short (`/what-if?id=...`, saved picks) and their preview is the
+server's 1200 by 630 card of the same scenario. The downloaded card is 1200
+by 675, drawn on a canvas in the viewer's light or dark palette, with no
+logos so the canvas is never tainted. How it works has a "Use the What-If Lab" guide, linked from the lab.
 
 **Charts.** Percentage charts label their shared corner once. Calibration
 charts zoom to where their predictions are and list the diagonal in the
