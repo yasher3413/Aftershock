@@ -286,14 +286,17 @@ built from the recording:
     image now builds the simulator for it), menu order Post to X, Copy link,
     Share image (only where files can be shared), Download image, a bottom
     sheet on phones, and the downloaded card in the viewer's theme.
-  - Goal bot for X: design and build plan written and approved
-    (`docs/superpowers/specs/2026-10-23-goal-bot-design.md`,
-    `docs/superpowers/plans/2026-10-24-goal-bot.md`); not built yet.
+  - Goal bot for X (`services/aftershock/bot/`): built from the approved
+    design and plan (`docs/superpowers/specs/2026-10-23-goal-bot-design.md`,
+    `docs/superpowers/plans/2026-10-24-goal-bot.md`) and deployed switched
+    off; `bot_posts` table (migration 0009), `aftershock bot-mode`, setup in
+    DEPLOY. Goal clock corrections now reach the stored goal too.
 
 ## Next
 
-1. Build the X goal bot from the plan (native execution), then run a full
-   night in dry-run mode before posting.
+1. The X goal bot is built and deployed, switched off (2026-10-24). The
+   owner creates @puckquake and its developer app and adds the keys
+   (DEPLOY, "Goal bot on X"); then a full night in dry run, then live.
 2. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
    Shape; free), then set `API_WORKERS=4` in the VM's `.env`.
 3. From the critique, still open: merge Night's two transport rows; open
@@ -313,12 +316,7 @@ built from the recording:
    docs/superpowers/specs/2026-10-23-goal-bot-design.md, "Playoffs,
    later"), starting with checking that the simulator honours playoff
    series already in progress.
-7. Small: when the NHL corrects a goal's clock after it is measured, only
-   scorer and assist corrections reach the stored goal, so a goal's time can
-   differ by a few seconds between the game page's rink (fresh plays) and
-   its tremor. Carry clock corrections through `tremor_updated` (the bot's
-   correction replies use the same path).
-8. Optional: recompute this season's odds history overnight with the
+7. Optional: recompute this season's odds history overnight with the
    2026-10-24 model, so team odds charts have no model step (it would also
    shift past goals' magnitudes slightly).
 

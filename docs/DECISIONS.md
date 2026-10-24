@@ -606,3 +606,19 @@ Each entry: date, decision, alternatives considered, reason.
   standings, shown the ways fans read them. Tonight stacked every panel
   while past nights split goals into their own tab; one component makes the
   two read the same.
+
+
+## 2026-10-24: The goal bot's wording and hashtags
+
+- **Decision:** a goal at 0-0 "opens the scoring" even in the last five
+  minutes (the design's table would have said "breaks a 0-0 tie"). Each
+  team gets one hashtag from the 2026-27 list of club tags (the Leafs'
+  is #Leafs, not #LeafsForever). Posts are measured the way X counts them:
+  arrows and emoji count as two characters. The empty-net phrase uses a goal
+  with no goalie in net, which matched the play's situation code on all 508
+  such goals last season.
+- **Reason:** the wording reads naturally; the tags are the clubs' current
+  ones (checked against a published list, not each club's X account, which
+  needs a login); X rejects posts over its weighted 280, which plain
+  character counts underestimate by three or more per post.
+
