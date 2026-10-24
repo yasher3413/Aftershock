@@ -559,3 +559,50 @@ Each entry: date, decision, alternatives considered, reason.
   when the market badly misjudged a team (Tampa Bay 2016-17, Chicago
   2017-18). Lines capture offseason trades, signings, and injuries, which
   results and the roster prior above could not.
+
+## 2026-10-23: The site is Puckquake
+
+- **Decision:** every visible name, page title, share card, disclaimer, and
+  doc says Puckquake. The Python package, database, server paths, settings,
+  and browser storage keys keep `aftershock`.
+- **Alternatives:** keep Aftershock and add "hockey" to the domain and
+  handle; ShockHockey (the .com was taken); HockeyShock.
+- **Reason:** "aftershock" is shared with a PC brand, a publisher, a festival,
+  and a drink, so neither search, a domain, nor a handle could be owned.
+  Puckquake is a made-up word that still carries the earthquake metaphor the
+  whole product is built on. Renaming internals would risk the live server
+  for no visible gain, and renaming storage keys would reset every visitor's
+  saved team.
+
+## 2026-10-24: Keep earlier deploys' files on every deploy
+
+- **Decision:** each Vercel build downloads the live deploy's list of hashed
+  asset files (`asset-list.txt`, and the deploy before it,
+  `asset-list-prev.txt`) and copies any it no longer has into its own
+  `dist/assets`. The page also reloads once if a script or stylesheet fails
+  to load, and the CDN may serve a stale page shell for two minutes, not ten.
+- **Reason:** page shells are cached for minutes and name the hashed files
+  of the deploy that built them; Vercel serves only the current deploy's
+  files. After a deploy, player pages failed to load their code and the
+  phone home page came up blank until the caches turned over. Carrying two
+  generations covers deploys a few minutes apart.
+
+## 2026-10-24: No numbers beside teams on the map
+
+- **Decision:** the live score chips beside teams are gone. Both teams in a
+  game on now get a red outline, the home team's circle pulses, and scores
+  live in the games list and each team's hover card.
+- **Reason:** a bare boxed number read as clutter, not a score, and crowded
+  the Northeast. The pulse alone drifted off the home team when the layout
+  nudged circles apart and marked nothing for the away team.
+
+## 2026-10-24: Standings, not Teams; one panel component
+
+- **Decision:** the Teams page is Standings (`/standings`, `/teams`
+  redirects permanently) with division, wild card, conference, and league
+  views. Tonight and replayed nights share `panels/SidePanels.tsx`: the
+  night (games, upcoming games during a replay, goals, recap) and Standings.
+- **Reason:** every team is already in the footer, so the page's job is the
+  standings, shown the ways fans read them. Tonight stacked every panel
+  while past nights split goals into their own tab; one component makes the
+  two read the same.

@@ -62,7 +62,10 @@ regulation goals are league average times exp(offense + opponent defense),
 times home ice for the home side, adjusted for back-to-backs. After every game,
 both ratings move toward the observed performance (a blend of goals and xG per
 60 minutes) with exponential decay by game. A new season starts from the
-previous season's ratings, optionally shrunk toward the mean. Regulation goals
+previous season's ratings pulled 30 percent of the way back to average, and
+then moves each team's points pace half of the way toward its preseason
+sportsbook point total (read relative to the league's average line, from
+`config/market/point_totals.json`); the season's games wash both out. Regulation goals
 are Poisson with the diagonal inflated so the tie rate matches history.
 Overtime winners come from a sigmoid of the strength ratio shrunk toward 0.5;
 the share of overtimes reaching a shootout and the home shootout win rate are
@@ -73,27 +76,42 @@ measured.
 set by bisection so the mean predicted regulation-tie rate equals the observed
 22.7 percent.
 
-Chosen parameters: goal and xG blend 0.5, half-life 22 games, season
-regression 0.0, home ice 1.10, back-to-back penalty 0.04, overtime slope 1.5
-with shrink 0.5, shootout share of overtimes 0.347, home shootout win rate
-0.530, tie inflation 1.52.
+Chosen parameters: goal and xG blend 0.5, half-life 22 games, home ice 1.10,
+back-to-back penalty 0.04, overtime slope 1.5 with shrink 0.5, shootout share
+of overtimes 0.347, home shootout win rate 0.530, tie inflation 1.51.
+
+Two parameters are set by season playoff-odds backtests rather than by game
+log loss, which is nearly indifferent to them (`SEASON_REGRESS` and
+`MARKET_WEIGHT` in `services/aftershock/ml/strength_fit.py`, see
+`docs/DECISIONS.md`, 2026-10-24):
+
+- New-season fade 0.30. Replaying 2016-17 to 2025-26 from late October
+  onward, 0.25 to 0.35 gave the best playoff-odds Brier and log loss at every
+  checkpoint; game log loss was unchanged.
+- Betting-line weight 0.5. Chosen on 2016-19 by log loss over each team's
+  first 30 games, then tested on 2021-26: 1.0436 without the lines, 1.0419
+  with them. Early playoff-odds Brier was better in 5 of 8 seasons.
 
 **Backtest.** Every regular-season game 2021-22 to 2025-26 (6,560 games),
 predicted with ratings as of that morning, using `xg-bt-1.0.0`.
 
 | Model | 3-way log loss | 2-way log loss | Accuracy |
 |---|---|---|---|
-| Team strength | 1.0362 | 0.6628 | 59.4% |
+| Team strength | 1.0354 | 0.6618 | 59.3% |
 | Season-to-date points percentage | 1.0551 | 0.6803 | 56.9% |
 | Home ice only | 1.0667 | 0.6905 | 53.7% |
 
-Calibration of P(home win): ECE 0.020 (`strength_reliability.svg`). The
-weakest season was 2025-26 (54.8 percent accuracy).
+Calibration of P(home win): ECE 0.023 (`strength_reliability.svg`). The
+weakest season was 2025-26 (53.9 percent accuracy).
 
-**Known limitations.** The tuning chose no season-to-season regression and a
-fairly strong home-ice factor; a wider grid moved the backtest log loss by
-less than 0.001. Ratings ignore rosters, injuries, and goaltender starts. For
-season simulations the ratings are shrunk further (see the simulator card).
+**Known limitations.** Ratings ignore in-season injuries and goaltender
+starts; offseason roster changes reach them only through the preseason
+betting lines, which are one snapshot before opening night. A roster-based
+talent prior built from players' individual xG and goaltenders' goals saved
+above expected did not improve predictions on held-out seasons and was not
+shipped (`docs/DECISIONS.md`). The lines must be added each season; without
+them that step is skipped. For season simulations the ratings are shrunk
+further (see the simulator card).
 
 ## In-game win probability (`wp-1.0.0`)
 
@@ -168,22 +186,24 @@ dozens of games.
 
 **Tuning.** Season backtests on 2016-17 to 2018-19, simulating as of October 1
 (before the season) and the 1st of each month November to April, using only
-results and ratings known that morning. Chosen: shrink 0.5 before the season,
-easing to 0.7 once 15 percent of the season is played.
+results and ratings known that morning. Chosen: shrink 0.6 before the season,
+easing to 0.7 once 15 percent of the season is played, and no per-simulation
+team noise (`team_sigma` 0). Retuned on 2026-10-24 after the new-season fade
+and betting-line prior, which do some of the work the shrink used to.
 
 **Backtest (2021-22 to 2025-26, 4,000 simulations per checkpoint).**
 P(playoffs) Brier across 7 checkpoints per season:
 
 | Checkpoint | Simulator | Simulator without shrink | Points % baseline |
 |---|---|---|---|
-| October 1 | 0.192 | 0.212 | 0.277 |
-| November 1 | 0.151 | 0.156 | 0.198 |
-| December 1 | 0.119 | 0.124 | 0.143 |
-| January 1 | 0.107 | 0.111 | 0.126 |
-| February 1 | 0.090 | 0.090 | 0.117 |
+| October 1 | 0.182 | 0.190 | 0.277 |
+| November 1 | 0.142 | 0.142 | 0.198 |
+| December 1 | 0.116 | 0.118 | 0.143 |
+| January 1 | 0.105 | 0.108 | 0.126 |
+| February 1 | 0.089 | 0.089 | 0.117 |
 | March 1 | 0.077 | 0.076 | 0.114 |
-| April 1 | 0.032 | 0.032 | 0.098 |
-| **All** | **0.110** | 0.114 | 0.153 |
+| April 1 | 0.032 | 0.031 | 0.098 |
+| **All** | **0.106** | 0.108 | 0.153 |
 
 The points-percentage baseline is a logistic regression on points
 percentage to date (and its interaction with the month), fit on the tuning

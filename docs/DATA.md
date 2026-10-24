@@ -10,10 +10,10 @@ scanning the cached play-by-play of every game since 2015-16 with
 
 - NHL data belongs to the NHL. The API is not an officially supported
   product, and Puckquake is not affiliated with or endorsed by the NHL.
-- Every page footer carries the source and a trademark notice: "Data from
-  NHL.com. NHL and team logos and marks, and player photos, are the property
-  of the NHL and its teams. Puckquake is not affiliated with, endorsed by,
-  or sponsored by the NHL or any team."
+- Every page footer lists the sources (below) with links, and carries a
+  trademark notice: "NHL and team logos and marks, and player photos, are
+  the property of the NHL and its teams. Puckquake is not affiliated with,
+  endorsed by, or sponsored by the NHL or any team."
 - Team logos and player headshots are loaded by the browser from the NHL's
   public asset server (`assets.nhle.com`) and never copied into this
   repository or its fixtures. Each falls back to the team code or the
@@ -25,6 +25,17 @@ scanning the cached play-by-play of every game since 2015-16 with
   so on-ice stats and plus/minus for that season leave those games out.
 - Raw data dumps are never redistributed. The raw cache (`data/raw/`) is
   gitignored. Test fixtures are small, trimmed samples.
+
+## Other sources
+
+- **Preseason point totals.** Each team's sportsbook over/under on season
+  points, from Hockey-Reference's preseason odds pages
+  (`hockey-reference.com/leagues/NHL_<end year>_preseason_odds.html`), in
+  `config/market/point_totals.json` for 2016-17 to 2018-19 and 2021-22 to
+  2026-27. The strength model uses them as a start-of-season prior (see
+  `ml/MODEL_CARDS.md`). Add each new season's lines before opening night.
+- **Map.** Country and state outlines from Natural Earth 1:50m, built into
+  `web/public/geo/north-america.topo.json` by `scripts/build_geo.sh`.
 
 ## Client behavior
 

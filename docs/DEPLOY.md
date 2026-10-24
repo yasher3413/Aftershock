@@ -91,8 +91,23 @@ scripts/deploy/push_data.sh ubuntu@<IP>
 - **Capacity:** `API_WORKERS` in the VM's `.env` sets the api processes
   (default 2; about one per core). Read responses are cached for seconds at
   Vercel's CDN and in each process (`services/aftershock/api/cache.py`).
-- **Updates:** Vercel redeploys on every push. On the VM:
+- **Updates:** Vercel redeploys on every push. Each build carries forward the
+  previous two deploys' hashed asset files (`scripts/vercel_build.sh`), so a
+  page shell cached before the deploy still loads; nothing to do by hand. On
+  the VM, for api or worker changes:
   `cd ~/Aftershock && git pull && sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env up -d --build`.
+- **Model changes:** after a change to the strength model or its inputs
+  (including `config/market/point_totals.json`), recompute ratings and restart
+  the worker so the live odds and the What-If Lab use it:
+  `sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env exec -T worker aftershock ratings`,
+  then `... restart worker`. Retrain locally first (`make train`,
+  `aftershock backtest`) and commit `ml/artifacts` and `ml/reports`.
+- **Every October:** add the new season's preseason point totals to
+  `config/market/point_totals.json` (from Hockey-Reference's preseason odds
+  page) before opening night, deploy, and recompute ratings as above. Without
+  them the model skips that prior for the season.
+- **Model update markers:** when a model change moves the live odds, add an
+  entry to `web/src/lib/modelChanges.ts` so team odds charts mark the step.
 - **A domain:** add it to the Vercel project for the site, point `api.<domain>`
   at the VM's IP with an A record, then set `API_HOST=api.<domain>`,
   `PUBLIC_BASE_URL=https://<domain>`, and `INDEX_HTML=https://<domain>/app.html`

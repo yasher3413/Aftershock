@@ -255,18 +255,49 @@ built from the recording:
   and links the stored tremors (Oct 9: 152 frames over 3.5 hours). Replays
   are now cached for minutes, not a day, since they can be rebuilt.
 
+- Launch pass and rename (2026-10-21 to 24). The site is **Puckquake**
+  (formerly Aftershock; code, database, and storage keys keep the old name).
+  - Site: full footer with Sources, header search (teams, nicknames, every
+    player on the ice for a goal), About with a five-step math section,
+    icons and manifest, robots.txt and a sitemap, real 404 statuses, one
+    content column for the header and every page, Standings (formerly Teams)
+    with division, wild card, conference, and league views, Tonight and
+    replay panels as two tabs (the night, Standings), Coming up tonight
+    during daytime replays, map outlines for teams in live games instead of
+    score numbers, rink shot cards with the home logo at center ice, live
+    clock wording ("Start of 2nd"), What-If fixes (no page jumps, favorite's
+    odds, before/after/change, share link, full projected bracket with
+    series odds), How it works fixes (calibration charts, game stakes,
+    magnitude scale), model-update markers on team odds charts.
+  - Speed: replay bundles are compacted (23 MB to 3 MB raw for a night),
+    player headshots go through Vercel's image resizer, page shells are
+    served stale while the CDN refetches.
+  - Reliability: each Vercel build carries the previous two deploys' hashed
+    files, and pages reload once if one is missing; before this, pages broke
+    for a few minutes after every deploy.
+  - Models: new-season fade 0.30 and a start-of-season pull halfway toward
+    the preseason betting point totals; the simulation shrink retuned to
+    0.6/0.7 and team noise to 0. Season backtest Brier 0.110 to 0.106
+    (October 1: 0.192 to 0.182). A roster-based prior was tested and did not
+    help. Details in DECISIONS and the model cards.
+  - Goal bot for X: design and build plan written and approved
+    (`docs/superpowers/specs/2026-10-23-goal-bot-design.md`,
+    `docs/superpowers/plans/2026-10-24-goal-bot.md`); not built yet.
+
 ## Next
 
-1. Watch the first live night on the VM, then stop the laptop worker.
+1. Build the X goal bot from the plan (native execution), then run a full
+   night in dry-run mode before posting.
 2. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
    Shape; free), then set `API_WORKERS=4` in the VM's `.env`.
-3. From the critique, still open: one tab component across Home, Leaders
-   and Night; merge Night's two transport rows; open teams and goals in a
-   sheet over the map instead of leaving it.
-4. Later: buy a domain (DEPLOY.md "A domain"); fill the 2024-25 shift-chart
+3. From the critique, still open: merge Night's two transport rows; open
+   teams and goals in a sheet over the map instead of leaving it. (Home and
+   Night now share one panel component, `panels/SidePanels.tsx`.)
+4. Buy puckquake.com (DEPLOY.md "A domain"), then point the site, sitemap,
+   share links, and the bot's bio at it. Later: fill the 2024-25 shift-chart
    gap from NHL HTML reports; goalie "PPA saved".
 5. Later: goal alerts. The code is done, but the VM has no VAPID keys, so
-   `/api/push/key` returns 404 and the team page hides the alerts option.
+   `/api/push/key` returns a null key and the team page hides the alerts option.
    Generate a key pair, put both in the VM's `.env`, restart, and check a
    notification arrives. Until then, About's privacy section describes a
    feature nobody can turn on; drop that sentence if alerts stay off.
@@ -274,8 +305,16 @@ built from the recording:
    docs/superpowers/specs/2026-10-23-goal-bot-design.md, "Playoffs,
    later"), starting with checking that the simulator honours playoff
    series already in progress.
+7. Small: when the NHL corrects a goal's clock after it is measured, only
+   scorer and assist corrections reach the stored goal, so a goal's time can
+   differ by a few seconds between the game page's rink (fresh plays) and
+   its tremor. Carry clock corrections through `tremor_updated` (the bot's
+   correction replies use the same path).
+8. Optional: recompute this season's odds history overnight with the
+   2026-10-24 model, so team odds charts have no model step (it would also
+   shift past goals' magnitudes slightly).
 
-## Background jobs (this machine)
+## Background jobs
 
-- Recorder: `aftershock record-live --hours 96`, output `data/recordings/`.
-- Worker, API (:8000), and web dev server (:5173), logs in `logs/`.
+None on the laptop. Production runs on the Oracle VM (api, worker, Postgres,
+Redis, Caddy) and Vercel (the site); see DEPLOY.

@@ -27,7 +27,10 @@ season cursor.
 
 **Models** (`services/aftershock/ml/`). Expected goals, team strength, and
 in-game win probability, trained in that order because each feeds the next.
-Cards and measured results: `ml/MODEL_CARDS.md`.
+Team strength starts each season from last season's ratings faded toward
+average and pulled toward the preseason betting lines
+(`config/market/point_totals.json`). Cards and measured results:
+`ml/MODEL_CARDS.md`.
 
 **Rules and simulator** (`crates/aftershock-core/`). League rules as data
 (`config/leagues/*.toml`), a standings engine that reproduces nine seasons of
@@ -64,15 +67,32 @@ history, and one replay bundle per night. Magnitude is calibrated on those
 tremors.
 
 **API** (`services/aftershock/api/`). REST under `/api`, the WebSocket at
-`/ws/live`, share images under `/api/og`. Wire types are pydantic models that
-generate `web/src/api/types.gen.ts`. See `docs/API.md`.
+`/ws/live`, share images under `/api/og`, and page shells with share-preview
+tags under `/page` (`pages.py`), plus the sitemap and robots file. Replay
+bundles are compacted on the way out (`replay.py`). Wire types are pydantic
+models that generate `web/src/api/types.gen.ts`. See `docs/API.md`.
 
 **Web** (`web/`). React 19, Zustand for live state and the timeline player,
 TanStack Query for REST. The map draws the basemap once with d3-geo onto a
 canvas texture, animates everything in a PixiJS layer whose ticker idles when
 nothing moves, and puts an accessible button over every team. Live and replay
 feed the same reducer: the socket in live mode, the timeline player in demo
-and replay mode.
+and replay mode. The reducer merges `game_update` and `odds_update` field by
+field, which is what lets replay bundles send only what changed.
+
+Pages: Tonight (`/`), Nights and a night's replay, Leaders, Standings
+(`/standings`; `/teams` redirects), team, player, game, and goal pages, the
+What-If Lab (the simulator in WebAssembly, with a projected bracket and
+best-of-seven series odds in `whatif/bracket.ts`), How it works, About, and
+Status. Search (the header, `/`, or Cmd/Ctrl+K) matches teams, nicknames,
+and every player on the ice for a goal this season.
+
+**Hosting.** Vercel serves the built site and rewrites `/api`, `/ws`, page
+paths, `/sitemap.xml`, and `/robots.txt` to the API on the Oracle VM. Each
+Vercel build carries forward the previous two deploys' hashed asset files
+(`scripts/vercel_build.sh`, `asset-list.txt` and `asset-list-prev.txt`),
+because cached page shells still name them for a few minutes after a deploy;
+the page also reloads once if an asset is missing. See `docs/DEPLOY.md`.
 
 ## Data flow of one goal
 

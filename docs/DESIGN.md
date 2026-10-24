@@ -170,10 +170,10 @@ them. A short heading/key and current or replay time make the signal readable.
 higher above, or below their ring, and are skipped rather than stacked in
 the crowded Northeast. The origin's M label scales with magnitude (17 to 29
 px) and stays four seconds. Competing weights were demoted: Pause is an
-outline button, live score chips are 12 px numbers on the surface color,
-and replay status lives in Home's tinted title block ("October 8,
-replayed" with a Replay tag and the next live time) instead of an ink
-banner that inverted in dark mode and shifted the page when it arrived.
+outline button, and replay status lives in Home's tinted title block
+("October 8, replayed" and the next live time) instead of an ink banner
+that inverted in dark mode and shifted the page when it arrived. (Live score
+chips beside teams were removed on 2026-10-24; see below.)
 
 **One page frame.** Content pages share `max-w-6xl` and one title size
 (38 px on phones, 60 px above). A paragraph after a display heading gets
@@ -189,10 +189,10 @@ lighter weight.
 Open button); the second opens it. The map key sits behind a Map key
 button instead of disappearing.
 
-**The key never covers a team.** Team logos and score chips draw above
-the key, so a team under it showed through. From tablet width the key
-looks for a spot along the bottom edge, then the top, that clears every
-team and live score chip: tall and narrow first, then wide and short.
+**The key never covers a team.** Team logos draw above the key, so a team
+under it showed through. From tablet width the key looks for a spot along
+the bottom edge, then the top, that clears every team: tall and narrow
+first, then wide and short.
 When no spot is clear it folds behind the same Map key button as phones.
 
 **The walkthrough** (`web/src/tour/`). Seven steps over the real page:
@@ -207,3 +207,54 @@ keys, and replays from "How to read this" on Home or "Take the tour" in
 the footer (`/?tour=1`). Seen state is `aftershock.tourSeen` in local
 storage.
 
+
+## Launch pass (2026-10-23 to 24)
+
+**Puckquake.** The site was renamed from Aftershock (the code, database, and
+browser storage keys keep the old name). The wordmark is the name in Big
+Shoulders Display; the icon is the seismograph mark.
+
+**One column everywhere.** The header, every page's content, Tonight's title
+band, and a replayed night's title sit in the same `max-w-6xl` column, so the
+logo never moves between pages. Only the home map, its panels, and the
+timeline run edge to edge beneath it. A title says "replayed" once; there is
+no separate Replay tag.
+
+**The footer** carries the wordmark and maker, Explore and About links, a
+Sources list (each source with its link), every team by division, and the
+disclaimer. Every page is at least a screen tall, so the footer never shows
+under a page that is still loading and then jumps away.
+
+**The map** shows no numbers beside teams. Both teams in a game on now get a
+red outline, and the home team's circle pulses. Scores are in the games list
+beside the map and in each team's hover card.
+
+**Panels beside the map**, on Tonight and on every replayed night, have two
+tabs: the night (its games, tonight's upcoming games while a replay runs, its
+goals, and the recap) and Standings.
+
+**Replays.** Next goal and Restart keep playing and land just before the
+moment, so the goal's shockwave and magnitude play out on the map.
+
+**Standings** (`/standings`, formerly Teams) has Division, Wild card,
+Conference, and League views. A darker rule marks the playoff line where one
+exists (third in a division, the last wild card); in the conference and
+league views a dark bar marks each team in a playoff spot today.
+
+**Game page rink.** Every shot dot opens a small card on hover or tap: the
+shooter's photo, time, shot type, and chance of scoring; goals add their
+magnitude, the scoring team's change in playoff odds, and a link to the goal.
+The home team's logo sits faded (14 percent) at center ice.
+
+**What-If Lab.** Each game shows its favorite's chance. Sorting by biggest
+change shows before, with your picks, and change. The projected bracket is a
+full-width section below the picks, every round showing the favorite's
+chance to win the series. Picks never move the page.
+
+**Charts.** Percentage charts label their shared corner once. Calibration
+charts zoom to where their predictions are and list the diagonal in the
+legend. Team odds charts mark forecast model updates with a dashed line, so a
+step from a model change is not read as something on the ice.
+
+**Live clock** wording: "2nd 12:34", "End 1st" in an intermission, and
+"Start of 2nd" before a period's puck drop.

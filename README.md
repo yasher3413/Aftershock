@@ -18,10 +18,12 @@ how much it moved its team's playoff odds.
 
 Around the map: a page for every team (its season drawn as a seismogram, with
 who to root for this week), a card for every player (every goal's effect on
-the race, plus discipline and defense), leaderboards, a calendar of every
-night since 2024-25 to replay goal by goal, a What-If Lab that reruns the
-season in your browser through WebAssembly when you pick results, shareable
-tremor cards, and a recap written each night.
+the race, plus discipline and defense), standings by division, wild card,
+conference, and league with every team's odds, leaderboards, a calendar of
+every night since 2024-25 to replay goal by goal, a What-If Lab that reruns
+the season in your browser through WebAssembly when you pick results (with a
+projected bracket and series odds), game pages with every shot on a rink,
+search, shareable tremor cards, and a recap written each night.
 
 | Team page | Player card | What-If Lab |
 |---|---|---|
@@ -40,9 +42,12 @@ season, which it never saw in training, its AUC is 0.755.
 
 **How good is each team.** Offense and defense ratings move after every game
 toward how a team actually played (goals and expected goals), with recent
-games counting most. From 2021-22 to 2025-26, predicting each game with only
-what was known that morning, it picked the winner 59.4 percent of the time.
-Good hockey models live between 58 and 62.
+games counting most. Each season starts from last season's ratings, faded 30
+percent toward average and then moved halfway toward the preseason betting
+point totals, which know about summer trades and signings. From 2021-22 to
+2025-26, predicting each game with only what was known that morning, it
+picked the winner 59.3 percent of the time. Good hockey models live between
+58 and 62.
 
 **Who is winning right now.** In-game win probability starts from a physical
 model of goals arriving at the rates measured for the current manpower, then a
@@ -156,7 +161,8 @@ docs/                    architecture, data, models, simulator, API, design, dep
 
 ## Data
 
-Data from NHL.com. Puckquake is not affiliated with, endorsed by, or
+Data from NHL.com; preseason point totals from Hockey-Reference; map outlines
+from Natural Earth. Puckquake is not affiliated with, endorsed by, or
 sponsored by the NHL or any team. It reads the league's public play-by-play
 feed politely (a descriptive user agent, at most 8 requests a second, cached
 so finished games are never fetched twice) and never redistributes raw data.
