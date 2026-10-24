@@ -378,8 +378,11 @@ export default function MethodPage() {
           <H id="magnitude">6. Magnitude and Playoff Probability Added</H>
           <p>
             A goal's total shift is the sum of how much it moved every team's playoff odds.
-            Magnitude puts that on a logarithmic scale from 0 to 10, like an earthquake: M = a + b
-            log10(1 + 10000 S), where S is the total shift.
+            Magnitude puts that on a logarithmic scale from 0 to 10, like an earthquake:{" "}
+            <span className="whitespace-nowrap rounded-[var(--radius)] bg-ice-land px-2 py-0.5 font-mono text-[14px]">
+              M = a + b · log₁₀(1 + 10,000 · S)
+            </span>
+            , where S is the total shift.
             {mag &&
               ` The constants (a = ${f(mag.a, 2)}, b = ${f(mag.b, 2)}) were set on ${mag.n_goals?.toLocaleString()} goals from 2024-25 and 2025-26 so the typical goal lands near 2 and a season's ten biggest near 8.`}{" "}
             {mag?.zero_share != null &&
@@ -387,6 +390,22 @@ export default function MethodPage() {
             {mag?.top25_march_april_share != null &&
               `The map gets more violent as April approaches, but only at the top: ${f(mag.top25_march_april_share * 100, 0)}% of each season's 25 biggest goals came in March or April, while ${f(mag.april_zero_share * 100, 0)}% of April goals read M0.0 because most races are already settled.`}
           </p>
+          <dl className="my-6 grid grid-cols-3 border-y border-ice-scratch py-4 text-center">
+            <div>
+              <dt className="display text-[30px] font-bold">M0</dt>
+              <dd className="mt-1 text-[13px] text-ink-soft">The race barely noticed</dd>
+            </div>
+            <div>
+              <dt className="display text-[30px] font-bold">M2</dt>
+              <dd className="mt-1 text-[13px] text-ink-soft">A typical goal</dd>
+            </div>
+            <div>
+              <dt className="display text-[30px] font-bold text-goal">M8</dt>
+              <dd className="mt-1 text-[13px] text-ink-soft">
+                One of the season&apos;s ten biggest
+              </dd>
+            </div>
+          </dl>
           <p className="mt-4">
             Playoff Probability Added (PPA) is how much a goal moved the scoring team's own playoff
             odds, in percentage points. A player's PPA is the sum over his goals. Assists earn the
