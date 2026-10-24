@@ -79,11 +79,12 @@ export const useNights = (season: number) =>
     queryFn: () => api<NightInfo[]>(`/replay/nights?season=${season}`),
   });
 
-export const useRecap = (date: string) =>
+export const useRecap = (date: string, enabled = true) =>
   useQuery({
     queryKey: ["recap", date],
     queryFn: () => api<RecapResponse>(`/recaps/${date}`),
     retry: false,
+    enabled,
   });
 
 /** Methodology reports are free-form JSON written by the training jobs. */

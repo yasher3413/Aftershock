@@ -183,13 +183,21 @@ function NightReplay({ date }: { date: string }) {
   const loaded = useLive((s) => s.loaded);
   const [bundle, setBundle] = useState<ReplayBundleOut | null>(null);
   const [panel, setPanel] = useState("Games");
-  const recap = useRecap(date);
+  // Ask for a replay and recap only if the night has one; tonight's games and
+  // future nights would otherwise log two failed requests on every visit.
+  const [y, m] = date.split("-").map(Number) as [number, number];
+  const season = m >= 8 ? y * 10000 + y + 1 : (y - 1) * 10000 + y;
+  const nights = useNights(season);
+  const known = nights.data?.some((n) => n.night_date === date);
+  const recap = useRecap(date, known === true);
   useDocumentMeta(
     `${longDate(date)} replay`,
     `Every goal of ${longDate(date)} and how far it moved the playoff race.`,
   );
 
   useEffect(() => {
+    // Wait for the list of recorded nights; if it fails to load, try anyway.
+    if (nights.isPending || known === false) return;
     let cancelled = false;
     let stop: (() => void) | null = null;
     (async () => {
@@ -214,9 +222,9 @@ function NightReplay({ date }: { date: string }) {
       stop?.();
       useClock.getState().setLive();
     };
-  }, [date]);
+  }, [date, nights.isPending, known]);
 
-  if (status === "missing") return <NightSchedule date={date} />;
+  if (status === "missing" || known === false) return <NightSchedule date={date} />;
 
   return (
     <div className="night-page flex flex-1 flex-col">
