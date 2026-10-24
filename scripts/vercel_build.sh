@@ -9,22 +9,27 @@ cd web
 npx -y "$(node -p 'require("./package.json").packageManager')" build
 mv dist/index.html dist/app.html
 
-# Pages are cached for a few minutes and still name the previous deploy's
-# hashed files, which a new deploy no longer serves. Carry the live deploy's
-# own files forward (one generation: only this build's files are listed).
+# Pages are cached for a few minutes and still name earlier deploys' hashed
+# files, which a new deploy no longer serves. Carry the last two deploys'
+# own files forward: asset-list.txt is this build's files, and
+# asset-list-prev.txt the deploy before it.
 (cd dist/assets && ls) > dist/asset-list.txt
+: > dist/asset-list-prev.txt
 live="https://${VERCEL_PROJECT_PRODUCTION_URL:-aftershock-fawn.vercel.app}"
-if curl -fsS --max-time 20 "$live/asset-list.txt" -o /tmp/prev-assets.txt; then
-  carried=0
-  while read -r f; do
-    [ -n "$f" ] && [ ! -e "dist/assets/$f" ] || continue
-    if curl -fsS --max-time 20 "$live/assets/$f" -o "dist/assets/$f"; then
-      carried=$((carried + 1))
-    else
-      rm -f "dist/assets/$f"
-    fi
-  done < /tmp/prev-assets.txt
-  echo "Carried $carried files from the live deploy"
-else
-  echo "No asset list on the live deploy; nothing carried"
-fi
+: > /tmp/carry.txt
+for list in asset-list.txt asset-list-prev.txt; do
+  if curl -fsS --max-time 20 "$live/$list" -o "/tmp/$list"; then
+    cat "/tmp/$list" >> /tmp/carry.txt
+    [ "$list" = asset-list.txt ] && cp /tmp/asset-list.txt dist/asset-list-prev.txt
+  fi
+done
+carried=0
+while read -r f; do
+  [ -n "$f" ] && [ ! -e "dist/assets/$f" ] || continue
+  if curl -fsS --max-time 20 "$live/assets/$f" -o "dist/assets/$f"; then
+    carried=$((carried + 1))
+  else
+    rm -f "dist/assets/$f"
+  fi
+done < <(sort -u /tmp/carry.txt)
+echo "Carried $carried files from the last two deploys"
