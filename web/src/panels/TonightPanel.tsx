@@ -96,7 +96,10 @@ export function TonightPanel() {
           <summary className="min-h-8 cursor-pointer py-1">Playoff stakes</summary>
           <p className="absolute right-0 z-20 mt-1 w-60 rounded-[var(--radius)] border border-ice-scratch bg-surface p-3 text-left text-ink shadow-[0_6px_24px_rgba(10,20,30,0.14)]">
             Taller bars mean this game has more potential to change playoff odds, relative to
-            tonight's other games.
+            tonight's other games.{" "}
+            <Link to="/method#stakes" className="font-semibold text-blue-line underline">
+              How stakes work
+            </Link>
           </p>
         </details>
       </div>

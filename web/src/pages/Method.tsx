@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useMethodology } from "../api/client";
 import { useDocumentMeta } from "../lib/meta";
 import { CalibrationChart, GroupedBars } from "../charts/Calibration";
@@ -16,6 +16,7 @@ const STEPS = [
   { id: "sim", label: "Rerun the season" },
   { id: "crn", label: "Isolate one goal" },
   { id: "magnitude", label: "Magnitude and PPA" },
+  { id: "stakes", label: "Game stakes" },
   { id: "discipline", label: "Discipline and defense" },
   { id: "metrics", label: "Reading the evidence" },
   { id: "limits", label: "Known limitations" },
@@ -96,6 +97,12 @@ function H({ id, children }: { id: string; children: ReactNode }) {
 
 export default function MethodPage() {
   const { data: m, isPending, isError, isFetching, refetch } = useMethodology();
+  // The page loads lazily, after the router has tried to scroll to a link's
+  // #section (the Tonight panel links to #stakes), so scroll once it exists.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
   useDocumentMeta(
     "How it works",
     "The models, the simulator, magnitude, and Playoff Probability Added, explained with real metrics.",
@@ -422,6 +429,17 @@ export default function MethodPage() {
             goal's full PPA as a separate stat, and a goalie's "PPA allowed" is the damage from
             goals scored on him. Cup Probability Added (CPA) is the same idea for Stanley Cup odds,
             and the only measure used in the playoffs, where playoff odds are already settled.
+          </p>
+
+          <H id="stakes">Game stakes</H>
+          <p>
+            Before a game starts, the simulator already knows how the season goes after each of its
+            six possible results: either team winning in regulation, overtime, or a shootout. A
+            game&apos;s stakes add up how far every team&apos;s playoff odds would move under each
+            result, weighted by how likely that result is. A meaningless late-season game between
+            two settled teams scores near zero; a game between two bubble teams in the same race
+            scores high. The bars beside tonight&apos;s games compare them with each other, not with
+            some fixed scale.
           </p>
 
           <H id="discipline">Discipline and defense</H>
