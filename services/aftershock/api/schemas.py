@@ -443,6 +443,15 @@ class PushSubscribeRequest(Model):
     min_magnitude: float = Field(ge=0, le=10)
 
 
+class ScenarioIn(Model):
+    encoded: str = Field(min_length=1, max_length=21_000)
+
+
+class ScenarioOut(Model):
+    id: str
+    encoded: str
+
+
 class RecapResponse(Model):
     night_date: date
     headline: str

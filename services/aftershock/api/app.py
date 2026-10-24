@@ -16,7 +16,7 @@ import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, Response
 from redis.asyncio import Redis
-from sqlalchemy import desc, select, text
+from sqlalchemy import desc, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocketDisconnect
 
@@ -396,6 +396,58 @@ async def whatif_bootstrap(st: State) -> Response:
             "simulation. Try again in a minute.",
         )
     return Response(raw, media_type="application/json")
+
+
+@router.post("/scenarios", response_model=S.ScenarioOut)
+async def save_scenario(
+    body: S.ScenarioIn, session: Db, st: State, request: Request
+) -> S.ScenarioOut:
+    """Save What-If picks for a short link; the same picks get the same id."""
+    from sqlalchemy.dialects.postgresql import insert
+
+    from aftershock.api import scenarios as SC
+    from aftershock.db.models import Game, SavedScenario
+
+    try:
+        encoded, games = SC.canonical(body.encoded)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    key = f"aftershock:scenario-saves:{SC.client_ip(request)}"
+    count = await st.redis.incr(key)
+    if count == 1:
+        await st.redis.expire(key, SC.RATE_WINDOW_S)
+    if count > SC.RATE_LIMIT:
+        raise HTTPException(429, "Too many saved scenarios; try again in a few minutes.")
+    known = await session.scalar(select(func.count()).where(Game.id.in_(games)))
+    if known != len(games):
+        raise HTTPException(422, "The scenario names a game that is not on the schedule.")
+    dig = SC.digest(encoded)
+    for _ in range(3):
+        await session.execute(
+            insert(SavedScenario)
+            .values(id=SC.new_id(), encoded=encoded, digest=dig)
+            .on_conflict_do_nothing()
+        )
+        await session.commit()
+        found = await session.scalar(select(SavedScenario.id).where(SavedScenario.digest == dig))
+        if found:
+            return S.ScenarioOut(id=found, encoded=encoded)
+    raise HTTPException(500, "Could not save the scenario.")
+
+
+@router.get("/scenarios/{scenario_id}", response_model=S.ScenarioOut)
+async def get_scenario(scenario_id: str, session: Db) -> Response:
+    from aftershock.api import scenarios as SC
+    from aftershock.db.models import SavedScenario
+
+    row = await session.get(SavedScenario, scenario_id) if SC.ID_RE.fullmatch(scenario_id) else None
+    if row is None:
+        raise HTTPException(404, f"No scenario {scenario_id}")
+    # A saved scenario never changes.
+    return JSONResponse(
+        {"id": row.id, "encoded": row.encoded},
+        headers={"Cache-Control": "public, max-age=86400, immutable"},
+    )
 
 
 @router.get("/methodology")

@@ -363,6 +363,16 @@ class PushSubscription(Base):
     created_at: Mapped[datetime] = _now()
 
 
+class SavedScenario(Base):
+    """A What-If Lab scenario saved for a short share link (/what-if?id=...)."""
+
+    __tablename__ = "scenarios"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    encoded: Mapped[str] = mapped_column(Text)
+    digest: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = _now()
+
+
 class TremorOnIce(Base):
     """A skater on the ice for a goal (from shift charts)."""
 

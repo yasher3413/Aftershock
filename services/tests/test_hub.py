@@ -85,6 +85,9 @@ class FakeRedis:
         self.kv[name] = int(self.kv.get(name, 0)) + 1
         return int(self.kv[name])
 
+    async def expire(self, name: str, seconds: int) -> bool:
+        return name in self.kv
+
     async def lpush(self, name: str, *values: Any) -> int:
         lst = self.lists.setdefault(name, [])
         for v in values:

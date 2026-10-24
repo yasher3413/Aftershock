@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
@@ -452,3 +453,41 @@ async def test_upcoming_game_has_a_preview(client: Any, db_engine: AsyncEngine) 
     assert stakes["TOR"]["p_playoffs"] == 0.6
     # A game under way has no preview.
     assert (await c.get("/api/games/2026020008")).json()["preview"] is None
+
+
+async def test_scenarios_get_short_links(client: Any, db_engine: AsyncEngine) -> None:
+    c, _ = client
+    async with async_sessionmaker(db_engine, expire_on_commit=False)() as s:
+        s.add(
+            Game(
+                id=2026020007,
+                season=20262027,
+                game_type=2,
+                night_date=date(2026, 10, 22),
+                start_utc=datetime(2026, 10, 22, 23, 0, tzinfo=UTC),
+                home="TOR",
+                away="NYI",
+                venue="Scotiabank Arena",
+                state="FUT",
+            )
+        )
+        await s.commit()
+    # Out of order, so the saved form is sorted by game.
+    r = await c.post("/api/scenarios", json={"encoded": "2026020008.as_2026020007.hr"})
+    assert r.status_code == 200
+    saved = r.json()
+    assert re.fullmatch(r"[A-Za-z0-9]{8}", saved["id"])
+    assert saved["encoded"] == "2026020007.hr_2026020008.as"
+    again = await c.post("/api/scenarios", json={"encoded": "2026020007.hr_2026020008.as"})
+    assert again.json()["id"] == saved["id"]
+    got = await c.get(f"/api/scenarios/{saved['id']}")
+    assert got.status_code == 200
+    assert got.json() == saved
+    assert "immutable" in got.headers["cache-control"]
+    assert (await c.get("/api/scenarios/AAAAAAAA")).status_code == 404
+    assert (await c.get("/api/scenarios/nope")).status_code == 404
+    for bad in ["", "2026020007.xx", "2026020007.hr_2026020007.ar", "9999999999.hr", "a" * 30000]:
+        assert (await c.post("/api/scenarios", json={"encoded": bad})).status_code == 422, bad
+    for _ in range(40):
+        last = await c.post("/api/scenarios", json={"encoded": "2026020007.ho"})
+    assert last.status_code == 429
