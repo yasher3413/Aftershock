@@ -301,7 +301,13 @@ export default function GamePage() {
                   <span className="font-semibold text-ink-soft">{g.away}</span> shoots left
                   (lighter). Bigger dots were likelier to score; filled dots scored.
                 </p>
-                <Rink shots={data.shots} home={g.home} width={width} />
+                <Rink
+                  shots={data.shots}
+                  home={g.home}
+                  width={width}
+                  tremors={data.tremors}
+                  season={g.season}
+                />
               </section>
 
               <section className="pt-10" aria-labelledby="ripples-h">
