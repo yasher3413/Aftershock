@@ -5,7 +5,7 @@
 //   node render.mjs                         16:9, 1920x1080, 60 fps
 //   node render.mjs --at 3.4,8.6            full-size stills at those seconds
 import { createServer } from "node:http";
-import { readFile, mkdir, rm, writeFile } from "node:fs/promises";
+import { readFile, mkdir, rm, rename, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -101,40 +101,50 @@ if (args.sheet) {
     console.log(`out/still-${t}.png`);
   }
 } else {
+  // Frames are encoded in short chunks, each written under a temporary name
+  // and renamed when complete, so a render that is killed resumes where it
+  // stopped instead of starting over.
   const total = Math.round(duration * FPS);
-  const per = Math.ceil(total / WORKERS);
+  const CHUNK = +(args.chunk || 120);
+  const dir = join(here, "out", `chunks-${W}x${H}`);
+  await mkdir(dir, { recursive: true });
+  const chunks = Array.from({ length: Math.ceil(total / CHUNK) }, (_, i) => ({
+    i, f0: i * CHUNK, f1: Math.min(total, (i + 1) * CHUNK), file: join(dir, `c-${String(i).padStart(4, "0")}.mp4`),
+  }));
+  const exists = async (f) => readFile(f).then(() => true, () => false);
+  const todo = [];
+  for (const c of chunks) if (!(await exists(c.file))) todo.push(c);
   const started = Date.now();
+  const todoFrames = todo.reduce((n, c) => n + c.f1 - c.f0, 0);
+  console.log(`${chunks.length - todo.length}/${chunks.length} chunks already done, ${todoFrames} frames to render`);
   let doneFrames = 0;
-  const parts = [];
   await Promise.all(
-    Array.from({ length: WORKERS }, async (_, w) => {
-      const f0 = w * per, f1 = Math.min(total, f0 + per);
-      if (f0 >= f1) return;
-      const part = join(here, "out", `part-${w}.mp4`);
-      parts[w] = part;
+    Array.from({ length: WORKERS }, async () => {
       const page = await openPage(W, H);
-      const enc = ffmpeg(["-f", "image2pipe", "-framerate", String(FPS), "-c:v", "png", "-i", "-",
-        "-c:v", "libx264", "-preset", "slow", "-crf", "14", "-tune", "grain", "-pix_fmt", "yuv420p",
-        "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", part]);
-      for (let f = f0; f < f1; f++) {
-        await write(enc.stdin, await grab(page, f / FPS, SUB));
-        if (++doneFrames % 60 === 0) {
-          const s = (Date.now() - started) / 1000;
-          console.log(`${doneFrames}/${total} frames, ${s.toFixed(0)} s, eta ${((s / doneFrames) * (total - doneFrames)).toFixed(0)} s`);
+      for (let c = todo.shift(); c; c = todo.shift()) {
+        const tmp = c.file.replace(/\.mp4$/, ".partial.mp4");
+        const enc = ffmpeg(["-f", "image2pipe", "-framerate", String(FPS), "-c:v", "png", "-i", "-",
+          "-c:v", "libx264", "-preset", "slow", "-crf", "14", "-tune", "grain", "-pix_fmt", "yuv420p",
+          "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-f", "mp4", tmp]);
+        for (let f = c.f0; f < c.f1; f++) {
+          await write(enc.stdin, await grab(page, f / FPS, SUB));
+          if (++doneFrames % 60 === 0) {
+            const sec = (Date.now() - started) / 1000;
+            console.log(`${doneFrames}/${todoFrames} frames, ${sec.toFixed(0)} s, eta ${((sec / doneFrames) * (todoFrames - doneFrames)).toFixed(0)} s`);
+          }
         }
+        enc.stdin.end();
+        await enc.done;
+        await rename(tmp, c.file);
       }
-      enc.stdin.end();
-      await enc.done;
     }),
   );
-  const list = join(here, "out", "parts.txt");
-  await writeFile(list, parts.filter(Boolean).map((p) => `file '${p}'`).join("\n"));
+  const list = join(dir, "chunks.txt");
+  await writeFile(list, chunks.map((c) => `file '${c.file}'`).join("\n"));
   let hasAudio = false;
   try { await readFile(AUDIO); hasAudio = !!AUDIO; } catch {}
   await ffmpeg(["-f", "concat", "-safe", "0", "-i", list, ...(hasAudio ? ["-i", AUDIO] : []),
     "-c:v", "copy", ...(hasAudio ? ["-c:a", "aac", "-b:a", "256k", "-shortest"] : []), "-movflags", "+faststart", OUT]).done;
-  for (const p of parts.filter(Boolean)) await rm(p);
-  await rm(list);
   console.log(`${OUT} (${((Date.now() - started) / 1000).toFixed(0)} s${hasAudio ? ", with audio" : ", no audio"})`);
 }
 
