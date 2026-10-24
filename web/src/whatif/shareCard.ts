@@ -10,17 +10,42 @@ export interface CardInput {
   picks: string[]; // already worded, e.g. "TOR beat EDM in overtime"
   movers: CardTeam[]; // biggest changes first
   pickCount: number;
-  site: string; // where to make your own, e.g. "puckquake.com"
 }
 
-// The site's light palette (tokens.css), fixed so a card looks the same
-// whoever made it.
-const ICE = "#eef3f6";
-const LAND = "#dde7ed";
-const INK = "#14212b";
-const SOFT = "#5d707e";
-const UP = "#0b4fa8";
-const DOWN = "#c8102e";
+const SITE = "puckquake.com";
+
+interface Palette {
+  ice: string;
+  land: string;
+  ink: string;
+  soft: string;
+  up: string;
+  down: string;
+}
+
+// The light palette (tokens.css), used if the page's colors cannot be read.
+const LIGHT: Palette = {
+  ice: "#eef3f6",
+  land: "#dde7ed",
+  ink: "#14212b",
+  soft: "#5d707e",
+  up: "#0b4fa8",
+  down: "#c8102e",
+};
+
+/** The page's current colors, so the card matches the viewer's light or dark theme. */
+function palette(): Palette {
+  const css = getComputedStyle(document.documentElement);
+  const read = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+  return {
+    ice: read("--ice", LIGHT.ice),
+    land: read("--ice-land", LIGHT.land),
+    ink: read("--ink", LIGHT.ink),
+    soft: read("--ink-soft", LIGHT.soft),
+    up: read("--blue-line", LIGHT.up),
+    down: read("--goal", LIGHT.down),
+  };
+}
 
 const W = 1200;
 const H = 675;
@@ -38,6 +63,7 @@ export async function drawScenarioCard(input: CardInput): Promise<Blob> {
   c.width = W;
   c.height = H;
   const g = c.getContext("2d")!;
+  const { ice: ICE, land: LAND, ink: INK, soft: SOFT, up: UP, down: DOWN } = palette();
   const display = (size: number, weight = 800) =>
     `${weight} ${size}px "Big Shoulders Display", "Arial Narrow", sans-serif`;
   const text = (size: number, weight = 400) =>
@@ -105,7 +131,7 @@ export async function drawScenarioCard(input: CardInput): Promise<Blob> {
   // Footer
   g.fillStyle = SOFT;
   g.font = text(18);
-  g.fillText(`Make your own at ${input.site}/what-if. Not affiliated with the NHL.`, 60, H - 40);
+  g.fillText(`Make your own at ${SITE}/what-if. Not affiliated with the NHL.`, 60, H - 40);
 
   return new Promise((resolve, reject) =>
     c.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas"))), "image/png"),

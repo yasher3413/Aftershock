@@ -50,7 +50,7 @@ export function ShareMenu({
   tweet,
   encoded,
 }: {
-  card: Omit<CardInput, "site">;
+  card: CardInput;
   /** Post text without the link; the link is added by X. */
   tweet: string;
   /** The picks, as in the address's `s`. */
@@ -102,13 +102,9 @@ export function ShareMenu({
     setTimeout(() => setStatus("idle"), 2000);
   };
   const image = async () =>
-    new File(
-      [await drawScenarioCard({ ...card, site: window.location.host })],
-      "puckquake-what-if.png",
-      {
-        type: "image/png",
-      },
-    );
+    new File([await drawScenarioCard(card)], "puckquake-what-if.png", {
+      type: "image/png",
+    });
   const download = (file: File) => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(file);
