@@ -112,6 +112,21 @@ export default function WhatIfPage() {
   const sim = useSimulator();
   const reduce = useReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+        await navigator.share({ title: "My NHL what-if on Puckquake", url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // The viewer closed the share sheet or the clipboard is blocked; nothing to do.
+    }
+  };
   const [resultsInView, setResultsInView] = useState(false);
   useEffect(() => {
     const el = document.getElementById("scenario-results");
@@ -381,6 +396,15 @@ export default function WhatIfPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {pickCount > 0 && (
+            <button
+              type="button"
+              onClick={share}
+              className="inline-flex min-h-[44px] items-center rounded-[var(--radius)] border border-ink px-4 text-[13px] font-semibold"
+            >
+              {copied ? "Link copied" : "Share scenario"}
+            </button>
+          )}
           {/* On wide screens the forecast sits beside the picks; on phones it is far below them. */}
           <button
             type="button"
