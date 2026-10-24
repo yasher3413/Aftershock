@@ -29,7 +29,7 @@ const WORKERS = +(args.workers || 3);
 const OUT = args.out || join(here, "out", `puckquake-${W}x${H}.mp4`);
 const AUDIO = args.audio === undefined ? join(here, "out", "puckquake.wav") : args.audio;
 
-const types = { ".html": "text/html", ".js": "text/javascript", ".woff2": "font/woff2", ".json": "application/json" };
+const types = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".woff2": "font/woff2", ".json": "application/json" };
 const server = createServer(async (req, res) => {
   try {
     const path = join(here, decodeURIComponent(new URL(req.url, "http://x").pathname));
@@ -42,7 +42,7 @@ const server = createServer(async (req, res) => {
   }
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const base = `http://127.0.0.1:${server.address().port}/puckquake.html`;
+const base = `http://127.0.0.1:${server.address().port}/${args.page || "film.html"}`;
 
 const browser = await chromium.launch({ args: ["--force-color-profile=srgb", "--disable-gpu-vsync"] });
 
@@ -51,6 +51,7 @@ async function openPage(w, h) {
   page.on("pageerror", (e) => console.error("page error:", e.message));
   const q = new URLSearchParams({ w, h, render: "1", still: "1" });
   if (args.fit) q.set("fit", args.fit);
+  if (args.q) for (const [k, v] of new URLSearchParams(args.q)) q.set(k, v);
   await page.goto(`${base}?${q}`);
   await page.evaluate(() => window.ready);
   return page;
@@ -82,14 +83,15 @@ if (args.sheet) {
   const tw = 480, th = Math.round((480 * H) / W);
   const page = await openPage(tw, th);
   const times = [];
-  for (let t = every / 2; t < duration; t += every) times.push(+t.toFixed(3));
+  const from = +(args.from ?? every / 2), to = +(args.to ?? duration);
+  for (let t = from; t < to; t += every) times.push(+t.toFixed(3));
   const dir = join(here, "out", "sheet");
   await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
   for (const [i, t] of times.entries()) await writeFile(join(dir, `${String(i).padStart(3, "0")}.png`), await grab(page, t, 1));
   const cols = 6;
   await ffmpeg(["-framerate", "1", "-i", join(dir, "%03d.png"), "-vf",
-    `drawtext=text='%{eif\\:(n+0.5)*${every}\\:d}.%{eif\\:mod((n*${every}+${every / 2})*10\\,10)\\:d}s':x=8:y=8:fontcolor=white:fontsize=18:box=1:boxcolor=black@0.6,tile=${cols}x${Math.ceil(times.length / cols)}:padding=4`,
+    `tile=${cols}x${Math.ceil(times.length / cols)}:padding=4`,
     "-frames:v", "1", join(here, "out", args.sheetName || "sheet.png")]).done;
   console.log(`contact sheet: out/${args.sheetName || "sheet.png"} (${times.length} frames)`);
 } else if (args.at) {

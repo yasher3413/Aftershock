@@ -66,6 +66,7 @@ const player = fixture("player-8481540");
 const team = fixture("team-MTL");
 const nights = fixture("nights-20252026");
 const whatif = fixture("whatif");
+const replay = fixture("replay");
 
 // The video's goal: the biggest tremor in Cole Caufield's season.
 const goal = player.goals.reduce((a, b) => ((b.magnitude ?? 0) > (a.magnitude ?? 0) ? b : a));
@@ -142,6 +143,58 @@ const data = {
       away: g.away,
       homeWin: g.probs[0] + g.probs[1] + g.probs[2],
     })),
+  // The whole night of October 16, 2025, as the replay shows it.
+  night: (() => {
+    const games = new Map();
+    const tremors = [];
+    const updates = [];
+    const odds = [];
+    const order = teams.map((t) => t.abbrev);
+    const wp = (w) => (w ? Math.round((w.home_reg + w.home_ot + w.home_so) * 1000) / 1000 : null);
+    for (const f of replay.frames) {
+      const m = f.message;
+      if (m.type === "odds_update") {
+        const by = Object.fromEntries(m.odds.map((o) => [o.team, o.p_playoffs]));
+        odds.push({ t: f.t / 1000, p: order.map((ab) => by[ab]) });
+      }
+      if (m.type === "game_update") {
+        const g = m.game;
+        games.set(g.id, g);
+        updates.push({ t: f.t / 1000, id: g.id, state: g.state, period: g.period, clock: g.clock_seconds,
+          inter: g.in_intermission, hs: g.home_score, as: g.away_score, wp: wp(g.wp) ?? wp(g.pregame) });
+      }
+      if (m.type === "tremor") {
+        const tr = m.tremor;
+        tremors.push({
+          t: f.t / 1000,
+          team: tr.team,
+          scorer: tr.scorer.name,
+          magnitude: tr.magnitude ?? 0,
+          home: tr.home,
+          away: tr.away,
+          after: tr.score_after,
+          period: tr.period,
+          clock: tr.t_period_s,
+        });
+      }
+    }
+    return {
+      date: replay.night_date,
+      durationS: replay.duration_ms / 1000,
+      odds,
+      updates,
+      games: [...games.values()].map((g) => ({
+        id: g.id,
+        home: g.home,
+        away: g.away,
+        homeScore: g.home_score,
+        awayScore: g.away_score,
+        end: g.period > 3 ? (g.period_type === "SO" ? "SO" : "OT") : "",
+        start: g.start_utc,
+      })),
+      tremors,
+    };
+  })(),
   nights: nights.map((n) => ({ date: n.night_date, energy: n.total_energy, tremors: n.n_tremors })),
 };
 

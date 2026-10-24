@@ -1,8 +1,8 @@
-"""Synthesizes the soundtrack for puckquake.html on the same 120 BPM grid.
+"""Synthesizes the soundtrack for film.html on the same 120 BPM grid.
 
 Every sound is made here from sine waves and noise, so there is nothing to
-license. The cue times match the timeline in puckquake.html, and each team's
-ping lands when the shockwave reaches it on the map.
+license. The cue times match src/timeline.js, and each team's ping lands
+when the shockwave reaches it on the map.
 
     python3 audio.py            writes out/puckquake.wav
 """
@@ -17,15 +17,16 @@ import numpy as np
 
 HERE = Path(__file__).parent
 SR = 48000
-DUR = 35.0
+DUR = 25.0
 BEAT = 0.5
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 
-# Timeline, from puckquake.html.
-GOAL, ONE_GOAL, MAP_IN, QUAKE = 3.0, 4.55, 5.4, 7.0
-BARS, SIMS, TWICE, PLAYER = 12.0, 15.0, 17.0, 19.5
-TEAM, NIGHTS, WHATIF, STATS, LOGO, LOOP = 22.5, 24.0, 25.5, 27.0, 31.0, 34.0
+# Timeline, from src/timeline.js.
+GOAL, CRANE, LIGHTS, QUAKE, WIDE = 2.0, 3.5, 3.75, 5.5, 9.0
+RANK, HOME, PRODUCT, PAYOFF, WORD = 11.0, 14.0, 15.0, 20.6, 21.4
+NIGHT_T0, NIGHT_T1, TAU0, TAU1 = 15.4, 19.4, 7900, 9000
+SPEED = 3.6  # shockwave, world units per second
 
 L = np.zeros(N)
 R = np.zeros(N)
@@ -137,94 +138,124 @@ def note(name):
     return 440 * 2 ** ((names[m[1]] + 12 * (int(m[2]) + 1) - 69) / 12)
 
 
+
+def crowd(dur=4.0):
+    """An arena erupting: band-limited noise that swells and breathes."""
+    t = tvec(dur)
+    n = rng.standard_normal(len(t))
+    body = highpass(lowpass(n, 2600, 2), 280, 2)
+    mod = 1 + 0.25 * np.sin(2 * np.pi * 3.1 * t) * np.sin(2 * np.pi * 0.7 * t)
+    e = np.minimum(1, t / 0.12) * np.exp(-t / 1.6)
+    return body * mod * e * 0.9
+
+
+def glass(freq, dur=0.6):
+    t = tvec(dur)
+    s = np.sin(2 * np.pi * freq * t) + 0.5 * np.sin(2 * np.pi * freq * 2.76 * t) * np.exp(-t * 18)
+    return s * env(t, 0.001, 0.12)
+
 # ---------------------------------------------------------------- score
 
-# Harmony: D minor, moving to B flat and F under the reveal, home for the logo.
-CHORDS = [
-    (0.0, 5.4, ["D3", "A3", "F4"], ["D2"]),
-    (5.4, 12.0, ["A#2", "F3", "D4"], ["A#1"]),
-    (12.0, 19.5, ["F3", "C4", "A4"], ["F2"]),
-    (19.5, 27.0, ["G3", "A#3", "D4"], ["G1"]),
-    (27.0, 31.0, ["A2", "E3", "C#4"], ["A1"]),
-    (31.0, 35.0, ["D3", "A3", "F4", "A4"], ["D2"]),
-]
-for t0, t1, notes, bass in CHORDS:
-    add(pad([note(n) for n in notes], t1 - t0 + 1.2, 0.16 if t0 < GOAL else 0.22), t0 - 0.3)
-
-# Cold open: the clock ticks each second, and a heartbeat quickens toward the goal.
-for s in (0.0, 1.0, 2.0):
-    add(tick(), s, 0.5, 0.2)
-for i, tb in enumerate(np.arange(0.5, GOAL, BEAT)):
-    add(kick(0.35 + 0.1 * i), tb, 1.0)
-add(whoosh(1.2, 1.0), GOAL - 1.0, 0.9)
-
-# The goal: horn, boom, and a crash.
-add(boom(), GOAL, 1.4)
-add(horn(), GOAL + 0.02, 1.0, -0.15)
-add(horn(), GOAL + 0.04, 0.8, 0.15)
-crash_t = tvec(2.5)
-add(highpass(rng.standard_normal(len(crash_t)), 3500) * env(crash_t, 0.002, 0.7) * 0.35, GOAL)
-
-# The camera pulls back, then the quake leaves Montreal.
-add(whoosh(1.6, 1.4), MAP_IN - 1.4, 1.0)
-add(boom(), QUAKE, 1.2)
 data = json.loads((HERE / "data.js").read_text().split("=", 1)[1].rstrip().rstrip(";"))
 teams = data["teams"]
-mtl = next(t for t in teams if t["abbrev"] == "MTL")
-speed = math.hypot(1920, 1080) / 2.5
-SCALE_UP = ["D5", "F5", "A5", "C6", "D6"]
-SCALE_DOWN = ["A4", "F4", "D4", "C4", "A3"]
-for team in teams:
-    d = team["delta"]
+W = lambda tm: ((tm["x"] - 960) / 100, (tm["y"] - 540) / 100)
+by = {tm["abbrev"]: tm for tm in teams}
+mtl = W(by["MTL"])
+pan_of = lambda tm: max(-0.85, min(0.85, (tm["x"] - 960) / 960))
+
+# Harmony: D minor under the open, B flat for the reveal, F for the ranking,
+# G minor under the product, and home to D with an added ninth at the end.
+CHORDS = [
+    (0.0, GOAL, ["D3", "A3", "F4"]),
+    (GOAL, QUAKE, ["D3", "A3", "F4", "A4"]),
+    (QUAKE, RANK, ["A#2", "F3", "D4"]),
+    (RANK, HOME, ["F3", "C4", "A4"]),
+    (HOME, PAYOFF, ["G3", "A#3", "D4"]),
+    (WORD - 0.1, DUR, ["D3", "A3", "E4", "F4"]),
+]
+for t0, t1, notes in CHORDS:
+    add(pad([note(n) for n in notes], t1 - t0 + 1.4, 0.13 if t0 < GOAL else 0.2), t0 - 0.2)
+
+# Cold open: the clock ticks over, a heartbeat quickens under the last seconds.
+for s in (1.0, 1.5):
+    add(tick(), s, 0.55, 0.15)
+for i, tb in enumerate([0.5, 1.0, 1.375, 1.75]):
+    add(kick(0.3 + 0.12 * i), tb)
+add(whoosh(0.9, 0.85), GOAL - 0.85, 0.7)
+
+# The goal: horn, boom, and the building on its feet.
+add(boom(3.0), GOAL, 1.3)
+add(horn(2.6), GOAL + 0.02, 0.95, -0.2)
+add(horn(2.6), GOAL + 0.05, 0.75, 0.2)
+add(crowd(4.5), GOAL + 0.04, 0.55, -0.3)
+add(crowd(4.5), GOAL + 0.06, 0.55, 0.3)
+
+# The crane: the arenas light one by one, nearest to Montreal first.
+add(whoosh(1.4, 1.3), CRANE - 0.2, 0.5)
+LIGHT_NOTES = ["D5", "F5", "A5", "C6", "D6", "F6"]
+for tm in teams:
+    x, z = W(tm)
+    at = LIGHTS + math.hypot(x - mtl[0], z - mtl[1]) * 0.07
+    add(glass(note(LIGHT_NOTES[(ord(tm["abbrev"][0]) + ord(tm["abbrev"][2])) % 6]), 0.5), at, 0.05, pan_of(tm))
+
+# The quake: a rumble out of Montreal, and a ping as it reaches each team.
+add(whoosh(0.8, 0.75), QUAKE - 0.75, 0.6)
+add(boom(4.0), QUAKE, 1.5)
+add(kick(1.2), QUAKE)
+UP = ["D5", "F5", "A5", "C6", "D6"]
+DOWN = ["A4", "F4", "D4", "C4", "A3"]
+for tm in teams:
+    d = tm["delta"]
     if abs(d) < 0.001:
         continue
-    at = QUAKE + math.hypot(team["x"] - mtl["x"], team["y"] - mtl["y"]) / speed
+    x, z = W(tm)
+    at = QUAKE + math.hypot(x - mtl[0], z - mtl[1]) / SPEED
     k = min(4, int(abs(d) * 100 / 0.15))
-    f = note((SCALE_UP if d > 0 else SCALE_DOWN)[k])
-    add(ping(f), at, 0.12 + min(0.25, abs(d) * 4), (team["x"] - 960) / 960 * 0.8)
+    add(ping(note((UP if d > 0 else DOWN)[k])), at, 0.1 + min(0.25, abs(d) * 4), pan_of(tm))
 
-# The groove, from the map through the proof.
-for tb in np.arange(QUAKE + 2 * BEAT * 2, LOGO, BEAT):
-    quiet = TWICE - 0.01 < tb < PLAYER  # a breath while the runs split
-    add(kick(0.75 if not quiet else 0.3), tb)
-    add(hat(), tb + BEAT / 2, 0.22, 0.3)
-    if int(round(tb / BEAT)) % 4 == 2:
-        add(hat(True), tb, 0.12, -0.3)
-# Bass in eighths, following the chord roots.
-for t0, t1, _, bass in CHORDS:
-    f = note(bass[0])
-    for tb in np.arange(max(t0, QUAKE + 2), min(t1, LOGO), BEAT / 2):
+# A restrained pulse from the quake to the payoff, resting for the wide shot.
+for tb in np.arange(QUAKE + 4 * BEAT, PAYOFF, BEAT):
+    if WIDE <= tb < RANK - 0.01 or HOME <= tb < PRODUCT:
+        continue
+    add(kick(0.45), tb)
+    add(hat(), tb + BEAT / 2, 0.14, 0.25)
+for t0, t1, notes in CHORDS[2:5]:
+    root = note(notes[0]) / 2
+    for tb in np.arange(max(t0, QUAKE + 2), min(t1, PAYOFF), BEAT / 2):
+        if WIDE <= tb < RANK:
+            continue
         t = tvec(BEAT / 2)
-        add(lowpass(saw(f, t, 6, 1.2) * env(t, 0.004, 0.16), 400) * 0.5, tb)
+        add(lowpass(saw(root, t, 6, 1.2) * env(t, 0.004, 0.15), 380) * 0.4, tb)
 
-# Transitions.
-for cut in (BARS, SIMS, PLAYER, TEAM, NIGHTS, WHATIF, STATS):
-    add(whoosh(0.9, 0.7), cut - 0.7, 0.55)
-# The ranking: one note per bar as it grows.
-for i in range(32):
-    add(ping(note("D5") * 2 ** ((i % 8) * 2 / 12) / (1 if i < 16 else 2), 0.3), BARS + 0.45 + i * 0.02, 0.05, -0.8 + i / 20)
-# The counter runs up to 20,000.
-for i in range(40):
-    add(tick(), SIMS + 0.15 + (i / 40) ** 1.6 * 1.3, 0.25, 0.4)
-# Caufield's goals land as they draw.
-for g in data["player"]["goals"]:
-    from_date = (np.datetime64(g["date"]) - np.datetime64("2025-10-01")).astype(int) / 257
-    add(ping(note("A5") * (1 + g["magnitude"] / 14), 0.25), PLAYER + 0.3 + from_date * 1.3, 0.04 + g["magnitude"] / 160, from_date * 1.4 - 0.7)
-# What-If clicks.
-for i in range(3):
-    add(tick(), WHATIF + 0.12 + 0.35 + i * BEAT * 0.9, 0.6, 0.3)
-# Each stat lands on a hit.
-for i in range(4):
-    add(kick(1.0), STATS + i, 0.8)
-    add(boom(1.2), STATS + i, 0.25)
-    add(ping(note(["D6", "F6", "A6", "D7"][i]), 0.8), STATS + i, 0.12)
+# The ranking: a pluck as each bar rises, pitched by its change.
+ranked = sorted(teams, key=lambda tm: tm["delta"])
+for i, tm in enumerate(ranked):
+    d = tm["delta"]
+    f = note("D5") * 2 ** (max(-12, min(12, d * 100 * 2)) / 12)
+    add(ping(f, 0.35), RANK + 0.45 + i * 0.018, 0.06 + min(0.2, abs(d) * 3), -0.8 + i / 20)
+add(whoosh(0.9, 0.8), RANK - 0.8, 0.45)
+add(whoosh(1.0, 0.9), HOME - 0.2, 0.45)
 
-# The logo: the biggest hit, the horn once more, then the room empties.
-add(whoosh(1.2, 1.0), LOGO - 1.0, 1.0)
-add(boom(4.0), LOGO, 1.6)
-add(kick(1.2), LOGO)
-add(horn(1.6), LOGO + 0.02, 0.55)
-add(tick(), LOOP + 0.97, 0.4, 0.2)
+# The product assembles: soft clicks as the header, title, rail and strip land.
+for k, dt in enumerate([0.0, 0.1, 0.18, 0.25]):
+    add(tick(), PRODUCT + dt + 0.12, 0.3, 0.3 - k * 0.2)
+# The night's tremors, each with its own small quake.
+for tr in data["night"]["tremors"]:
+    if not (TAU0 <= tr["t"] <= TAU1) or tr["magnitude"] < 3.3:
+        continue
+    at = NIGHT_T0 + (tr["t"] - TAU0) / (TAU1 - TAU0) * (NIGHT_T1 - NIGHT_T0)
+    g = (tr["magnitude"] / 6.8) ** 2
+    add(boom(2.0), at, 0.75 * g)
+    add(ping(note("A5") * (1 + tr["magnitude"] / 20), 0.6), at, 0.12 * g, pan_of(by[tr["home"]]))
+
+# The payoff: the room empties, then the wordmark lands on one resolved chord.
+add(whoosh(0.8, 0.75), WORD - 0.75, 0.6)
+add(boom(4.5), WORD, 1.1)
+add(kick(1.0), WORD)
+for n_, g in (("D2", 0.5), ("A3", 0.35), ("D4", 0.3), ("E4", 0.22), ("F#4", 0.0), ("F4", 0.25)):
+    if g:
+        t = tvec(DUR - WORD)
+        add(lowpass(saw(note(n_), t, 8, 1.6), 1800, 2) * env(t, 0.02, 2.6) * g * 0.5, WORD)
 
 # ---------------------------------------------------------------- master
 
@@ -242,7 +273,7 @@ L2, R2 = reverb(L), reverb(R)
 mixed = np.stack([L2, R2], 1)
 mixed /= np.abs(mixed).max() / 1.6
 mixed = np.tanh(mixed) * 0.89
-fade = np.clip((DUR - tvec(DUR)) / 0.6, 0, 1)[:, None]
+fade = np.clip((DUR - tvec(DUR)) / 1.2, 0, 1)[:, None]
 mixed *= fade[: len(mixed)]
 
 out = HERE / "out" / "puckquake.wav"
