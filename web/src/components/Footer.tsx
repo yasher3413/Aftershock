@@ -5,7 +5,7 @@ import { DIVISIONS } from "../lib/teams";
 import { TeamLogo } from "./TeamLogo";
 
 const DISCLAIMER =
-  "Data from NHL.com. NHL and team logos and marks, and player photos, are the property of the NHL and its teams. Puckquake is not affiliated with, endorsed by, or sponsored by the NHL or any team.";
+  "NHL and team logos and marks, and player photos, are the property of the NHL and its teams. Puckquake is not affiliated with, endorsed by, or sponsored by the NHL or any team.";
 
 const EXPLORE = [
   { to: "/", label: "Tonight" },
@@ -34,6 +34,23 @@ function Column({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+// Where every number and picture on the site comes from.
+const SOURCES = [
+  { before: "Games, shots, and shift charts from", label: "NHL.com", href: "https://www.nhl.com" },
+  {
+    before: "Standings checked against",
+    label: "NHL.com standings",
+    href: "https://www.nhl.com/standings",
+  },
+  {
+    before: "Preseason point totals from",
+    label: "Hockey-Reference",
+    href: "https://www.hockey-reference.com",
+  },
+  { before: "Logos and player photos from", label: "NHL.com", href: "https://www.nhl.com" },
+  { before: "Map from", label: "Natural Earth", href: "https://www.naturalearthdata.com" },
+];
+
 const linkClass = "inline-flex min-h-[32px] items-center hover:text-blue-line hover:underline";
 
 /** The site footer: every section, all 32 teams, and who made the site. */
@@ -41,7 +58,7 @@ export function Footer() {
   return (
     <footer className="border-t border-ice-scratch">
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.6fr_1fr_1fr] lg:gap-x-10">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.5fr_0.8fr_1fr_1.3fr] lg:gap-x-10">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight">
               Puckquake
@@ -88,6 +105,23 @@ export function Footer() {
               </li>
             ))}
           </Column>
+          <div className="col-span-2 lg:col-span-1">
+            <Column title="Sources">
+              {SOURCES.map((src) => (
+                <li key={src.before} className="py-1 text-ink-soft">
+                  {src.before}{" "}
+                  <a
+                    href={src.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-ink underline decoration-ice-scratch underline-offset-4 hover:decoration-ink"
+                  >
+                    {src.label}
+                  </a>
+                </li>
+              ))}
+            </Column>
+          </div>
         </div>
 
         <nav aria-label="All teams" className="mt-10 border-t border-ice-scratch pt-8">
