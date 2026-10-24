@@ -248,7 +248,9 @@ export default function WhatIfPage() {
       : null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10">
+    // The browser's scroll anchoring would move the whole page whenever the
+    // forecast or a pick's row changes height; here nothing should move.
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 [overflow-anchor:none] md:px-6 md:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">
@@ -553,8 +555,11 @@ export default function WhatIfPage() {
               ? "Change compares your picks with the current forecast, in percentage points. Small differences are estimates, not guarantees."
               : "The current forecast for every team. Pick a result to see how it would change."}
           </p>
-          {pickCount > 0 && !updating && (
-            <ul className="mt-4 divide-y divide-ice-scratch border-y border-ice-scratch">
+          {/* Stays in place (dimmed) while the season reruns, so the table below does not jump. */}
+          {pickCount > 0 && (
+            <ul
+              className={`mt-4 divide-y divide-ice-scratch border-y border-ice-scratch transition-opacity ${updating ? "opacity-50" : ""}`}
+            >
               {movers
                 .filter((t) => Math.abs(t.change) >= 0.0005)
                 .map((t) => (
