@@ -3,7 +3,7 @@ import { useMyTeam } from "../lib/myTeam";
 import { TeamLogo } from "../components/TeamLogo";
 import { Link } from "react-router";
 import type { GameSummary } from "../api/types.gen";
-import { clock, duration, localTime, pct, periodLabel } from "../lib/format";
+import { duration, liveClock, localTime, pct } from "../lib/format";
 import { useClock, nowMs } from "../live/clock";
 import { useLive } from "../live/store";
 
@@ -18,8 +18,7 @@ function homeWin(g: GameSummary): number | null {
 
 function status(g: GameSummary): string {
   if (LIVE.has(g.state)) {
-    if (g.in_intermission) return `End ${periodLabel(g.period, g.period_type)}`;
-    return `${periodLabel(g.period, g.period_type)} ${clock(g.clock_seconds)}`;
+    return liveClock(g);
   }
   if (DONE.has(g.state))
     return g.last_period_type && g.last_period_type !== "REG"

@@ -4,7 +4,7 @@ import type { GamePreview, Tremor } from "../api/types.gen";
 import { LineChart } from "../charts/LineChart";
 import { Rink } from "../charts/Rink";
 import { useWidth } from "../charts/useWidth";
-import { clock, localTime, pct, periodLabel, pp } from "../lib/format";
+import { clock, liveClock, localTime, pct, periodLabel, pp } from "../lib/format";
 import { TeamLogo } from "../components/TeamLogo";
 import { useDocumentMeta } from "../lib/meta";
 import { PageLoading } from "../components/PageLoading";
@@ -153,7 +153,7 @@ export default function GamePage() {
     ? `Final${g.last_period_type && g.last_period_type !== "REG" ? `/${g.last_period_type}` : ""}`
     : g.state === "FUT" || g.state === "PRE"
       ? localTime(g.start_utc)
-      : `${periodLabel(g.period, g.period_type)} ${clock(g.clock_seconds)}`;
+      : liveClock(g);
   const preview = data.preview;
   const upcoming = (g.state === "FUT" || g.state === "PRE") && !!preview;
   const pre = g.pregame;

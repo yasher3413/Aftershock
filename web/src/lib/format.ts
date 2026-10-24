@@ -52,6 +52,25 @@ export function periodLabel(period: number | null | undefined, periodType?: stri
   return ORDINAL[period - 1] ?? `${period}th`;
 }
 
+/** A live game's clock in words: "End 1st" in an intermission, "Start of 2nd"
+ * before a period's puck drop (the feed shows the full clock then, often
+ * without flagging the intermission), otherwise "2nd 12:34". */
+export function liveClock(g: {
+  period?: number | null;
+  period_type?: string | null;
+  clock_seconds?: number | null;
+  in_intermission?: boolean | null;
+}): string {
+  const label = periodLabel(g.period, g.period_type);
+  // In an intermission the feed still reports the period that just ended.
+  if (g.in_intermission) return `End ${label}`;
+  if (g.period_type === "SO") return "Shootout";
+  const full = g.period_type === "OT" ? [300, 1200] : [1200];
+  if (g.clock_seconds != null && full.includes(g.clock_seconds) && (g.period ?? 1) > 1)
+    return `Start of ${label}`;
+  return `${label} ${clock(g.clock_seconds)}`;
+}
+
 /** Relative duration like "3h 12m" or "45m". */
 export function duration(ms: number): string {
   const totalMin = Math.max(0, Math.round(ms / 60000));
