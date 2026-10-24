@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { useMethodology } from "../api/client";
 import { useDocumentMeta } from "../lib/meta";
 import { CalibrationChart, GroupedBars } from "../charts/Calibration";
@@ -340,6 +341,15 @@ export default function MethodPage() {
             it. Because nobody knows exactly how good a team is, each simulated season also nudges
             every team up or down a little, and ratings are pulled toward average for games far in
             the future.
+          </p>
+          <p className="mt-4">
+            The{" "}
+            <Link to="/what-if" className="underline underline-offset-4">
+              What-If Lab
+            </Link>{" "}
+            runs this same simulator in your browser, 10,000 seasons at a time, with the results you
+            pick fixed in place. Its bracket&apos;s series odds come from the same single-game
+            chances, played out best of seven with home ice to the higher seed.
           </p>
           <p className="mt-4">
             Early-season odds carry more uncertainty. In October, before a game is played, the
