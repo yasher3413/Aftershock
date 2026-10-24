@@ -18,6 +18,7 @@ import {
 } from "../whatif/scenario";
 import { useSimulator, type SimOutput } from "../whatif/useSimulator";
 import { TeamLogo } from "../components/TeamLogo";
+import { projectBracket, type Series } from "../whatif/bracket";
 import { useMyTeam } from "../lib/myTeam";
 
 const N_SIMS = 10_000;
@@ -239,31 +240,10 @@ export default function WhatIfPage() {
       </div>
     );
 
-  const bracket = (conf: string) => {
-    if (!out) return [];
-    const inConf = out.teams.filter((t) => teamsInfo[t.team]?.conference === conf);
-    const divisions = [...new Set(inConf.map((t) => teamsInfo[t.team]!.division))].sort();
-    const pick = (cands: typeof inConf, slot: string, used: Set<string>) => {
-      const best = cands
-        .filter((t) => !used.has(t.team))
-        .sort((a, b) => (b.seed_dist[slot] ?? 0) - (a.seed_dist[slot] ?? 0))[0];
-      if (best) used.add(best.team);
-      return best;
-    };
-    const used = new Set<string>();
-    const d = divisions.map((dv) => {
-      const c = inConf.filter((t) => teamsInfo[t.team]!.division === dv);
-      return { dv, s: ["div1", "div2", "div3"].map((slot) => pick(c, slot, used)) };
-    });
-    const wc1 = pick(inConf, "wc1", used);
-    const wc2 = pick(inConf, "wc2", used);
-    return [
-      [d[0]?.s[0], wc2],
-      [d[0]?.s[1], d[0]?.s[2]],
-      [d[1]?.s[0], wc1],
-      [d[1]?.s[1], d[1]?.s[2]],
-    ];
-  };
+  const bracket =
+    out && boot.data && state.data
+      ? projectBracket(out.teams, teamsInfo, boot.data.teams, boot.data.playoff_p)
+      : null;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10">
@@ -632,40 +612,79 @@ export default function WhatIfPage() {
               })}
             </tbody>
           </table>
-          <details className="mt-8 border-t border-ice-scratch pt-3">
-            <summary className="display min-h-[44px] cursor-pointer py-1.5 text-[24px] font-bold">
-              Explore a projected playoff bracket
-            </summary>
-            <p className="mt-2 text-[13px] text-ink-soft">
-              One possible matchup projection from the simulated seed probabilities. The actual
-              bracket can differ.
-            </p>
-            <div className="mt-5 grid gap-6 sm:grid-cols-2">
-              {["Eastern", "Western"].map((conf) => (
-                <div key={conf}>
-                  <h3 className="display border-b-2 border-ink pb-2 text-[24px] font-bold">
-                    {conf}
-                  </h3>
-                  <ul>
-                    {bracket(conf).map(([a, b], i) => (
-                      <li
-                        key={i}
-                        className="display flex items-center gap-2 border-b border-ice-scratch py-3 text-[20px] font-bold"
-                      >
-                        {a && <TeamLogo team={a.team} size={24} />}
-                        {a?.team ?? "?"}
-                        <span className="text-[13px] font-normal text-ink-soft">vs</span>
-                        {b && <TeamLogo team={b.team} size={24} />}
-                        {b?.team ?? "?"}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </details>
         </section>
       </div>
+
+      {bracket && <BracketView bracket={bracket} />}
     </div>
+  );
+}
+
+function SeriesRow({ s }: { s: Series }) {
+  const fav = s.pHigh >= 0.5 ? s.high : s.low;
+  const p = Math.max(s.pHigh, 1 - s.pHigh);
+  return (
+    <li className="border-b border-ice-scratch py-2">
+      {[s.high, s.low].map((t) => (
+        <div
+          key={t.team}
+          className={`display flex min-h-[32px] items-center gap-2 text-[20px] ${t === fav ? "font-bold" : "font-semibold text-ink-soft"}`}
+        >
+          <TeamLogo team={t.team} size={22} />
+          <Link to={`/team/${t.team}`} className="hover:underline">
+            {t.team}
+          </Link>
+          {t === fav && (
+            <span className="ml-auto font-[family-name:var(--font-text)] text-[14px] font-semibold tabular-nums text-ink">
+              {pct(p, 0)}
+            </span>
+          )}
+        </div>
+      ))}
+    </li>
+  );
+}
+
+const ROUNDS = ["First round", "Second round", "Conference final"];
+
+function BracketView({ bracket }: { bracket: ReturnType<typeof projectBracket> }) {
+  return (
+    <section aria-labelledby="bracket-title" className="mt-14">
+      <h2 id="bracket-title" className="display border-b-2 border-ink pb-3 text-[30px] font-bold">
+        Projected playoff bracket
+      </h2>
+      <p className="mt-3 max-w-[70ch] text-[13px] text-ink-soft">
+        The most likely field under your picks, seeded the NHL way, with the favorite of each series
+        moving on. The percentage is that team&apos;s chance to win the series, with home ice to the
+        team projected to finish with more points.
+      </p>
+      {bracket.conferences.map((c) => (
+        <div key={c.name} className="mt-8">
+          <h3 className="display text-[24px] font-bold">{c.name} Conference</h3>
+          <div className="mt-2 grid gap-x-8 gap-y-4 md:grid-cols-3">
+            {c.rounds.map((round, i) => (
+              <div key={i}>
+                <h4 className="border-b border-ink pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                  {ROUNDS[i]}
+                </h4>
+                <ul>
+                  {round.map((s) => (
+                    <SeriesRow key={`${s.high.team}-${s.low.team}`} s={s} />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {bracket.final && (
+        <div className="mt-8 max-w-sm">
+          <h3 className="display text-[24px] font-bold">Stanley Cup Final</h3>
+          <ul className="mt-2 border-t border-ink">
+            <SeriesRow s={bracket.final} />
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
