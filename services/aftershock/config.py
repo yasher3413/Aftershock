@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     vapid_subject: str = "mailto:aftershock@example.com"
     # Discord webhook for magnitude 6+ tremors (optional).
     discord_webhook_url: str = ""
+    # Goal bot on X (docs/DEPLOY.md, "Goal bot on X"): OAuth 1.0a keys for the
+    # bot account, the mode (Redis key aftershock:bot:mode overrides it), and
+    # the monthly spending cap in tenths of a cent ($40).
+    x_api_key: str = ""
+    x_api_secret: str = ""
+    x_access_token: str = ""
+    x_access_secret: str = ""
+    x_bot_mode: Literal["off", "dry_run", "live"] = "off"
+    x_bot_monthly_cap_millicents: int = 40000
 
     data_dir: Path = REPO_ROOT / "data"
     config_dir: Path = REPO_ROOT / "config"
@@ -53,6 +62,10 @@ class Settings(BaseSettings):
     nhl_max_rps: float = 8.0
     nhl_timeout_seconds: float = 10.0
     nhl_max_tries: int = 6
+
+    @property
+    def x_keys_present(self) -> bool:
+        return all((self.x_api_key, self.x_api_secret, self.x_access_token, self.x_access_secret))
 
     @property
     def raw_cache_dir(self) -> Path:
