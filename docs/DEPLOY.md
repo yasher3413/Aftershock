@@ -108,7 +108,12 @@ scripts/deploy/push_data.sh ubuntu@<IP>
   them the model skips that prior for the season.
 - **Model update markers:** when a model change moves the live odds, add an
   entry to `web/src/lib/modelChanges.ts` so team odds charts mark the step.
-- **A domain:** add it to the Vercel project for the site, point `api.<domain>`
+- **The domain** (done for the site on 2026-10-24): www.puckquake.com is the
+  Vercel production domain and puckquake.com redirects to it, and the VM's
+  `.env` has `PUBLIC_BASE_URL=https://www.puckquake.com` and
+  `INDEX_HTML=https://www.puckquake.com/app.html` (recreate the api and
+  worker with `up -d` after changing `.env`; `restart` keeps the old
+  values). The api is still on the sslip.io name. To move it: point `api.<domain>`
   at the VM's IP with an A record, then set `API_HOST=api.<domain>`,
   `PUBLIC_BASE_URL=https://<domain>`, and `INDEX_HTML=https://<domain>/app.html`
   in the VM's `.env`, rerun `scripts/set_api_host.sh api.<domain>`, and set

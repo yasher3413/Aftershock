@@ -199,7 +199,8 @@ built from the recording:
   tremor. Laptop sleeps on Oct 7 and Oct 8 were repaired by the catch-up
   without help (20 and 61 tremors, all goals covered).
 
-- Deployed (2026-10-09): https://aftershock-fawn.vercel.app on Vercel (Git
+- Deployed (2026-10-09): https://aftershock-fawn.vercel.app (now
+  https://www.puckquake.com) on Vercel (Git
   connected, every push to main redeploys) and an Oracle Always Free VM at
   140.238.146.151 (Toronto, A1.Flex 1 OCPU / 6 GB, 100 GB disk, 4 GB swap)
   serving https://140.238.146.151.sslip.io. The local database (17,501
@@ -298,9 +299,11 @@ built from the recording:
 3. From the critique, still open: merge Night's two transport rows; open
    teams and goals in a sheet over the map instead of leaving it. (Home and
    Night now share one panel component, `panels/SidePanels.tsx`.)
-4. Buy puckquake.com (DEPLOY.md "A domain"), then point the site, sitemap,
-   share links, and the bot's bio at it. Later: fill the 2024-25 shift-chart
-   gap from NHL HTML reports; goalie "PPA saved".
+4. The domain is live (www.puckquake.com; share links, sitemap, robots, and
+   page tags use it). Still to do: add the site to Google Search Console
+   and submit the sitemap; optionally move the api from the sslip.io name
+   to api.puckquake.com (DEPLOY, "The domain"). Later: fill the 2024-25
+   shift-chart gap from NHL HTML reports; goalie "PPA saved".
 5. Later: goal alerts. The code is done, but the VM has no VAPID keys, so
    `/api/push/key` returns a null key and the team page hides the alerts option.
    Generate a key pair, put both in the VM's `.env`, restart, and check a

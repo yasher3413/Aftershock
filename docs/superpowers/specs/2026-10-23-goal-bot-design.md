@@ -51,8 +51,8 @@ and costs about what was budgeted. Growth is a bonus, not a requirement.
 ## The account
 
 - Name: **Puckquake**. Handle: **@puckquake**, matching the domain
-  puckquake.com (not yet bought; the site is still on
-  aftershock-fawn.vercel.app). If @puckquake is taken, the owner picks a
+  www.puckquake.com (live since 2026-10-24). If @puckquake is taken, the
+  owner picks a
   fallback when creating the account.
 - A new account, separate from the owner's personal one, labelled as
   automated on X and linked to the owner's personal account as its manager.
