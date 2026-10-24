@@ -519,3 +519,25 @@ Each entry: date, decision, alternatives considered, reason.
   of five places saying "replay". The title block keeps one height from
   first paint and still makes replay impossible to mistake for live.
 
+
+## 2026-10-24: Fade ratings at a new season; no roster-based prior
+
+- **Decision:** each new season starts every team rating 30% of the way
+  back to average (`SEASON_REGRESS` in `ml/strength_fit.py`). A
+  roster-based preseason adjustment was built and tested, and not shipped.
+- **Alternatives:** no fade (the fitted value, since game log loss is
+  indifferent to it); a larger fade or more per-simulation team noise; a
+  talent-change prior from each team's new roster, using players' last one
+  to three seasons of individual xG per game and goalies' goals saved above
+  expected (from every play-by-play since 2015-16, scored with the backtest
+  xG model), decaying as the new season's games replace it.
+- **Reason:** replaying 2016-17 to 2025-26 from late October onward, a
+  0.25 to 0.35 fade gave the best playoff-odds Brier and log loss at every
+  checkpoint. The roster prior's talent change does track real change (a
+  0.34 correlation with next season's team xG for, 0.20 for goaltending),
+  but tuned on 2016-19 it improved early-season game log loss by under
+  0.1% and on 2021-26 by nothing or less: within a few weeks the ratings
+  learn the same thing from the games. Projection systems that do beat
+  this (MoneyPuck's, for one) model players' on-ice impact with ice time,
+  which the public shift charts cover only from 2024-25, too few seasons
+  to fit and test against.
