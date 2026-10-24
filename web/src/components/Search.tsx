@@ -142,7 +142,7 @@ function Results({ query, onPick }: { query: string; onPick: (to: string) => voi
   if (!q.length)
     return (
       <p className="px-4 py-5 text-[14px] text-ink-soft">
-        Search all 32 teams and everyone who has played this season.
+        Search all 32 teams and every player who has been on the ice for a goal this season.
       </p>
     );
   if (!hits.length)
