@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client";
+import { useMedia } from "../lib/useMedia";
 import { drawScenarioCard, type CardInput } from "./shareCard";
 
 type Status = "idle" | "working" | "copied" | "saved" | "error";
+
+/** Phones can hand an image to other apps. Most desktop browsers cannot, and
+ * there a Share image option would only download it. */
+function canShareFiles(): boolean {
+  try {
+    return !!navigator.canShare?.({ files: [new File([""], "card.png", { type: "image/png" })] });
+  } catch {
+    return false;
+  }
+}
 
 // Short links already made this visit, by scenario.
 const saved = new Map<string, Promise<string>>();
@@ -47,6 +59,10 @@ export function ShareMenu({
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const ref = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  // On a phone the menu is a sheet along the bottom of the screen; beside a
+  // button in the sticky bar it would run off the edge.
+  const phone = useMedia("(max-width: 639px)");
   // The link is made when the menu opens, so it is usually ready by the time
   // an option is chosen (browsers allow copying and pop-ups only right after
   // a click).
@@ -66,7 +82,10 @@ export function ShareMenu({
     if (!open) return;
     const close = (e: Event) => {
       if (
-        e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)
+        e instanceof KeyboardEvent
+          ? e.key === "Escape"
+          : !ref.current?.contains(e.target as Node) &&
+            !sheetRef.current?.contains(e.target as Node)
       )
         setOpen(false);
     };
@@ -100,58 +119,6 @@ export function ShareMenu({
 
   const actions: { label: string; hint: string; run: () => Promise<void> | void }[] = [
     {
-      label: "Share image",
-      hint: "Save to Photos, Messages, Instagram, and more",
-      run: async () => {
-        setStatus("working");
-        const file = await image();
-        if (navigator.canShare?.({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: "My NHL what-if",
-              text: `${tweet} ${url ?? (await shortLink(encoded))}`,
-            });
-            setStatus("idle");
-          } catch {
-            setStatus("idle"); // closed the sheet
-          }
-          return;
-        }
-        download(file);
-        flash("saved");
-      },
-    },
-    {
-      label: "Download image",
-      hint: "A 1200 by 675 picture of your picks",
-      run: async () => {
-        setStatus("working");
-        download(await image());
-        flash("saved");
-      },
-    },
-    {
-      label: "Copy link",
-      hint: "Opens these exact picks",
-      run: async () => {
-        try {
-          if (url) await navigator.clipboard.writeText(url);
-          else if (typeof ClipboardItem !== "undefined")
-            // Safari keeps the click's permission to copy only this way.
-            await navigator.clipboard.write([
-              new ClipboardItem({
-                "text/plain": shortLink(encoded).then((u) => new Blob([u], { type: "text/plain" })),
-              }),
-            ]);
-          else await navigator.clipboard.writeText(await shortLink(encoded));
-          flash("copied");
-        } catch {
-          flash("error");
-        }
-      },
-    },
-    {
       label: "Post to X",
       hint: "A ready-made post with your biggest swings",
       run: async () => {
@@ -174,7 +141,82 @@ export function ShareMenu({
         } else window.open(intent(u), "_blank", "noopener");
       },
     },
+    {
+      label: "Copy link",
+      hint: "Opens these exact picks",
+      run: async () => {
+        try {
+          if (url) await navigator.clipboard.writeText(url);
+          else if (typeof ClipboardItem !== "undefined")
+            // Safari keeps the click's permission to copy only this way.
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                "text/plain": shortLink(encoded).then((u) => new Blob([u], { type: "text/plain" })),
+              }),
+            ]);
+          else await navigator.clipboard.writeText(await shortLink(encoded));
+          flash("copied");
+        } catch {
+          flash("error");
+        }
+      },
+    },
+    ...(canShareFiles()
+      ? [
+          {
+            label: "Share image",
+            hint: "Save to Photos, Messages, Instagram, and more",
+            run: async () => {
+              setStatus("working");
+              const file = await image();
+              try {
+                await navigator.share({
+                  files: [file],
+                  title: "My NHL what-if",
+                  text: `${tweet} ${url ?? (await shortLink(encoded))}`,
+                });
+              } catch {
+                // closed the sheet
+              }
+              setStatus("idle");
+            },
+          },
+        ]
+      : []),
+    {
+      label: "Download image",
+      hint: "A 1200 by 675 picture of your picks",
+      run: async () => {
+        setStatus("working");
+        download(await image());
+        flash("saved");
+      },
+    },
   ];
+
+  const menu = (
+    <div role="menu" aria-label="Share scenario">
+      {actions.map((a) => (
+        <button
+          key={a.label}
+          type="button"
+          role="menuitem"
+          onClick={async () => {
+            setOpen(false);
+            try {
+              await a.run();
+            } catch {
+              flash("error");
+            }
+          }}
+          className="flex min-h-[48px] w-full flex-col items-start justify-center rounded-[var(--radius)] px-3 py-1.5 text-left hover:bg-ice-land focus-visible:bg-ice-land"
+        >
+          <span className="text-[14px] font-semibold">{a.label}</span>
+          <span className="text-[12px] text-ink-soft">{a.hint}</span>
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div ref={ref} className="relative">
@@ -208,32 +250,35 @@ export function ShareMenu({
                 ? "Could not copy"
                 : "Share scenario"}
       </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-2 w-72 rounded-[var(--radius)] border border-ice-scratch bg-surface p-1.5 shadow-[0_8px_28px_rgba(10,20,30,0.18)]"
-        >
-          {actions.map((a) => (
-            <button
-              key={a.label}
-              type="button"
-              role="menuitem"
-              onClick={async () => {
-                setOpen(false);
-                try {
-                  await a.run();
-                } catch {
-                  flash("error");
-                }
-              }}
-              className="flex min-h-[48px] w-full flex-col items-start justify-center rounded-[var(--radius)] px-3 py-1.5 text-left hover:bg-ice-land focus-visible:bg-ice-land"
-            >
-              <span className="text-[14px] font-semibold">{a.label}</span>
-              <span className="text-[12px] text-ink-soft">{a.hint}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {open &&
+        (phone ? (
+          createPortal(
+            <>
+              <div aria-hidden className="fixed inset-0 z-40 bg-[rgba(10,20,30,0.4)]" />
+              <div
+                ref={sheetRef}
+                className="fixed inset-x-0 bottom-0 z-50 rounded-t-[12px] border-t border-ice-scratch bg-surface px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_28px_rgba(10,20,30,0.25)]"
+              >
+                <p className="px-3 pt-2 pb-1 text-[13px] font-semibold text-ink-soft">
+                  Share scenario
+                </p>
+                {menu}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="mt-1 min-h-[48px] w-full rounded-[var(--radius)] border border-ice-scratch text-[14px] font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>,
+            document.body,
+          )
+        ) : (
+          <div className="absolute right-0 z-30 mt-2 w-72 rounded-[var(--radius)] border border-ice-scratch bg-surface p-1.5 shadow-[0_8px_28px_rgba(10,20,30,0.18)]">
+            {menu}
+          </div>
+        ))}
     </div>
   );
 }
