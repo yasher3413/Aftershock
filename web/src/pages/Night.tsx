@@ -154,10 +154,14 @@ function ReplayActions({ bundle }: { bundle: ReplayBundleOut }) {
   const player = useClock((s) => s.player);
   const t = useClock((s) => s.replayT);
   const next = bundle.frames.find((f) => f.t > t && f.message.type === "tremor");
+  // Land just before the moment and keep playing, so the goal arrives through
+  // normal playback and its shockwave and magnitude show on the map (a seek
+  // applies frames silently).
   const seek = (position: number) => {
-    player?.pause();
-    player?.seek(position);
-    useClock.getState().setPlaying(false);
+    if (!player) return;
+    player.seek(Math.max(0, position - 1));
+    player.play();
+    useClock.getState().setPlaying(true);
   };
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ice-scratch bg-surface px-4 py-3 md:px-6">

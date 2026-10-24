@@ -121,9 +121,14 @@ test("night replay can skip quiet time and restart without leaving the page", as
   await page.getByRole("button", { name: "Next goal", exact: true }).click({ timeout: 5000 });
   await expect(page.locator('[aria-label^="Open tremor"]').first()).toBeAttached();
   expect(Number(await position.getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+  // Next goal and Restart keep playing, so the goal's shockwave shows.
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  const before = Number(await position.getAttribute("aria-valuenow"));
   await page.getByRole("button", { name: "Restart", exact: true }).click();
-  await expect(position).toHaveAttribute("aria-valuenow", "0");
-  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Standings", exact: true }).click();
+  await expect
+    .poll(async () => Number(await position.getAttribute("aria-valuenow")))
+    .toBeLessThan(before);
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Standings", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Standings", exact: true })).toBeVisible();
 });
