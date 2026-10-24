@@ -200,12 +200,14 @@ export default function WhatIfPage() {
     ...t,
     change: baseBy[t.team] ? t.p_playoffs - baseBy[t.team]!.p_playoffs : 0,
   }));
-  const rows = changes.sort((a, b) =>
-    sort === "change" ? Math.abs(b.change) - Math.abs(a.change) : b.p_playoffs - a.p_playoffs,
-  );
   const movers = [...changes].sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 3);
   const pickCount =
     boot.data?.games.filter((g) => g.status === "future" && scenario[g.game_id]).length ?? 0;
+  const rows = changes.sort((a, b) =>
+    sort === "change" && pickCount > 0
+      ? Math.abs(b.change) - Math.abs(a.change)
+      : b.p_playoffs - a.p_playoffs,
+  );
   const updating = !out || sim.busy || resultKey !== encode(scenario);
   const focus = team ? changes.find((t) => t.team === team) : undefined;
   const clearFilters = () => {
@@ -540,7 +542,9 @@ export default function WhatIfPage() {
                 className="ml-2 min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 text-ink"
               >
                 <option value="odds">Playoff odds</option>
-                <option value="change">Biggest change</option>
+                <option value="change" disabled={pickCount === 0}>
+                  Biggest change{pickCount === 0 ? " (pick a game first)" : ""}
+                </option>
               </select>
             </label>
           </div>
@@ -575,8 +579,11 @@ export default function WhatIfPage() {
             <thead className="text-left text-[12px] text-ink-soft">
               <tr>
                 <th className="font-normal">Team</th>
-                <th className="text-right font-normal">Playoff odds</th>
-                {pickCount > 0 && <th className="text-right font-normal">Change (pp)</th>}
+                {pickCount > 0 && <th className="text-right font-normal">Before</th>}
+                <th className="text-right font-normal">
+                  {pickCount > 0 ? "With your picks" : "Playoff odds"}
+                </th>
+                {pickCount > 0 && <th className="text-right font-normal">Change</th>}
                 <th className="text-right font-normal">Cup odds</th>
               </tr>
             </thead>
@@ -598,6 +605,11 @@ export default function WhatIfPage() {
                         {t.team}
                       </Link>
                     </td>
+                    {pickCount > 0 && (
+                      <td className="text-right tabular-nums text-ink-soft">
+                        {pct(baseBy[t.team]?.p_playoffs)}
+                      </td>
+                    )}
                     <td className="text-right tabular-nums">{pct(t.p_playoffs)}</td>
                     {pickCount > 0 && (
                       <td
