@@ -10,6 +10,7 @@ const p1 = (v: any) => (typeof v === "number" ? `${(v * 100).toFixed(1)}%` : "")
 
 const STEPS = [
   { id: "read-map", label: "Read the map" },
+  { id: "use-whatif", label: "Use the What-If Lab" },
   { id: "xg", label: "Shot danger" },
   { id: "strength", label: "Team strength" },
   { id: "wp", label: "Who is winning" },
@@ -230,6 +231,78 @@ export default function MethodPage() {
               </dd>
             </div>
           </dl>
+
+          <H id="use-whatif">Use the What-If Lab</H>
+          <p>
+            The{" "}
+            <Link to="/what-if" className="underline underline-offset-4">
+              What-If Lab
+            </Link>{" "}
+            runs the same season simulator in your browser. You decide games that have not been
+            played yet, and it reruns the rest of the season around your picks.
+          </p>
+          <dl className="mt-5 space-y-5">
+            <div>
+              <dt className="font-semibold">Pick a winner</dt>
+              <dd className="mt-1 text-ink-soft">
+                Click a team to have it win in regulation. Click it again for overtime, again for a
+                shootout, and once more to clear the pick; clicking the other team switches sides.
+                The win type matters because an overtime loss still earns a point.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Watch your forecast change</dt>
+              <dd className="mt-1 text-ink-soft">
+                Every pick reruns 10,000 seasons with the same random numbers as the current
+                forecast, so the difference you see comes from your picks, not from luck. The
+                forecast lists every team&apos;s playoff and Cup odds; sort it by biggest change to
+                see each team&apos;s odds before and after your picks.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Read the projected bracket</dt>
+              <dd className="mt-1 text-ink-soft">
+                Below the picks is the most likely playoff field under your picks, seeded the NHL
+                way, with the favorite of each series moving on. Each matchup shows the
+                favorite&apos;s chance to win the best-of-seven, with home ice to the team projected
+                to finish with more points.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Go faster, then share it</dt>
+              <dd className="mt-1 text-ink-soft">
+                Filter the games by team, date range, or the highest stakes. Randomize fills the
+                undecided games you can see with results drawn from their real odds; Reset clears
+                your picks and Undo brings them back. Share scenario copies a link to your exact
+                picks, makes an image of them, or starts a post on X.
+              </dd>
+            </div>
+          </dl>
+          <figure className="mt-7 border-t border-ice-scratch pt-5">
+            <figcaption className="text-[15px] font-semibold">A hypothetical pick</figcaption>
+            <p className="mt-2 text-ink-soft">
+              Imagine a bubble team&apos;s playoff chance is 40%. You pick it to win tonight in
+              regulation, and the lab reruns the season.
+            </p>
+            <dl className="mt-4 grid grid-cols-3 gap-3">
+              <div>
+                <dt className="text-[13px] text-ink-soft">Before</dt>
+                <dd className="display mt-1 text-[30px] font-bold">40%</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] text-ink-soft">With your pick</dt>
+                <dd className="display mt-1 text-[30px] font-bold">44%</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] text-ink-soft">Change</dt>
+                <dd className="display mt-1 text-[30px] font-bold up">+4 pp</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-[15px]">
+              The teams it was chasing drop a little at the same time, because a playoff spot one
+              team gains is a spot another team loses.
+            </p>
+          </figure>
 
           <div className="mt-10 border-t border-ice-scratch pt-6">
             <h2 className="display text-[38px] font-bold leading-tight">

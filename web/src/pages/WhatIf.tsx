@@ -270,7 +270,10 @@ export default function WhatIfPage() {
           </h1>
           <p className="mt-2 max-w-[58ch] text-[14px] text-ink-soft">
             Pick winners. See what changes for your team. Each pick reruns the season with the same
-            random numbers, so you can compare the effect of your choices.
+            random numbers, so you can compare the effect of your choices.{" "}
+            <Link to="/method#use-whatif" className="font-semibold text-blue-line hover:underline">
+              How to use it
+            </Link>
           </p>
         </div>
         <div className="text-right text-[13px] text-ink-soft" aria-live="polite">
