@@ -101,11 +101,11 @@ if (args.sheet) {
     console.log(`out/still-${t}.png`);
   }
 } else {
-  // Frames are encoded in short chunks, each written under a temporary name
+  // Frames are encoded in half-second chunks, each written under a temporary name
   // and renamed when complete, so a render that is killed resumes where it
   // stopped instead of starting over.
   const total = Math.round(duration * FPS);
-  const CHUNK = +(args.chunk || 120);
+  const CHUNK = +(args.chunk || 30);
   const dir = join(here, "out", `chunks-${W}x${H}`);
   await mkdir(dir, { recursive: true });
   const chunks = Array.from({ length: Math.ceil(total / CHUNK) }, (_, i) => ({
