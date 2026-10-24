@@ -50,7 +50,11 @@ STATIC = {
         "The models and the simulator behind Puckquake, with measured results.",
     ),
     "/status": ("Pipeline status", TAGLINE),
-    "/teams": ("Teams", "Every NHL team's playoff and Stanley Cup odds, by division."),
+    "/standings": (
+        "Standings",
+        "NHL standings by division, wild card, conference, and league, with every team's "
+        "playoff and Stanley Cup odds.",
+    ),
     "/about": (
         "About",
         "Who makes Puckquake, how to send feedback, and the math behind it in five steps.",

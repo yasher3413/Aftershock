@@ -10,6 +10,7 @@
     "minimumCacheTTL": 604800,
     "remotePatterns": [{ "protocol": "https", "hostname": "assets.nhle.com", "pathname": "/mugs/**" }]
   },
+  "redirects": [{ "source": "/teams", "destination": "/standings", "permanent": true }],
   "rewrites": [
     { "source": "/robots.txt", "destination": "https://140.238.146.151.sslip.io/api/robots.txt" },
     { "source": "/sitemap.xml", "destination": "https://140.238.146.151.sslip.io/api/sitemap.xml" },

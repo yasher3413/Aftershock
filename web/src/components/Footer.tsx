@@ -11,7 +11,7 @@ const EXPLORE = [
   { to: "/", label: "Tonight" },
   { to: "/nights", label: "Nights" },
   { to: "/leaders", label: "Leaders" },
-  { to: "/teams", label: "Teams" },
+  { to: "/standings", label: "Standings" },
   { to: "/what-if", label: "What if" },
 ];
 

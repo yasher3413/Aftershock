@@ -308,7 +308,7 @@ async def test_sitemap_lists_teams_nights_and_players(client: Any) -> None:
     body = r.text
     for path in (
         "/</loc>",
-        "/teams</loc>",
+        "/standings</loc>",
         "/team/TOR</loc>",
         "/player/1</loc>",
         "/player/2</loc>",
