@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from aftershock.api import queries as Q
 from aftershock.api import schemas as S
 from aftershock.api.app import HEALTH_KEY, WHATIF_KEY, current_season
+from aftershock.bot.poster import GoalBot
 from aftershock.config import Settings, get_settings
 from aftershock.db.models import Game, Tremor
 from aftershock.db.session import get_engine, session_scope
@@ -134,6 +135,8 @@ class Worker:
         # Set while finishing an earlier night: its goals are old news.
         self._catching_up = False
         self._background: set[asyncio.Task[Any]] = set()
+        # Posts goals on X (off unless switched on; see docs/DEPLOY.md).
+        self.bot = GoalBot(self.settings, self.redis)
 
     # ------------------------------------------------------------------
     # Startup
@@ -268,6 +271,15 @@ class Worker:
                 frames_key, _ = night_keys(self.day)
                 await self.redis.rpush(frames_key, json.dumps(msg, separators=(",", ":")))
                 await self.redis.expire(frames_key, NIGHT_TTL_S)
+
+    def _dispatch_bot(self, kind: str, payload: dict[str, Any]) -> None:
+        """Hand the goal bot what it acts on; it queues and never blocks."""
+        if kind == "tremor" and not self._catching_up:
+            self.bot.enqueue_goal(S.Tremor.model_validate(payload["tremor"]))
+        elif kind == "tremor_reversed":
+            self.bot.enqueue_reversal(int(payload["tremor_id"]))
+        elif kind == "tremor_updated":
+            self.bot.enqueue_correction(int(payload["tremor_id"]), payload["changes"])
 
     def _notify(self, t: S.Tremor) -> None:
         """Web push and Discord run in the background; they never delay the map."""
@@ -593,6 +605,7 @@ class Worker:
             await self.publish(kind, payload)
             if kind == "tremor" and not self._catching_up:
                 self._notify(S.Tremor.model_validate(payload["tremor"]))
+            self._dispatch_bot(kind, payload)
         if eff.tremors and fetched_at is not None:
             # Detection (the play-by-play fetch) to broadcast of the tremor.
             log.info(
@@ -959,12 +972,15 @@ class Worker:
             await self.catch_up()
         except Exception as exc:
             log.exception("worker.catch_up_failed", error=str(exc))
+        self.bot.start()
         tasks = [asyncio.create_task(self.consume()), asyncio.create_task(self.periodic())]
         try:
             await asyncio.gather(*tasks)
         finally:
             for t in tasks:
                 t.cancel()
+            await self.bot.stop()
+            await self.bot.x.aclose()
             await self.client.aclose()
             await self.redis.aclose()
             if self._lock_conn is not None:

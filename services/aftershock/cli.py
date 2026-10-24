@@ -164,6 +164,36 @@ def worker() -> None:
     asyncio.run(Worker().run())
 
 
+@app.command("bot-mode")
+def bot_mode(
+    mode: Annotated[
+        str | None, typer.Argument(help="off, dry_run, or live; leave out to show the mode.")
+    ] = None,
+) -> None:
+    """Show or switch the goal bot on X (takes effect at the next goal)."""
+    from redis.asyncio import Redis
+
+    from aftershock.bot.poster import MODE_KEY, GoalBot
+
+    if mode is not None and mode not in ("off", "dry_run", "live"):
+        raise typer.BadParameter("mode must be off, dry_run, or live")
+    settings = get_settings()
+
+    async def run() -> str:
+        redis = Redis.from_url(settings.redis_url, decode_responses=True)
+        try:
+            if mode is not None:
+                await redis.set(MODE_KEY, mode)
+            return await GoalBot(settings, redis).mode()
+        finally:
+            await redis.aclose()
+
+    effective = asyncio.run(run())
+    typer.echo(f"goal bot mode: {effective}")
+    if mode == "live" and effective != "live":
+        typer.echo("live needs all four X keys in .env; it stays off until they are set.")
+
+
 @app.command()
 def recap(night: str) -> None:
     """Generate the recap for a hockey night (YYYY-MM-DD)."""
