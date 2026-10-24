@@ -101,7 +101,7 @@ class FakeRedis:
         self.published.append((channel, message))
         return 1
 
-    async def set(self, name: str, value: Any) -> None:
+    async def set(self, name: str, value: Any, ex: int | None = None) -> None:
         self.kv[name] = value
 
     async def get(self, name: str) -> Any:

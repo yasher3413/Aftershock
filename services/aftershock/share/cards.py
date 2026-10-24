@@ -294,3 +294,52 @@ def night_og(night: Any, tremors: list[S.Tremor], n_games: int) -> str:
     parts.append(_text(1140, 590, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"))
     parts.append(_text(60, 600, ATTRIBUTION, 15, fill=INK_SOFT))
     return _svg(w, h, "".join(parts))
+
+
+def scenario_og(picks: list[str], movers: list[Any], pick_count: int) -> str:
+    """A shared What-If scenario: the picks and the playoff odds they move
+    most (``movers`` have team, before, after)."""
+    w, h = 1200, 630
+    noun = "pick" if pick_count == 1 else "picks"
+    parts = [
+        _text(56, 120, "My NHL what-if", 80, family=DISPLAY, weight=800),
+        _text(1140, 110, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"),
+        _text(60, 168, f"{pick_count} {noun}, 10,000 seasons simulated", 26, fill=INK_SOFT),
+        _text(60, 232, "MY PICKS", 20, weight=600),
+    ]
+    shown = picks[:6]
+    for i, p in enumerate(shown):
+        parts.append(_text(60, 276 + i * 42, p, 26))
+    if len(picks) > len(shown):
+        parts.append(
+            _text(
+                60, 276 + len(shown) * 42, f"and {len(picks) - len(shown)} more", 26, fill=INK_SOFT
+            )
+        )
+    x0, bar = 600, 360
+    if movers:
+        parts.append(_text(x0, 232, "PLAYOFF ODDS, BEFORE → AFTER", 20, weight=600))
+    else:
+        parts.append(_text(x0, 232, "Every picked game has been played.", 26, fill=INK_SOFT))
+    for i, m in enumerate(movers[:5]):
+        y = 272 + i * 64
+        color = BLUE if m.after >= m.before else GOAL
+        lo, hi = min(m.before, m.after), max(m.before, m.after)
+        bx = x0 + 80
+        parts += [
+            _text(x0, y + 10, m.team, 32, family=DISPLAY, weight=700),
+            f'<rect x="{bx}" y="{y - 8}" width="{bar}" height="12" fill="{LAND}"/>',
+            f'<rect x="{bx}" y="{y - 8}" width="{bar * lo:.1f}" height="12" fill="{INK}"/>',
+            f'<rect x="{bx + bar * lo:.1f}" y="{y - 8}" width="{max(3, bar * (hi - lo)):.1f}" '
+            f'height="12" fill="{color}"/>',
+            _text(bx, y + 34, f"{_scenario_pct(m.before)} →", 20, fill=INK_SOFT),
+            _text(bx + 96, y + 34, _scenario_pct(m.after), 20, weight=600, fill=color),
+        ]
+    parts.append(
+        _text(60, 600, f"Make your own at puckquake.com/what-if. {ATTRIBUTION}", 15, fill=INK_SOFT)
+    )
+    return _svg(w, h, "".join(parts))
+
+
+def _scenario_pct(p: float) -> str:
+    return f"{p * 100:.{0 if p >= 0.995 or p < 0.005 else 1}f}%"

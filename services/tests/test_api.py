@@ -488,6 +488,20 @@ async def test_scenarios_get_short_links(client: Any, db_engine: AsyncEngine) ->
     assert (await c.get("/api/scenarios/nope")).status_code == 404
     for bad in ["", "2026020007.xx", "2026020007.hr_2026020007.ar", "9999999999.hr", "a" * 30000]:
         assert (await c.post("/api/scenarios", json={"encoded": bad})).status_code == 422, bad
+    # The shared link's page names the scenario's own preview image.
+    from aftershock.api import pages
+
+    pages._template.update(
+        html="<html><head><title>Puckquake</title></head><body></body></html>",
+        at=time.monotonic(),
+    )
+    body = (await c.get(f"/page/what-if?id={saved['id']}")).text
+    assert f"/api/og/scenario/{saved['id']}.png" in body
+    assert f'property="og:url" content="http://localhost:8080/what-if?id={saved["id"]}"' in body
+    plain = await c.get("/page/what-if?id=AAAAAAAA")
+    assert plain.status_code == 200 and "og:image" not in plain.text
+    pages._template.clear()
+    assert (await c.get("/api/og/scenario/AAAAAAAA.png")).status_code == 404
     for _ in range(40):
         last = await c.post("/api/scenarios", json={"encoded": "2026020007.ho"})
     assert last.status_code == 429

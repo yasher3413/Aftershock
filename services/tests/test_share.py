@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 from aftershock.api import schemas as S
-from aftershock.share.cards import Projection, team_og, tremor_card, tremor_og
+from aftershock.share.cards import Projection, scenario_og, team_og, tremor_card, tremor_og
+from aftershock.sim.scenario_card import Mover
 
 SIX = S.SixWay(home_reg=0.4, home_ot=0.07, home_so=0.04, away_reg=0.38, away_ot=0.07, away_so=0.04)
 
@@ -82,3 +83,12 @@ def test_cards_are_escaped_svg_with_the_facts() -> None:
     assert chr(0x2014) not in og + card
     t = team_og(teams[0], None)
     assert "Playoff odds" in t
+
+
+def test_scenario_card_lists_picks_and_movers() -> None:
+    picks = [f"TOR beat MTL & co {i}" for i in range(9)]
+    svg = scenario_og(picks, [Mover("TOR", 0.351, 0.473), Mover("WPG", 0.286, 0.163)], 9)
+    assert "9 picks" in svg and "and 3 more" in svg and "&amp; co" in svg
+    assert "35.1% \u2192" in svg and "47.3%" in svg and "16.3%" in svg
+    assert "puckquake.com/what-if" in svg
+    assert "has been played" in scenario_og([], [], 0)

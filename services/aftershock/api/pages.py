@@ -13,6 +13,7 @@ import asyncio
 import html
 import re
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -23,8 +24,9 @@ import structlog
 from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from aftershock.api.scenarios import ID_RE as SCENARIO_ID
 from aftershock.config import Settings
-from aftershock.db.models import Game, ReplayBundle, Team, Tremor
+from aftershock.db.models import Game, ReplayBundle, SavedScenario, Team, Tremor
 
 log = structlog.get_logger(__name__)
 
@@ -68,6 +70,7 @@ class PageMeta:
     description: str
     image: str | None = None  # path under the site, made absolute on render
     found: bool = True  # False sends a 404, so search engines skip dead addresses
+    path: str | None = None  # the page's address for og:url, if not the request path
 
 
 NOT_FOUND = PageMeta(SITE, TAGLINE, found=False)
@@ -77,8 +80,21 @@ def _pct(p: float) -> str:
     return f"{p * 100:.1f}%"
 
 
-async def page_meta(session: AsyncSession, path: str) -> PageMeta:
+async def page_meta(
+    session: AsyncSession, path: str, query: Mapping[str, str] | None = None
+) -> PageMeta:
     path = "/" + path.strip("/")
+    scenario = (query or {}).get("id", "")
+    if path == "/what-if" and SCENARIO_ID.fullmatch(scenario):
+        saved = await session.get(SavedScenario, scenario)
+        if saved is not None:
+            return PageMeta(
+                f"My NHL what-if | {SITE}",
+                "My picks for upcoming NHL games and how they move every team's playoff odds. "
+                "Pick your own in the What-If Lab.",
+                f"/api/og/scenario/{saved.id}.png",
+                path=f"/what-if?id={saved.id}",
+            )
     if re.fullmatch(r"/embed/[A-Za-z]{3}", path):
         return PageMeta(SITE, TAGLINE)
     if path in STATIC:

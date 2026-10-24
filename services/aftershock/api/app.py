@@ -119,8 +119,8 @@ async def page(path: str, session: Db, request: Request) -> Response:
     template = await index_template(settings)
     if template is None:
         raise HTTPException(503, "index.html is not available")
-    meta = await page_meta(session, path)
-    body = render(template, meta, settings.public_base_url, "/" + path.strip("/"))
+    meta = await page_meta(session, path, request.query_params)
+    body = render(template, meta, settings.public_base_url, meta.path or "/" + path.strip("/"))
     return Response(
         body,
         status_code=200 if meta.found else 404,
@@ -697,6 +697,39 @@ async def og_night(night: date, session: Db) -> Response:
     )
     games = await Q.games_on(session, night)
     return await _png(night_og(night, await Q.tremors_out(session, rows), len(games)))
+
+
+SCENARIO_CARD_TTL_S = 6 * 3600
+_scenario_sim = asyncio.Lock()  # one at a time; the VM has one CPU for goals too
+
+
+@router.get("/og/scenario/{scenario_id}.png")
+async def og_scenario(scenario_id: str, session: Db, st: State) -> Response:
+    """A saved What-If scenario's preview: its picks, rerun on the current
+    forecast, and the teams they move most."""
+    from aftershock.api import scenarios as SC
+    from aftershock.db.models import SavedScenario
+    from aftershock.share.cards import scenario_og
+    from aftershock.sim.scenario_card import Mover, scenario_card
+
+    row = await session.get(SavedScenario, scenario_id) if SC.ID_RE.fullmatch(scenario_id) else None
+    if row is None:
+        raise HTTPException(404, f"No scenario {scenario_id}")
+    key = f"aftershock:scenario-card:{scenario_id}"
+    raw = await st.redis.get(key)
+    if raw is None:
+        boot = await st.redis.get(WHATIF_KEY)
+        if boot is None:
+            raise HTTPException(503, "The forecast is not ready yet.")
+        async with _scenario_sim:
+            card = await asyncio.to_thread(scenario_card, json.loads(boot), row.encoded)
+        raw = json.dumps(
+            {"picks": card.picks, "movers": [[m.team, m.before, m.after] for m in card.movers]}
+        )
+        await st.redis.set(key, raw, ex=SCENARIO_CARD_TTL_S)
+    data = json.loads(raw)
+    movers = [Mover(*m) for m in data["movers"]]
+    return await _png(scenario_og(data["picks"], movers, len(data["picks"])))
 
 
 def read_gz_json(path: Path) -> Any:
