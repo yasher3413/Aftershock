@@ -297,9 +297,10 @@ export default function MethodPage() {
           <p>
             Every team carries an offense and a defense rating. After each game, both move toward
             how the team actually played, measured as a blend of goals and expected goals, with
-            recent games counting most. Those ratings give each team's expected goals in any
-            matchup, which become the chances of each result: a win in regulation, overtime, or a
-            shootout, for either side.
+            recent games counting most. Each new season starts every rating 30% of the way back to
+            average, because rosters change over the summer and last year only partly predicts this
+            one. Those ratings give each team's expected goals in any matchup, which become the
+            chances of each result: a win in regulation, overtime, or a shootout, for either side.
           </p>
           {(st || charts.strength_reliability) && (
             <Evidence label="Team strength evidence">
@@ -543,6 +544,12 @@ export default function MethodPage() {
           <H id="limits">Known limitations</H>
           <ul className="list-disc space-y-3 pl-5">
             <li>Ratings do not know about injuries, trades, or which goalie starts.</li>
+            <li>
+              Early in a season, ratings still lean on last season and on shot quality rather than
+              on early results. Forecasts built from individual player projections, such as
+              MoneyPuck&apos;s, account for offseason roster changes and can disagree by 20
+              percentage points or more for some teams in October and November.
+            </li>
             <li>
               xG has no information about screens or pre-shot passing, which the public feed does
               not record.

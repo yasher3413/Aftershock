@@ -23,7 +23,7 @@ const STEPS: { title: string; body: ReactNode; math?: string }[] = [
   },
   {
     title: "Rate every team",
-    body: "Each team carries an attack and a defense rating that drift toward how it has really played, measured in goals and xG, with recent games weighted most. Two ratings in a matchup give the chance of every result: a win in regulation, overtime, or a shootout, for either side.",
+    body: "Each team carries an attack and a defense rating that drift toward how it has really played, measured in goals and xG, with recent games weighted most, and each new season starts it 30% of the way back to average. Two ratings in a matchup give the chance of every result: a win in regulation, overtime, or a shootout, for either side.",
   },
   {
     title: "Play the season out, again and again",
