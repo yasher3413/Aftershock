@@ -3,12 +3,12 @@ import { Link, useSearchParams } from "react-router";
 import { MapView } from "../map/MapView";
 import { Seismograph } from "../seismo/Seismograph";
 import { TonightPanel } from "../panels/TonightPanel";
-import { StandingsPanel } from "../panels/StandingsPanel";
 import { TremorFeed } from "../panels/TremorFeed";
 import { MyTeamPicker } from "../panels/MyTeamPicker";
 import { ConnectionNote } from "../panels/ConnectionNote";
 import { PageLoading } from "../components/PageLoading";
 import { RecapCard } from "../panels/RecapCard";
+import { SidePanels } from "../panels/SidePanels";
 import { ComingUpTonight } from "../panels/ComingUp";
 import { useLiveBootstrap } from "../live/bootstrap";
 import { Tour } from "../tour/Tour";
@@ -17,8 +17,6 @@ import { useLive } from "../live/store";
 import { useMedia } from "../lib/useMedia";
 import { useMyTeam } from "../lib/myTeam";
 import { duration, monthDay, pct, pp } from "../lib/format";
-
-const TABS = ["Tonight", "Standings", "Tremors"] as const;
 
 /** Re-renders every 30 s so a countdown stays current. */
 function useNow(): number {
@@ -110,7 +108,6 @@ export default function HomePage() {
   const failed = useLiveBootstrap();
   const loaded = useLive((s) => s.loaded);
   const wide = useMedia("(min-width: 1024px)");
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Tonight");
   const [params, setParams] = useSearchParams();
   const asked = params.get("tour") === "1";
 
@@ -172,18 +169,17 @@ export default function HomePage() {
         {wide ? (
           <aside
             className="w-[440px] shrink-0 overflow-y-auto border-l border-ice-scratch"
-            aria-label="Tonight, standings, and tremors"
+            aria-label="Tonight and standings"
           >
             {/* Until the league snapshot lands, the panels' empty states
                 ("No games tonight") would be false, so they wait for it. */}
             {loaded && (
-              <div className="divide-y divide-ice-scratch">
+              <SidePanels label="Tonight">
                 <TonightPanel />
                 <ComingUpTonight />
                 <TremorFeed limit={6} />
-                <StandingsPanel />
                 <RecapCard />
-              </div>
+              </SidePanels>
             )}
           </aside>
         ) : (
@@ -192,55 +188,15 @@ export default function HomePage() {
       </div>
       {wide && <Seismograph />}
       {!wide && (
-        <section className="border-t border-ice-scratch">
-          <div
-            role="tablist"
-            aria-label="Panels"
-            className="sticky top-0 z-10 flex border-b border-ice-scratch bg-ice"
-          >
-            {TABS.map((t, i) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                id={`home-tab-${t}`}
-                aria-controls="home-panel"
-                aria-selected={tab === t}
-                tabIndex={tab === t ? 0 : -1}
-                onClick={() => setTab(t)}
-                onKeyDown={(e) => {
-                  const next =
-                    e.key === "ArrowRight"
-                      ? (i + 1) % TABS.length
-                      : e.key === "ArrowLeft"
-                        ? (i + TABS.length - 1) % TABS.length
-                        : e.key === "Home"
-                          ? 0
-                          : e.key === "End"
-                            ? TABS.length - 1
-                            : null;
-                  if (next === null) return;
-                  e.preventDefault();
-                  setTab(TABS[next]!);
-                  document.getElementById(`home-tab-${TABS[next]}`)?.focus();
-                }}
-                className={`min-h-[44px] flex-1 py-2.5 text-[14px] ${tab === t ? "border-b-2 border-ink font-semibold" : "text-ink-soft"}`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <div id="home-panel" role="tabpanel" aria-labelledby={`home-tab-${tab}`} className="pb-4">
-            {loaded && tab === "Tonight" && (
-              <>
-                <TonightPanel />
-                <ComingUpTonight />
-                <RecapCard />
-              </>
-            )}
-            {loaded && tab === "Standings" && <StandingsPanel />}
-            {loaded && tab === "Tremors" && <TremorFeed />}
-          </div>
+        <section className="border-t border-ice-scratch pb-4">
+          {loaded && (
+            <SidePanels label="Tonight" sticky>
+              <TonightPanel />
+              <ComingUpTonight />
+              <TremorFeed limit={6} />
+              <RecapCard />
+            </SidePanels>
+          )}
         </section>
       )}
     </div>

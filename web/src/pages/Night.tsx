@@ -12,7 +12,7 @@ import { Seismograph } from "../seismo/Seismograph";
 import { TonightPanel } from "../panels/TonightPanel";
 import { TremorFeed } from "../panels/TremorFeed";
 import { TeamLogo } from "../components/TeamLogo";
-import { StandingsPanel } from "../panels/StandingsPanel";
+import { SidePanels } from "../panels/SidePanels";
 import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
 import { seasonOf, todayEastern } from "../lib/season";
@@ -187,7 +187,6 @@ function NightReplay({ date }: { date: string }) {
   const [status, setStatus] = useState<Status>("loading");
   const loaded = useLive((s) => s.loaded);
   const [bundle, setBundle] = useState<ReplayBundleOut | null>(null);
-  const [panel, setPanel] = useState("Games");
   // Ask for a replay and recap only if the night has one; tonight's games and
   // future nights would otherwise log two failed requests on every visit.
   const [y, m] = date.split("-").map(Number) as [number, number];
@@ -258,26 +257,10 @@ function NightReplay({ date }: { date: string }) {
           <Seismograph />
         </div>
         <aside className="night-rail order-2 min-w-0 lg:order-1 border-t border-ice-scratch lg:w-[360px] lg:border-t-0 lg:border-l">
-          <div
-            role="group"
-            aria-label="Replay panels"
-            className="sticky top-0 z-10 flex border-b border-ice-scratch bg-surface p-2"
-          >
-            {["Games", "Tremors", "Standings"].map((name) => (
-              <button
-                key={name}
-                type="button"
-                aria-pressed={panel === name}
-                onClick={() => setPanel(name)}
-                className={`min-h-10 flex-1 rounded-[var(--radius)] px-3 text-[13px] ${panel === name ? "bg-ice-land font-semibold text-ink" : "text-ink-soft hover:text-ink"}`}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          {panel === "Games" && <TonightPanel />}
-          {panel === "Tremors" && <TremorFeed />}
-          {panel === "Standings" && <StandingsPanel />}
+          <SidePanels label="Games" sticky>
+            <TonightPanel />
+            <TremorFeed />
+          </SidePanels>
         </aside>
       </section>
       {recap.data && (
