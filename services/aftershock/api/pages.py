@@ -122,6 +122,8 @@ async def page_meta(session: AsyncSession, path: str) -> PageMeta:
             "percentage points, and every other team it moved.",
             f"/api/og/tremor/{t.id}.png",
         )
+    if path == "/night/today":
+        return PageMeta(f"Tonight's games | {SITE}", "Tonight's NHL schedule, scores, and odds.")
     if m := re.fullmatch(r"/night/(\d{4}-\d{2}-\d{2})", path):
         try:
             night = date.fromisoformat(m.group(1))
