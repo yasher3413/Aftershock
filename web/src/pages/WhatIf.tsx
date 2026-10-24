@@ -19,6 +19,7 @@ import {
 import { useSimulator, type SimOutput } from "../whatif/useSimulator";
 import { TeamLogo } from "../components/TeamLogo";
 import { projectBracket, type Series } from "../whatif/bracket";
+import { ShareMenu } from "../whatif/ShareMenu";
 import { useMyTeam } from "../lib/myTeam";
 
 const N_SIMS = 10_000;
@@ -115,21 +116,6 @@ export default function WhatIfPage() {
   const reduce = useReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myTeam = useMyTeam((s) => s.team);
-  const [copied, setCopied] = useState(false);
-  const share = async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share && matchMedia("(pointer: coarse)").matches) {
-        await navigator.share({ title: "My NHL what-if on Puckquake", url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // The viewer closed the share sheet or the clipboard is blocked; nothing to do.
-    }
-  };
   const [resultsInView, setResultsInView] = useState(false);
   useEffect(() => {
     const el = document.getElementById("scenario-results");
@@ -210,6 +196,32 @@ export default function WhatIfPage() {
   );
   const updating = !out || sim.busy || resultKey !== encode(scenario);
   const focus = team ? changes.find((t) => t.team === team) : undefined;
+  // What the share menu draws and posts: the picks in words, then the
+  // biggest swings with their odds before and after.
+  const pickWords = (boot.data?.games ?? [])
+    .filter((g) => g.status === "future" && scenario[g.game_id])
+    .sort((a, b) => Date.parse(a.start_utc) - Date.parse(b.start_utc))
+    .map((g) => {
+      const o = scenario[g.game_id]!;
+      const homeWins = o.startsWith("home");
+      const how = o.endsWith("ot") ? " in overtime" : o.endsWith("so") ? " in a shootout" : "";
+      return `${homeWins ? g.home : g.away} beat ${homeWins ? g.away : g.home}${how}`;
+    });
+  const swings = movers
+    .filter((t) => baseBy[t.team] && Math.abs(t.change) >= 0.0005)
+    .map((t) => ({ team: t.team, before: baseBy[t.team]!.p_playoffs, after: t.p_playoffs }));
+  const bigSwings = [...changes]
+    .filter((t) => baseBy[t.team])
+    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change))
+    .slice(0, 5)
+    .map((t) => ({ team: t.team, before: baseBy[t.team]!.p_playoffs, after: t.p_playoffs }));
+  const shareCard = { picks: pickWords, movers: bigSwings, pickCount };
+  const shareTweet = `My NHL what-if: ${swings
+    .slice(0, 3)
+    .map((t) => `${t.team} ${pct(t.before, 0)} → ${pct(t.after, 0)}`)
+    .join(
+      ", ",
+    )} to make the playoffs, from ${pickCount} ${pickCount === 1 ? "pick" : "picks"}. Try yours on Puckquake:`;
   const clearFilters = () => {
     setTeam("");
     setRange("7");
@@ -382,15 +394,7 @@ export default function WhatIfPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {pickCount > 0 && (
-            <button
-              type="button"
-              onClick={share}
-              className="inline-flex min-h-[44px] items-center rounded-[var(--radius)] border border-ink px-4 text-[13px] font-semibold"
-            >
-              {copied ? "Link copied" : "Share scenario"}
-            </button>
-          )}
+          {pickCount > 0 && !updating && <ShareMenu card={shareCard} tweet={shareTweet} />}
           {/* On wide screens the forecast sits beside the picks; on phones it is far below them. */}
           <button
             type="button"
