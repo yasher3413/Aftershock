@@ -161,11 +161,6 @@ describe("map key placement", () => {
     expect(spot.left).toBeGreaterThanOrEqual(200 + 16 + 4);
   });
 
-  it("keeps clear of a live score chip to a team's right", () => {
-    const spot = freeSpot(250, 150, W, H, [{ x: 200, y: 480, r: 16, chip: true }])!;
-    expect(spot.left).toBeGreaterThanOrEqual(200 + 16 + 30);
-  });
-
   it("gives up when every spot would cover a team", () => {
     const row = (y: number) => Array.from({ length: 12 }, (_, i) => ({ x: 40 + i * 85, y, r: 16 }));
     expect(freeSpot(250, 150, W, H, [...row(60), ...row(480)])).toBeNull();

@@ -102,7 +102,7 @@ export class MapController {
   onLayout: (layout: MapLayout) => void = () => {};
   reducedMotion = false;
   /** The element holding the canvas and the HTML team logos. A screen shake
-   * moves it whole, so logos and score chips stay on their rings. */
+   * moves it whole, so logos stay on their rings. */
   shakeTarget: HTMLElement | null = null;
 
   private host: HTMLElement;

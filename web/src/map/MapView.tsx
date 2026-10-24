@@ -123,12 +123,8 @@ export function MapView() {
     return m;
   }, [games]);
   const keyNodes = useMemo(
-    () =>
-      (layout?.nodes ?? []).map((p) => {
-        const g = gameByTeam[p.id];
-        return { x: p.x, y: p.y, r: p.r, chip: !!g && LIVE.has(g.state) };
-      }),
-    [layout, gameByTeam],
+    () => (layout?.nodes ?? []).map((p) => ({ x: p.x, y: p.y, r: p.r })),
+    [layout],
   );
   const venueByName = useMemo(() => Object.fromEntries(venues.map((v) => [v.name, v])), [venues]);
 
@@ -179,7 +175,6 @@ export function MapView() {
           const o = odds[p.id];
           if (!t) return null;
           const g = gameByTeam[p.id];
-          const live = g && LIVE.has(g.state);
           const change = o && oddsStart[p.id] ? o.p_playoffs - oddsStart[p.id]!.p_playoffs : 0;
           const label = `${t.name}. Playoff odds ${o ? pct(o.p_playoffs) : "unknown"}.${
             change ? ` ${pp(change, 1, " percentage points")} today.` : ""
@@ -222,15 +217,6 @@ export function MapView() {
               >
                 <TeamLogo team={p.id} size={Math.round(size * 0.66)} />
               </button>
-              {live && g && (
-                <span
-                  className="num pointer-events-none absolute whitespace-nowrap rounded-[var(--radius)] border border-ice-scratch bg-surface px-1 text-[12px] font-semibold leading-[16px] text-ink"
-                  style={{ left: p.x + p.r + 3, top: p.y - 9 }}
-                  aria-hidden
-                >
-                  {g.home === p.id ? g.home_score : g.away_score}
-                </span>
-              )}
               {hover === p.id && (
                 <div
                   role="tooltip"

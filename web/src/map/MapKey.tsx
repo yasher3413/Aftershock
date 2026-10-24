@@ -114,8 +114,8 @@ function Key({
       <p className="mt-1.5">
         A goal sends a ring out from its arena. M is its magnitude, how far it moved everyone's
         odds; pp means percentage points. <span className="up">Blue</span> rises,{" "}
-        <span className="down">red</span> falls. A small number beside a team is its score in a game
-        on now.
+        <span className="down">red</span> falls. A pulsing arena has a game on now; scores are in
+        tonight&apos;s list.
       </p>
     </figure>
   );

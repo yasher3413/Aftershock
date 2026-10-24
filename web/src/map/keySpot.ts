@@ -3,16 +3,13 @@ export interface KeyNode {
   x: number;
   y: number;
   r: number;
-  /** True when a live score chip sits to the node's right. */
-  chip?: boolean;
 }
 
 const INSET = 12;
-// A node's footprint: the ring, the team tick below it, and any live score
-// chip to its right.
+// A node's footprint: the ring and the team tick below it.
 const footprint = (n: KeyNode) => ({
   left: n.x - n.r - 4,
-  right: n.x + n.r + (n.chip ? 30 : 4),
+  right: n.x + n.r + 4,
   top: n.y - n.r - 4,
   bottom: n.y + n.r + 10,
 });
