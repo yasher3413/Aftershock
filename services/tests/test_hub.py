@@ -85,6 +85,10 @@ class FakeRedis:
         self.kv[name] = int(self.kv.get(name, 0)) + 1
         return int(self.kv[name])
 
+    async def incrby(self, name: str, amount: int) -> int:
+        self.kv[name] = int(self.kv.get(name, 0)) + amount
+        return int(self.kv[name])
+
     async def expire(self, name: str, seconds: int) -> bool:
         return name in self.kv
 
