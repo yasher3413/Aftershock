@@ -363,6 +363,21 @@ class PushSubscription(Base):
     created_at: Mapped[datetime] = _now()
 
 
+class BotPost(Base):
+    """A goal posted by the bot on X (post_id is None for a dry run)."""
+
+    __tablename__ = "bot_posts"
+    tremor_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    post_id: Mapped[str | None] = mapped_column(Text)
+    mode: Mapped[str] = mapped_column(String(8))
+    scorer: Mapped[str | None] = mapped_column(Text)
+    assist1: Mapped[str | None] = mapped_column(Text)
+    assist2: Mapped[str | None] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = _now()
+
+
 class SavedScenario(Base):
     """A What-If Lab scenario saved for a short share link (/what-if?id=...)."""
 
