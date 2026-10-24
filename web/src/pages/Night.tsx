@@ -15,7 +15,7 @@ import { TeamLogo } from "../components/TeamLogo";
 import { StandingsPanel } from "../panels/StandingsPanel";
 import { localTime, longDate, pct } from "../lib/format";
 import { useDocumentMeta } from "../lib/meta";
-import { seasonOf } from "../lib/season";
+import { seasonOf, todayEastern } from "../lib/season";
 import { PageLoading } from "../components/PageLoading";
 
 /** A real calendar date as YYYY-MM-DD (2026-13-40 would roll into 2027). */
@@ -24,16 +24,6 @@ function realDate(s: string): boolean {
   if (!m) return false;
   const d = new Date(Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!));
   return d.toISOString().slice(0, 10) === s;
-}
-
-function todayEastern(): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(Date.now() - 6 * 3600_000));
-  return parts;
 }
 
 /** Previous and next nights with a replay, and the season calendar. */
@@ -128,7 +118,7 @@ function NightSchedule({ date }: { date: string }) {
                       {live
                         ? "Live"
                         : p != null && !FINISHED.has(g.state)
-                          ? `${g.home} ${pct(p, 0)} to win`
+                          ? `${p >= 0.5 ? g.home : g.away} ${pct(Math.max(p, 1 - p), 0)} to win`
                           : ""}
                     </span>
                   </Link>

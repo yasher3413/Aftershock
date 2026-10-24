@@ -13,3 +13,14 @@ export function seasonOf(isoDate: string): number {
   const start = m >= 8 ? y : y - 1;
   return start * 10000 + start + 1;
 }
+
+/** Today's hockey night in Eastern time (until 6 a.m. it is still last night). */
+export function todayEastern(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(Date.now() - 6 * 3600_000));
+  return parts;
+}
