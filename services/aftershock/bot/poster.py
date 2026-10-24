@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, TypeVar
 
+import httpx
 import structlog
 from redis.asyncio import Redis
 from sqlalchemy import func, select
@@ -52,6 +54,18 @@ T = TypeVar("T")
 
 class GaveUp(Exception):
     pass
+
+
+class _Window:
+    """One retry window for everything a goal sends to X: real time since it
+    started, or the time spent waiting, whichever is more."""
+
+    def __init__(self) -> None:
+        self.start = time.monotonic()
+        self.slept = 0.0
+
+    def used(self) -> float:
+        return max(time.monotonic() - self.start, self.slept)
 
 
 class GoalBot:
@@ -143,18 +157,20 @@ class GoalBot:
         await self.redis.incrby(key, cost)
         await self.redis.expire(key, SPEND_TTL_S)
 
-    async def _retry(self, what: str, call: Callable[[], Awaitable[T]]) -> T:
-        delay, waited = RETRY_FIRST_S, 0.0
+    async def _retry(self, what: str, call: Callable[[], Awaitable[T]], window: _Window) -> T:
+        delay = RETRY_FIRST_S
         while True:
             try:
                 return await call()
-            except XError as exc:
-                if not exc.retryable or waited + delay > RETRY_WINDOW_S:
-                    log.error("bot.gave_up", what=what, status=exc.status, error=str(exc))
+            except (XError, httpx.TransportError) as exc:
+                status = exc.status if isinstance(exc, XError) else 0
+                retryable = exc.retryable if isinstance(exc, XError) else True
+                if not retryable or window.used() + delay > RETRY_WINDOW_S:
+                    log.error("bot.gave_up", what=what, status=status, error=str(exc))
                     raise GaveUp(what) from exc
-                log.warning("bot.retry", what=what, status=exc.status, wait_s=delay)
+                log.warning("bot.retry", what=what, status=status, wait_s=delay)
                 await asyncio.sleep(delay)
-                waited += delay
+                window.slept += delay
                 delay = min(delay * 2, RETRY_MAX_S)
 
     # ------------------------------------------------------------------
@@ -165,7 +181,10 @@ class GoalBot:
         if mode == "off":
             return
         async with session_scope(self.engine) as s:
-            if await s.get(BotPost, t.id) is not None:
+            row = await s.get(BotPost, t.id)
+            # A deleted post is for a goal the feed took away; if the goal is
+            # back (same id, not overturned), it is posted again.
+            if row is not None and not row.deleted:
                 return
             game_type = await s.scalar(select(Game.game_type).where(Game.id == t.game_id))
             if game_type != REGULAR_SEASON:
@@ -175,8 +194,7 @@ class GoalBot:
             if t.overturned or await s.scalar(select(Tremor.overturned).where(Tremor.id == t.id)):
                 log.info("bot.skip", tremor=t.id, reason="overturned")
                 return
-            if self.now() - t.created_at > STALE_AFTER:
-                log.info("bot.skip", tremor=t.id, reason="stale")
+            if self._stale(t):
                 return
             context = await self._context(s, t)
             teams = [
@@ -188,27 +206,48 @@ class GoalBot:
             "assist1": t.assists[0].name if t.assists else None,
             "assist2": t.assists[1].name if len(t.assists) > 1 else None,
         }
-        post_id: str | None = None
+        if mode == "live" and not await self._can_spend(POST_COST + UPLOAD_COST):
+            return
+        # The row goes in before X is called, so a duplicate message or a
+        # retry after an unclear failure can never post the goal twice.
+        async with session_scope(self.engine) as s:
+            await s.merge(
+                BotPost(tremor_id=t.id, post_id=None, mode=mode, text=text, deleted=False, **names)
+            )
         if mode == "dry_run":
             log.info("bot.post", mode=mode, tremor=t.id, text=text)
-        else:
-            if not await self._can_spend(POST_COST + UPLOAD_COST):
-                return
-            png = await self._card(t, teams)
+            return
+        window = _Window()
+        png = await self._card(t, teams)
+        media_id = None
+        if png is not None:
             try:
-                media_id = None
-                if png is not None:
-                    media_id = await self._retry(
-                        "upload", lambda: self.x.upload_media(png, alt_text(t))
-                    )
-                    await self._spend(UPLOAD_COST)
-                post_id = await self._retry("post", lambda: self.x.post(text, media_id=media_id))
+                media_id = await self._retry(
+                    "upload", lambda: self.x.upload_media(png, alt_text(t)), window
+                )
+                await self._spend(UPLOAD_COST)
             except GaveUp:
-                return
-            await self._spend(POST_COST)
-            log.info("bot.post", mode=mode, tremor=t.id, post=post_id, text=text)
+                log.warning("bot.text_only", tremor=t.id)
+        if self._stale(t):
+            return
+        try:
+            post_id = await self._retry(
+                "post", lambda: self.x.post(text, media_id=media_id), window
+            )
+        except GaveUp:
+            return
         async with session_scope(self.engine) as s:
-            s.add(BotPost(tremor_id=t.id, post_id=post_id, mode=mode, text=text, **names))
+            row = await s.get(BotPost, t.id)
+            if row is not None:
+                row.post_id = post_id
+        await self._spend(POST_COST)
+        log.info("bot.post", mode=mode, tremor=t.id, post=post_id, text=text)
+
+    def _stale(self, t: S.Tremor) -> bool:
+        if self.now() - t.created_at > STALE_AFTER:
+            log.info("bot.skip", tremor=t.id, reason="stale")
+            return True
+        return False
 
     async def _card(self, t: S.Tremor, teams: list[S.TeamInfo]) -> bytes | None:
         try:
@@ -256,7 +295,7 @@ class GoalBot:
         # (deleting is free), as long as the keys are there.
         if row_mode == "live" and post_id and self.settings.x_keys_present:
             try:
-                await self._retry("delete", lambda: self.x.delete(post_id))
+                await self._retry("delete", lambda: self.x.delete(post_id), _Window())
             except GaveUp:
                 return
         log.info("bot.delete", tremor=tremor_id, post=post_id, mode=row_mode)
@@ -281,7 +320,9 @@ class GoalBot:
                 log.warning("bot.correction_skipped", tremor=tremor_id, mode=mode, text=text)
                 return
             try:
-                reply = await self._retry("reply", lambda: self.x.post(text, reply_to=post_id))
+                reply = await self._retry(
+                    "reply", lambda: self.x.post(text, reply_to=post_id), _Window()
+                )
             except GaveUp:
                 return
             await self._spend(POST_COST)

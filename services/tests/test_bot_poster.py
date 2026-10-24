@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
+import httpx
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -30,10 +31,13 @@ KEYS = dict(x_api_key="k", x_api_secret="s", x_access_token="t", x_access_secret
 class FakeX:
     def __init__(self) -> None:
         self.calls: list[tuple[str, Any]] = []
-        self.fail: list[XError] = []  # raised by post(), first to last
+        self.fail: list[Exception] = []  # raised by post(), first to last
+        self.upload_fail: list[Exception] = []
         self.n = 0
 
     async def upload_media(self, png: bytes, alt: str) -> str:
+        if self.upload_fail:
+            raise self.upload_fail.pop(0)
         self.calls.append(("upload", alt))
         return "m1"
 
@@ -344,3 +348,64 @@ async def test_context_uses_tonight_and_season(world: AsyncEngine) -> None:
     await run(bot, ("goal", big))
     [row] = [r for r in await rows(world) if r.tremor_id == 23]
     assert "Magnitude 8.7, the 2nd-biggest goal of the season" in row.text
+
+
+async def test_row_is_written_before_posting(world: AsyncEngine) -> None:
+    """A post that may have gone out (X kept failing) is never sent twice."""
+    t = goal(40)
+    await add_tremor(world, t)
+    bot, x, _ = make(world)
+    x.fail = [XError(503, "down")] * 200
+    P.RETRY_WINDOW_S, saved = 0.0, P.RETRY_WINDOW_S
+    try:
+        await run(bot, ("goal", t))
+        x.fail = []
+        await run(bot, ("goal", t))
+    finally:
+        P.RETRY_WINDOW_S = saved
+    assert [k for k in x.kinds() if k == "post"] == []
+    [row] = await rows(world)
+    assert (row.tremor_id, row.post_id) == (40, None)
+
+
+async def test_network_errors_are_retried(
+    world: AsyncEngine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def no_sleep(s: float) -> None:
+        return None
+
+    monkeypatch.setattr(P.asyncio, "sleep", no_sleep)
+    t = goal(41)
+    await add_tremor(world, t)
+    bot, x, _ = make(world)
+    x.fail = [httpx.ConnectError("no route")]  # type: ignore[list-item]
+    await run(bot, ("goal", t))
+    assert x.kinds() == ["upload", "post"]
+
+
+async def test_one_window_per_goal(world: AsyncEngine, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Upload and post share one retry window, and a failed upload still posts text-only."""
+    waits: list[float] = []
+
+    async def fake_sleep(s: float) -> None:
+        waits.append(s)
+
+    monkeypatch.setattr(P.asyncio, "sleep", fake_sleep)
+    t = goal(42)
+    await add_tremor(world, t)
+    bot, x, _ = make(world)
+    x.upload_fail = [XError(503, "down")] * 200
+    await run(bot, ("goal", t))
+    assert sum(waits) <= P.RETRY_WINDOW_S
+    posts = [v for k, v in x.calls if k == "post"]
+    assert len(posts) == 1 and posts[0]["media_id"] is None
+
+
+async def test_restored_goal_is_posted_again(world: AsyncEngine) -> None:
+    t = goal(43)
+    await add_tremor(world, t)
+    bot, x, _ = make(world)
+    await run(bot, ("goal", t), ("reverse", 43), ("goal", t))
+    assert x.kinds() == ["upload", "post", "delete", "upload", "post"]
+    [row] = await rows(world)
+    assert (row.post_id, row.deleted) == ("p2", False)
