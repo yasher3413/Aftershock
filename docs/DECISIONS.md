@@ -541,3 +541,21 @@ Each entry: date, decision, alternatives considered, reason.
   this (MoneyPuck's, for one) model players' on-ice impact with ice time,
   which the public shift charts cover only from 2024-25, too few seasons
   to fit and test against.
+
+## 2026-10-24: Start each season halfway to the betting lines
+
+- **Decision:** after the new-season fade, each team's points pace moves
+  half of the way toward its preseason sportsbook point total, read
+  relative to the league's average line (`market_weight` 0.5,
+  `config/market/point_totals.json`, from Hockey-Reference's preseason odds
+  pages). The lines need adding each season before opening night; a season
+  without them simply skips this step.
+- **Reason:** the weight was chosen on 2016-19 by early-season game log
+  loss and then tested on 2021-26: game log loss for each team's first 30
+  games fell from 1.0436 to 1.0419, and the season backtest's Brier score
+  fell from 0.1921 to 0.1822 on October 1, 0.1485 to 0.1420 on November 1,
+  and 0.1085 to 0.1050 on January 1, with February to April unchanged.
+  Early playoff-odds Brier was better in 5 of 8 seasons; the losses came
+  when the market badly misjudged a team (Tampa Bay 2016-17, Chicago
+  2017-18). Lines capture offseason trades, signings, and injuries, which
+  results and the roster prior above could not.

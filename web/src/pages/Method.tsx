@@ -299,8 +299,11 @@ export default function MethodPage() {
             how the team actually played, measured as a blend of goals and expected goals, with
             recent games counting most. Each new season starts every rating 30% of the way back to
             average, because rosters change over the summer and last year only partly predicts this
-            one. Those ratings give each team's expected goals in any matchup, which become the
-            chances of each result: a win in regulation, overtime, or a shootout, for either side.
+            one, and then moves each team half of the way toward its preseason betting point total,
+            which captures trades, signings, and injuries that results cannot show yet. The
+            season&apos;s games wash both out as they arrive. Those ratings give each team's
+            expected goals in any matchup, which become the chances of each result: a win in
+            regulation, overtime, or a shootout, for either side.
           </p>
           {(st || charts.strength_reliability) && (
             <Evidence label="Team strength evidence">
@@ -545,10 +548,11 @@ export default function MethodPage() {
           <ul className="list-disc space-y-3 pl-5">
             <li>Ratings do not know about injuries, trades, or which goalie starts.</li>
             <li>
-              Early in a season, ratings still lean on last season and on shot quality rather than
-              on early results. Forecasts built from individual player projections, such as
-              MoneyPuck&apos;s, account for offseason roster changes and can disagree by 20
-              percentage points or more for some teams in October and November.
+              Early in a season, ratings lean on last season, the preseason betting lines, and shot
+              quality rather than on early results. Forecasts built from individual player
+              projections, such as MoneyPuck&apos;s, can still disagree by 20 percentage points or
+              more for some teams in October and November. The betting lines are one snapshot from
+              before opening night and are not updated during the season.
             </li>
             <li>
               xG has no information about screens or pre-shot passing, which the public feed does
@@ -563,10 +567,11 @@ export default function MethodPage() {
 
           <H id="data">Data and attribution</H>
           <p>
-            Data from NHL.com. Puckquake uses the league's public play-by-play feed, asks for it
-            politely, and never redistributes it. NHL and team logos and marks, and player photos,
-            are the property of the NHL and its teams. Puckquake is not affiliated with, endorsed
-            by, or sponsored by the NHL or any team.
+            Preseason point totals are the sportsbook lines collected by Hockey-Reference. Data from
+            NHL.com. Puckquake uses the league's public play-by-play feed, asks for it politely, and
+            never redistributes it. NHL and team logos and marks, and player photos, are the
+            property of the NHL and its teams. Puckquake is not affiliated with, endorsed by, or
+            sponsored by the NHL or any team.
           </p>
         </article>
       </div>
