@@ -112,6 +112,16 @@ export default function WhatIfPage() {
   const sim = useSimulator();
   const reduce = useReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [resultsInView, setResultsInView] = useState(false);
+  useEffect(() => {
+    const el = document.getElementById("scenario-results");
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setResultsInView(!!e?.isIntersecting), {
+      rootMargin: "0px 0px -50% 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [boot.data]);
 
   // Reality once, then the scenario on every change (debounced, same seed so changes are clean).
   useEffect(() => {
@@ -370,12 +380,20 @@ export default function WhatIfPage() {
                   : "Choose a team below to start."}
           </p>
         </div>
-        <a
-          href="#scenario-results"
-          className="inline-flex min-h-[44px] items-center rounded-[var(--radius)] bg-ink px-4 text-[13px] font-semibold text-ice"
-        >
-          View results
-        </a>
+        <div className="flex gap-2">
+          {/* On wide screens the forecast sits beside the picks; on phones it is far below them. */}
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById(resultsInView ? "scenario-games" : "scenario-results")
+                ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" })
+            }
+            className="inline-flex min-h-[44px] items-center rounded-[var(--radius)] bg-ink px-4 text-[13px] font-semibold text-ice lg:hidden"
+          >
+            {resultsInView ? "Back to picks" : "View results"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">
