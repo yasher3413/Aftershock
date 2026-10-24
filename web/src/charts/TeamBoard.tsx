@@ -1,6 +1,7 @@
 import { scaleLinear, scaleTime } from "d3-scale";
 import { line } from "d3-shape";
 import { Link } from "react-router";
+import { MODEL_CHANGES } from "../lib/modelChanges";
 import { magnitude as fmtMag, pct } from "../lib/format";
 import { TeamLogo } from "../components/TeamLogo";
 
@@ -190,6 +191,21 @@ export function SeasonSeismogram({
           <line x1={x(t)} x2={x(t)} y1={pad.t} y2={h - pad.b} stroke="var(--ice-scratch)" />
           <text x={x(t) + 4} y={h - 4} fontSize={12} fill="var(--ink-soft)">
             {fmt(t)}
+          </text>
+        </g>
+      ))}
+      {MODEL_CHANGES.filter((c) => c.at > t0 && c.at < t1).map((c) => (
+        <g key={c.at} aria-hidden>
+          <line
+            x1={x(c.at)}
+            x2={x(c.at)}
+            y1={pad.t}
+            y2={h - pad.b}
+            stroke="var(--ink-soft)"
+            strokeDasharray="4 3"
+          />
+          <text x={x(c.at) - 4} y={pad.t - 8} textAnchor="end" fontSize={12} fill="var(--ink-soft)">
+            {c.label}
           </text>
         </g>
       ))}

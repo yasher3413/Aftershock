@@ -5,6 +5,7 @@ import { Bars } from "../charts/Bars";
 import { SeasonSeismogram, TeamRing, type Spike } from "../charts/TeamBoard";
 import { useWidth } from "../charts/useWidth";
 import { localTime, pct, pp } from "../lib/format";
+import { MODEL_CHANGES } from "../lib/modelChanges";
 import { useDocumentMeta } from "../lib/meta";
 import { useMyTeam } from "../lib/myTeam";
 import { TremorLine } from "../panels/TremorFeed";
@@ -180,6 +181,11 @@ export default function TeamPage() {
                 blue for them, down and red against them, longer for higher magnitude. A label is
                 the biggest magnitude in a cluster; "+2" means two more goals beside it. Select one
                 to see everyone it moved.
+                {toSeries("p_playoffs").some(
+                  (p, i, all) =>
+                    i > 0 && MODEL_CHANGES.some((c) => c.at > all[i - 1]!.t && c.at <= p.t),
+                ) &&
+                  " A dashed line marks a forecast model update: odds before it came from the earlier model."}
               </p>
             )}
           </Section>
