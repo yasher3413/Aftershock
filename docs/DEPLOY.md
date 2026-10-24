@@ -119,6 +119,66 @@ scripts/deploy/push_data.sh ubuntu@<IP>
   in the VM's `.env`, rerun `scripts/set_api_host.sh api.<domain>`, and set
   `VITE_WS_URL=wss://api.<domain>/ws/live` in Vercel.
 
+## Goal bot on X
+
+The worker can post every regular-season goal to X as @puckquake: the story,
+both teams' playoff odds before and after, and the goal's share card. It
+deletes the post if the goal is overturned and replies with a one-line
+correction if the scorer or assists change. It ships switched off. Design:
+`docs/superpowers/specs/2026-10-23-goal-bot-design.md`; code:
+`services/aftershock/bot/`.
+
+1. **The account.** Create the X account (@puckquake, or the closest free
+   handle) with its own email. In its settings, label it as automated
+   (Settings, Your account, Account information, Automation) and pick your
+   personal account as the managing account. Bio: "Every NHL goal is an
+   earthquake. A post for each one, showing how far it moved the playoff
+   race. Automated · Not affiliated with the NHL · puckquake.com".
+2. **Developer access.** Signed in as the bot account, open
+   console.x.com (the X developer console), sign up for pay-per-use, and
+   create a project and an app. In the app's user authentication settings
+   choose OAuth 1.0a with **Read and write** permissions (any callback URL,
+   for example https://www.puckquake.com). Then, under Keys and tokens,
+   copy the **API key and secret** and generate an **access token and
+   secret** for the bot account itself. Generate the access token after
+   setting Read and write, or it will be read-only.
+3. **Credits.** Buy credits in the console (posts are prepaid). At the
+   prices checked on 2026-10-23, a post is $0.015 and an image upload
+   $0.005, so a season is about $25 a month; check the current prices
+   first. Posts carry no links because a post with a link costs $0.20.
+4. **Keys.** On the VM, add to `~/Aftershock/.env`:
+   ```
+   X_API_KEY=...
+   X_API_SECRET=...
+   X_ACCESS_TOKEN=...
+   X_ACCESS_SECRET=...
+   ```
+   Optional: `X_BOT_MONTHLY_CAP_MILLICENTS` (tenths of a cent, default
+   40000 = $40). At the cap the bot stops posting until the next month and
+   logs `bot.cap_reached`. Then recreate the worker so it reads them:
+   `sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env up -d --build worker`.
+5. **Dry run for a full night.** Switch the bot to dry run (it writes each
+   post to the log and the `bot_posts` table without calling X):
+   `sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env exec -T worker aftershock bot-mode dry_run`.
+   During games, read what it would have posted:
+   `sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env logs -f worker | grep bot.`
+   (`bot.post` lines carry the text; `bot.skip` says why a goal was not
+   posted).
+6. **Go live.** `... exec -T worker aftershock bot-mode live`. The command
+   prints the mode in effect; `live` without all four keys stays `off`.
+7. **Switch off** at any time: `... exec -T worker aftershock bot-mode off`.
+   `aftershock bot-mode` with no argument shows the mode. The switch is a
+   Redis key (`aftershock:bot:mode`), so it needs no redeploy and outlasts
+   restarts; `X_BOT_MODE` in `.env` is only the default when the key is
+   unset.
+
+What it skips: preseason and playoff games, overturned goals, and any goal
+more than 15 minutes old when it would post (so a restart or a catch-up
+never sends a burst of old goals). Each goal is posted at most once. If X is
+rate limiting or down, it retries for about three minutes, then gives up on
+that goal (`bot.gave_up`). Spending so far this month is the Redis key
+`aftershock:bot:spend:YYYY-MM`, in tenths of a cent.
+
 ## Other hosts
 
 ## What the owner needs
