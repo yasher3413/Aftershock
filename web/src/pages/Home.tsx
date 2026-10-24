@@ -46,61 +46,60 @@ function TonightContext() {
   const replaying = mode === "demo" && replay;
   const next = replay?.next_live_utc ? Date.parse(replay.next_live_utc) - now : null;
   return (
+    // The band runs edge to edge like the map; its contents sit in the same
+    // column as the header and every other page, so the logo never jumps.
     <div
-      className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ice-scratch px-4 py-3 transition-colors md:px-6 ${replaying ? "bg-ice-land" : ""}`}
+      className={`border-b border-ice-scratch transition-colors ${replaying ? "bg-ice-land" : ""}`}
       data-tour="status"
     >
-      <div className="min-w-0">
-        <h1 className="display flex flex-wrap items-baseline gap-x-3 text-[30px] font-bold">
-          {replaying ? `${monthDay(replay.night_date)}, replayed` : "Tonight's playoff race"}
-          {replaying && (
-            <span className="rounded-[var(--radius)] border border-ink/60 px-1.5 py-0.5 font-[family-name:var(--font-text)] text-[12px] font-semibold leading-none tracking-normal text-ink/80">
-              Replay
-            </span>
-          )}
-        </h1>
-        <p className="mt-1.5 min-h-[18px] text-[13px] text-ink/80">
-          {!loaded ? null : replaying ? (
-            <>
-              No games are on, so the map is replaying that night's goals.
-              {next != null && next > 0 && (
-                <>
-                  {next < 90_000
-                    ? " The next live game starts any minute."
-                    : ` Next live game in ${duration(next)}.`}
-                </>
-              )}{" "}
-              <Link
-                to="/night/today"
-                className="font-semibold text-blue-line underline-offset-2 hover:underline"
-              >
-                Tonight's schedule
-              </Link>
-            </>
-          ) : (
-            `${tonight.length} ${tonight.length === 1 ? "game" : "games"} tonight${live ? `, ${live} live` : ""}`
-          )}
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <button
-          type="button"
-          onClick={() => useTour.getState().start()}
-          className="min-h-[44px] text-[13px] font-semibold text-blue-line underline-offset-4 hover:underline"
-        >
-          How to read this
-        </button>
-        <MyTeamPicker />
-        {myTeam && odds && (
-          <Link to={`/team/${myTeam}`} className="text-[13px] font-semibold hover:underline">
-            {myTeam} {pct(odds.p_playoffs)} playoffs
-            {initial && (
-              <span className={`ml-2 ${odds.p_playoffs >= initial.p_playoffs ? "up" : "down"}`}>
-                {pp(odds.p_playoffs - initial.p_playoffs)} this night
-              </span>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 md:px-6">
+        <div className="min-w-0">
+          <h1 className="display flex flex-wrap items-baseline gap-x-3 text-[30px] font-bold">
+            {replaying ? `${monthDay(replay.night_date)}, replayed` : "Tonight's playoff race"}
+          </h1>
+          <p className="mt-1.5 min-h-[18px] text-[13px] text-ink/80">
+            {!loaded ? null : replaying ? (
+              <>
+                No games are on, so the map is replaying that night's goals.
+                {next != null && next > 0 && (
+                  <>
+                    {next < 90_000
+                      ? " The next live game starts any minute."
+                      : ` Next live game in ${duration(next)}.`}
+                  </>
+                )}{" "}
+                <Link
+                  to="/night/today"
+                  className="font-semibold text-blue-line underline-offset-2 hover:underline"
+                >
+                  Tonight's schedule
+                </Link>
+              </>
+            ) : (
+              `${tonight.length} ${tonight.length === 1 ? "game" : "games"} tonight${live ? `, ${live} live` : ""}`
             )}
-          </Link>
-        )}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <button
+            type="button"
+            onClick={() => useTour.getState().start()}
+            className="min-h-[44px] text-[13px] font-semibold text-blue-line underline-offset-4 hover:underline"
+          >
+            How to read this
+          </button>
+          <MyTeamPicker />
+          {myTeam && odds && (
+            <Link to={`/team/${myTeam}`} className="text-[13px] font-semibold hover:underline">
+              {myTeam} {pct(odds.p_playoffs)} playoffs
+              {initial && (
+                <span className={`ml-2 ${odds.p_playoffs >= initial.p_playoffs ? "up" : "down"}`}>
+                  {pp(odds.p_playoffs - initial.p_playoffs)} this night
+                </span>
+              )}
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

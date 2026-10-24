@@ -32,11 +32,9 @@ export function Shell() {
           Skip to content
         </a>
         <header className="border-b border-ice-scratch">
-          {/* The home map runs edge to edge; every other page sits in the
-            max-w-6xl column, so the header lines up with it. */}
-          <div
-            className={`flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-6 ${home ? "" : "mx-auto max-w-6xl"}`}
-          >
+          {/* Every page's content sits in the max-w-6xl column (the home map
+            runs edge to edge below it), so the header lines up with it. */}
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-6">
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight text-ink">
               Puckquake
             </Link>
