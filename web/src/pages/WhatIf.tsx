@@ -410,6 +410,8 @@ export default function WhatIfPage() {
                 {gs.map((g) => {
                   const o = scenario[g.game_id];
                   const hw = (g.probs?.[0] ?? 0) + (g.probs?.[1] ?? 0) + (g.probs?.[2] ?? 0);
+                  const pHome = g.p_home_win ?? hw;
+                  const fav = pHome >= 0.5 ? g.home : g.away;
                   return (
                     <li
                       key={g.game_id}
@@ -449,7 +451,7 @@ export default function WhatIfPage() {
                       >
                         {o
                           ? HOW[o.slice(o.indexOf("_") + 1)]
-                          : `${g.home} ${pct(g.p_home_win ?? hw, 0)} to win`}
+                          : `${fav} ${pct(Math.max(pHome, 1 - pHome), 0)} to win`}
                       </span>
                       {o && (
                         <div className="col-span-4 mt-2 flex items-center justify-between gap-2 pb-2 text-[13px]">
