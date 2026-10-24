@@ -152,6 +152,12 @@ export default function MethodPage() {
           >
             See the limitations
           </a>
+          <Link
+            to="/about#nerds"
+            className="flex min-h-[44px] items-center text-[15px] underline underline-offset-4"
+          >
+            The math in five steps
+          </Link>
         </div>
       </header>
       <div className="flex flex-col gap-x-10 lg:flex-row">
