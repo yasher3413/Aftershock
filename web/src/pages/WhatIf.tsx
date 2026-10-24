@@ -97,7 +97,8 @@ export default function WhatIfPage() {
         else result.delete("s");
         return result;
       },
-      { replace: true },
+      // Picks live in the URL so a scenario can be shared; keep the page where it is.
+      { replace: true, preventScrollReset: true },
     );
   };
   const [team, setTeam] = useState("");
