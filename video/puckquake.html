@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Puckquake demo video</title>
+<style>
+  @font-face { font-family: "Big Shoulders Display"; font-weight: 600; src: url("node_modules/@fontsource/big-shoulders-display/files/big-shoulders-display-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Big Shoulders Display"; font-weight: 700; src: url("node_modules/@fontsource/big-shoulders-display/files/big-shoulders-display-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Big Shoulders Display"; font-weight: 800; src: url("node_modules/@fontsource/big-shoulders-display/files/big-shoulders-display-latin-800-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Big Shoulders Display"; font-weight: 900; src: url("node_modules/@fontsource/big-shoulders-display/files/big-shoulders-display-latin-900-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Overpass"; font-weight: 400; src: url("node_modules/@fontsource/overpass/files/overpass-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Overpass"; font-weight: 600; src: url("node_modules/@fontsource/overpass/files/overpass-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Overpass"; font-weight: 700; src: url("node_modules/@fontsource/overpass/files/overpass-latin-700-normal.woff2") format("woff2"); }
+  html, body { margin: 0; background: #0d1822; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="out"></canvas>
+<script src="data.js"></script>
+<script>
+"use strict";
+// Puckquake, 35 seconds at 120 BPM. One canvas, one draw(t): every frame is
+// a pure function of time, so any frame renders on its own and in any order.
+
+const PQ = window.PQ;
+const params = new URLSearchParams(location.search);
+const OUT_W = +(params.get("w") || 1920);
+const OUT_H = +(params.get("h") || 1080);
+const SW = 1920, SH = 1080; // the stage everything is laid out on
+const BEAT = 0.5;
+const DURATION = 35;
+
+// Arena lights down: the app's dark theme.
+const C = {
+  ice: "#0D1822", land: "#1B2C3A", scratch: "#2A3F50", ink: "#E3EBF0",
+  soft: "#8EA2B0", goal: "#FF4A57", blue: "#5AA2FF", deep: "#081019",
+};
+const DISPLAY = '"Big Shoulders Display"';
+const TEXT = '"Overpass"';
+const MINUS = "−";
+
+// ---------------------------------------------------------------- motion
+
+/** Closed-form damped spring, 0 before t0, settling at 1 with a tiny overshoot. */
+function spring(dt, w = 13, z = 0.74) {
+  if (dt <= 0) return 0;
+  if (z >= 0.999) return 1 - Math.exp(-w * dt) * (1 + w * dt);
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * dt) * (Math.cos(wd * dt) + ((z * w) / wd) * Math.sin(wd * dt));
+}
+/** A value that changes target several times: one spring per change, summed. */
+function track(t, keys, w, z) {
+  let v = keys[0][1];
+  for (let i = 1; i < keys.length; i++) v += (keys[i][1] - keys[i - 1][1]) * spring(t - keys[i][0], w, z);
+  return v;
+}
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ease = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
+const easeOut = (k) => 1 - Math.pow(1 - clamp(k), 3);
+/** In at t0, out at t1: 0..1 visibility plus how far through the exit. */
+function life(t, t0, t1 = Infinity, w = 13) {
+  const i = clamp(spring(t - t0, w, 0.8), 0, 1.2);
+  const o = t1 === Infinity ? 0 : clamp((t - t1) / 0.28);
+  return { v: clamp(Math.min(i, 1) * (1 - ease(o))), i, o: ease(o) };
+}
+function hash(n) {
+  const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+function noise1(x) {
+  const i = Math.floor(x), f = x - i;
+  const u = f * f * (3 - 2 * f);
+  return lerp(hash(i) * 2 - 1, hash(i + 1) * 2 - 1, u);
+}
+const pp = (d, digits = 1) => (d > 0 ? "+" : d < 0 ? MINUS : "") + Math.abs(d * 100).toFixed(digits);
+const pct = (p, digits = 1) => (p * 100).toFixed(digits) + "%";
+
+// ---------------------------------------------------------------- drawing helpers
+
+function font(size, weight = 700, family = DISPLAY) {
+  return `${weight} ${size}px ${family}`;
+}
+/** Text that arrives with a short blur, rises into place, and leaves upward. */
+function text(ctx, str, x, y, o) {
+  const { size = 40, weight = 700, family = DISPLAY, color = C.ink, align = "left", base = "alphabetic",
+    t = 0, t0 = -1, t1 = Infinity, rise = 26, blur = 10, alpha = 1, tracking = 0, w = 13 } = o;
+  const L = life(t, t0, t1, w);
+  if (L.v <= 0.002) return 0;
+  ctx.save();
+  ctx.font = font(size, weight, family);
+  ctx.textAlign = align;
+  ctx.textBaseline = base;
+  ctx.letterSpacing = tracking + "px";
+  ctx.globalAlpha *= L.v * alpha;
+  const b = blur * (Math.max(0, 1 - Math.min(L.i, 1)) + L.o);
+  if (b > 0.3) ctx.filter = `blur(${b.toFixed(2)}px)`;
+  ctx.fillStyle = color;
+  ctx.fillText(str, x, y + rise * (1 - Math.min(L.i, 1)) - rise * 0.8 * L.o);
+  ctx.restore();
+  return ctx.measureText ? 1 : 0;
+}
+function measure(ctx, str, size, weight = 700, family = DISPLAY, tracking = 0) {
+  ctx.save();
+  ctx.font = font(size, weight, family);
+  ctx.letterSpacing = tracking + "px";
+  const m = ctx.measureText(str).width;
+  ctx.restore();
+  return m;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function tri(ctx, x, y, s, up, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  if (up) { ctx.moveTo(x, y - s); ctx.lineTo(x + s, y + s * 0.7); ctx.lineTo(x - s, y + s * 0.7); }
+  else { ctx.moveTo(x, y + s); ctx.lineTo(x + s, y - s * 0.7); ctx.lineTo(x - s, y - s * 0.7); }
+  ctx.fill();
+}
+
+// ---------------------------------------------------------------- constant geometry
+
+function ringsPath(rings, close) {
+  const p = new Path2D();
+  for (const r of rings) {
+    p.moveTo(r[0], r[1]);
+    for (let i = 2; i < r.length; i += 2) p.lineTo(r[i], r[i + 1]);
+    if (close) p.closePath();
+  }
+  return p;
+}
+const LAND = ringsPath(PQ.land, true);
+const LAKES = ringsPath(PQ.lakes, true);
+const BORDERS = ringsPath(PQ.borders, false);
+const TEAMS = PQ.teams;
+const MTL = TEAMS.find((t) => t.abbrev === "MTL");
+const G = PQ.goal;
+
+// Skate scratches on the ice: long faint arcs, fixed for the whole film.
+const SCRATCHES = (() => {
+  const p = new Path2D();
+  for (let i = 0; i < 70; i++) {
+    const cx = hash(i * 3.1) * SW * 1.4 - SW * 0.2;
+    const cy = hash(i * 7.7) * SH * 1.6 - SH * 0.3;
+    const r = 300 + hash(i * 1.3) * 1400;
+    const a0 = hash(i * 9.1) * Math.PI * 2;
+    p.moveTo(cx + Math.cos(a0) * r, cy + Math.sin(a0) * r);
+    p.arc(cx, cy, r, a0, a0 + 0.15 + hash(i * 4.4) * 0.5);
+  }
+  return p;
+})();
+
+// ---------------------------------------------------------------- timeline (seconds)
+
+const T = {
+  goal: 3.0,          // Caufield ties it
+  oneGoal: 4.55,      // "One goal in Montreal."
+  mapIn: 5.4,         // camera pulls back from the Bell Centre
+  quake: 7.0,         // the shockwave leaves Montreal
+  mapCaption: 9.0,
+  bars: 12.0,         // nodes leave the map for the ranking
+  sims: 15.0,         // 20,000 seasons
+  twice: 17.0,        // with and without the goal
+  player: 19.5,       // Caufield's season as a seismogram
+  team: 22.5,         // the morphing panel: team page
+  nights: 24.0,       // every night
+  whatif: 25.5,       // what-if lab
+  stats: 27.0,        // proof, one stat per two beats
+  logo: 31.0,
+  loop: 34.0,         // everything settles back to the opening frame
+};
+
+const SPEED = Math.hypot(SW, SH) / 2.5; // the app's shockwave: the diagonal in 2.5 s
+const arrival = (team) => T.quake + Math.hypot(team.x - MTL.x, team.y - MTL.y) / SPEED;
+
+// Bar chart order: biggest gain to biggest loss.
+const RANKED = [...TEAMS].sort((a, b) => b.delta - a.delta);
+const BAR_X0 = 175, BAR_X1 = 1745;
+const barX = (i) => BAR_X0 + (i * (BAR_X1 - BAR_X0)) / 31;
+const BAR_Y = 640;
+const BAR_SCALE = 46; // px per percentage point
+
+// ---------------------------------------------------------------- the trace
+
+// The seismograph trace is the one shape that runs through the whole film.
+// Its paper moves left under a fixed needle; events leave spikes on it.
+const SPIKES = [
+  { t: T.goal, a: 230, f: 7.5, d: 3.2 },
+  { t: T.quake, a: 120, f: 9, d: 3.6 },
+  { t: T.stats + 0 * 1.0, a: 70, f: 11, d: 6 },
+  { t: T.stats + 1 * 1.0, a: 70, f: 11, d: 6 },
+  { t: T.stats + 2 * 1.0, a: 70, f: 11, d: 6 },
+  { t: T.stats + 3 * 1.0, a: 70, f: 11, d: 6 },
+  { t: T.logo, a: 70, f: 8, d: 3.4 },
+];
+function seismo(u) {
+  // Background tremble, a little hungrier in the seconds before the goal.
+  const nerves = 1 + 2.2 * ease(clamp((u - 1.2) / 1.8)) * (u < T.goal ? 1 : 0);
+  let y = (noise1(u * 13) * 3.2 + noise1(u * 41 + 7) * 1.6) * nerves;
+  for (const s of SPIKES) {
+    const k = u - s.t;
+    if (k > 0 && k < 2.5) y += s.a * Math.exp(-k * s.d) * Math.sin(2 * Math.PI * s.f * k) * Math.min(1, k * 40);
+  }
+  return y;
+}
+function traceState(t) {
+  // Where the trace sits, how loud it is, where its needle is, per section.
+  const y = track(t, [[0, 830], [4.9, 1012], [T.bars, BAR_Y], [T.sims, 560], [T.player, 760],
+    [T.team - 0.2, 1012], [T.stats - 0.2, 760], [T.logo - 0.4, 712], [T.loop, 830]], 7, 0.86);
+  const amp = track(t, [[0, 1], [4.9, 0.38], [T.bars, 0], [T.player + 0.05, 0], [T.team - 0.2, 0.3],
+    [T.stats - 0.2, 0.75], [T.logo - 0.4, 1], [T.loop, 1]], 7, 0.86);
+  const needle = track(t, [[0, 1540], [4.9, 1800], [T.sims, 1540], [T.player, 1760], [T.stats - 0.2, 1540], [T.loop, 1540]], 6, 0.9);
+  const x0 = track(t, [[0, 0], [T.bars, BAR_X0 - 40], [T.sims, 160], [T.player, 160], [T.team - 0.2, 0], [T.loop, 0]], 7, 0.86);
+  const alpha = track(t, [[0, 1], [T.sims + 0.3, 0.55], [T.player, 1]], 7, 0.9);
+  return { y, amp, needle, x0, alpha };
+}
+function drawTrace(ctx, t) {
+  const s = traceState(t);
+  const pxPerS = 420;
+  ctx.save();
+  ctx.globalAlpha = s.alpha;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  // Paper rules.
+  ctx.strokeStyle = C.scratch;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = s.alpha * 0.7;
+  ctx.beginPath();
+  ctx.moveTo(s.x0, s.y + 0.5);
+  ctx.lineTo(s.needle, s.y + 0.5);
+  ctx.stroke();
+  ctx.globalAlpha = s.alpha;
+  // The ink.
+  ctx.beginPath();
+  for (let x = s.x0; x <= s.needle; x += 2) {
+    const u = t - (s.needle - x) / pxPerS;
+    const y = s.y - seismo(u) * s.amp;
+    if (x === s.x0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  const grad = ctx.createLinearGradient(s.x0, 0, s.needle, 0);
+  grad.addColorStop(0, "rgba(227,235,240,0)");
+  grad.addColorStop(0.25, "rgba(227,235,240,0.55)");
+  grad.addColorStop(1, C.ink);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+  // Needle and pen.
+  const py = s.y - seismo(t) * s.amp;
+  ctx.fillStyle = C.goal;
+  ctx.shadowColor = C.goal;
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.arc(s.needle, py, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(142,162,176,0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(s.needle + 0.5, s.y - 60 * Math.max(s.amp, 0.25));
+  ctx.lineTo(s.needle + 0.5, s.y + 60 * Math.max(s.amp, 0.25));
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- scene: cold open and goal
+
+function drawScoreboard(ctx, t) {
+  const out = T.oneGoal - 0.2;
+  if (t > out + 0.6) return;
+  const cx = SW / 2;
+  // Venue and date.
+  text(ctx, "Centre Bell, Montreal", 120, 120, { t, t0: 0.15, t1: out, size: 30, weight: 700, family: TEXT });
+  text(ctx, "October 16, 2025. Third period.", 120, 160, { t, t0: 0.3, t1: out, size: 26, weight: 400, family: TEXT, color: C.soft });
+  // Teams and score.
+  const yS = 470;
+  text(ctx, G.away, cx - 230, yS - 40, { t, t0: 0.5, t1: out, size: 92, weight: 700, color: C.soft, align: "right" });
+  text(ctx, G.home, cx + 230, yS - 40, { t, t0: 0.62, t1: out, size: 92, weight: 700, color: C.soft });
+  text(ctx, String(G.before.away), cx - 110, yS, { t, t0: 0.5, t1: out, size: 250, weight: 800, align: "center" });
+  // Montreal's digit rolls from 1 to 2 on the goal.
+  const L = life(t, 0.62, out);
+  if (L.v > 0) {
+    const roll = spring(t - T.goal - 0.04, 16, 0.7);
+    ctx.save();
+    ctx.globalAlpha = L.v;
+    ctx.beginPath();
+    ctx.rect(cx + 20, yS - 230, 180, 290);
+    ctx.clip();
+    const b = 10 * (Math.max(0, 1 - Math.min(L.i, 1)) + L.o) + 14 * Math.sin(Math.PI * clamp(roll));
+    if (b > 0.3) ctx.filter = `blur(${b.toFixed(1)}px)`;
+    ctx.font = font(250, 800);
+    ctx.textAlign = "center";
+    const off = 26 * (1 - Math.min(L.i, 1)) - 20 * L.o;
+    ctx.fillStyle = C.ink;
+    ctx.fillText(String(G.before.home), cx + 110, yS + off - 290 * roll);
+    ctx.fillStyle = mix(C.ink, C.blue, clamp(spring(t - T.goal, 4, 1)) * (1 - clamp((t - T.goal - 1.2) / 0.8)) * 0.85);
+    ctx.fillText(String(G.after.home), cx + 110, yS + off + 290 * (1 - roll));
+    ctx.restore();
+  }
+  // Separator.
+  const sep = life(t, 0.55, out);
+  ctx.save();
+  ctx.globalAlpha = sep.v;
+  ctx.fillStyle = C.scratch;
+  ctx.fillRect(cx - 2, yS - 175 * sep.v, 4, 170 * sep.v);
+  ctx.restore();
+  // Clock: 0:22, 0:21, then 0:20 left when Caufield scores (19:40 of the third).
+  const clock = t < 1 ? "0:22" : t < 2 ? "0:21" : "0:20";
+  const yc = 580;
+  text(ctx, "3rd", cx - 18, yc, { t, t0: 0.85, t1: out, size: 52, weight: 600, color: C.soft, align: "right" });
+  text(ctx, clock, cx + 18, yc, { t, t0: 0.95, t1: out, size: 52, weight: 700 });
+  const dot = life(t, 0.9, out);
+  ctx.save();
+  ctx.globalAlpha = dot.v * (0.55 + 0.45 * Math.cos(t * Math.PI * 2));
+  ctx.fillStyle = C.goal;
+  ctx.beginPath();
+  ctx.arc(cx - 108, yc - 17, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Win chance, from the in-game model, before and after.
+  const wpk = spring(t - T.goal - 0.3, 5, 0.85);
+  const wp = lerp(G.homeWinBefore, G.homeWinAfter, wpk);
+  text(ctx, "Montreal win chance", cx - 16, 668, { t, t0: 1.4, t1: out, size: 28, weight: 600, family: TEXT, color: C.soft, align: "right" });
+  text(ctx, pct(wp), cx + 16, 672, { t, t0: 1.5, t1: out, size: 52, weight: 800, color: mix(C.ink, C.blue, clamp(wpk)) });
+  // Scorer strip.
+  const ys = 965;
+  const gl = life(t, T.goal + 0.45, out);
+  if (gl.v > 0) {
+    ctx.save();
+    ctx.globalAlpha = gl.v;
+    roundRect(ctx, 120, ys - 82, 112, 44, 6);
+    ctx.fillStyle = C.goal;
+    ctx.fill();
+    ctx.font = font(32, 800);
+    ctx.textAlign = "center";
+    ctx.letterSpacing = "2px";
+    ctx.fillStyle = "#fff";
+    ctx.fillText("GOAL", 176, ys - 48);
+    ctx.restore();
+  }
+  text(ctx, G.scorer, 250, ys - 46, { t, t0: T.goal + 0.55, t1: out, size: 64, weight: 800 });
+  text(ctx, `from ${G.assists.join(", ")}. Tied ${G.after.away}-${G.after.home} with 20 seconds left.`, 122, ys,
+    { t, t0: T.goal + 0.75, t1: out, size: 28, weight: 400, family: TEXT, color: C.soft });
+}
+
+function drawLamp(ctx, t) {
+  // The goal lamp: a red bloom that rotates like the light behind the net.
+  const k = t - T.goal;
+  if (k < 0 || k > 2.6) return;
+  const env = Math.exp(-k * 1.6) * Math.min(1, k * 30);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 2; i++) {
+    const a = k * 5.2 + i * Math.PI;
+    const x = SW / 2 + Math.cos(a) * 760;
+    const y = -120 + Math.sin(a) * 120;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 1150);
+    g.addColorStop(0, `rgba(255,74,87,${0.42 * env})`);
+    g.addColorStop(0.45, `rgba(200,16,46,${0.16 * env})`);
+    g.addColorStop(1, "rgba(200,16,46,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SW, SH);
+  }
+  const w = ctx.createRadialGradient(SW / 2, SH / 2, 0, SW / 2, SH / 2, 1100);
+  w.addColorStop(0, `rgba(255,74,87,${0.22 * Math.exp(-k * 7)})`);
+  w.addColorStop(1, "rgba(255,74,87,0)");
+  ctx.fillStyle = w;
+  ctx.fillRect(0, 0, SW, SH);
+  ctx.restore();
+}
+
+function drawOneGoal(ctx, t) {
+  text(ctx, "One goal in Montreal.", SW / 2, 545, { t, t0: T.oneGoal, t1: T.mapIn + 0.25, size: 128, weight: 800, align: "center" });
+}
+
+// ---------------------------------------------------------------- scene: the map
+
+function camera(t) {
+  // Starts tight on the Bell Centre, pulls back to the whole continent.
+  const s = track(t, [[0, 3.4], [T.mapIn, 1]], 3.6, 0.95);
+  const fx = track(t, [[0, MTL.x], [T.mapIn, SW / 2]], 3.6, 0.95);
+  const fy = track(t, [[0, MTL.y], [T.mapIn, SH / 2]], 3.6, 0.95);
+  return { s, fx, fy };
+}
+const toScreen = (cam, x, y) => [(x - cam.fx) * cam.s + SW / 2, (y - cam.fy) * cam.s + SH / 2];
+
+function nodeState(team, t) {
+  const at = arrival(team);
+  const before = team.after - team.delta;
+  const k = spring(t - at, 9, 0.8);
+  return { at, p: lerp(before, team.after, k), hit: t - at };
+}
+
+function drawNode(ctx, x, y, r, p, team, alpha, hit, glow) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Hit halo: blue for up, red for down, louder for bigger changes.
+  if (hit > 0 && hit < 1.2 && Math.abs(team.delta) >= 0.001) {
+    const col = team.delta > 0 ? C.blue : C.goal;
+    const big = clamp(Math.abs(team.delta) * 100 / 2.5, 0.25, 1.6);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = alpha * (1 - hit / 1.2) * 0.9;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 4 + easeOut(hit / 1.2) * 40 * big, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = alpha;
+  }
+  ctx.fillStyle = C.deep;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = r * 0.24;
+  ctx.strokeStyle = C.scratch;
+  ctx.beginPath();
+  ctx.arc(x, y, r - ctx.lineWidth / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  const flash = hit > 0 && hit < 0.9 && Math.abs(team.delta) >= 0.001 ? 1 - hit / 0.9 : 0;
+  ctx.strokeStyle = flash > 0 ? mix(C.ink, team.delta > 0 ? C.blue : C.goal, flash) : C.ink;
+  if (glow) { ctx.shadowColor = C.blue; ctx.shadowBlur = 16 * glow; ctx.strokeStyle = mix(C.ink, C.blue, glow); }
+  ctx.beginPath();
+  ctx.arc(x, y, r - ctx.lineWidth / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(p));
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.font = font(Math.round(r * 0.72), 800);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = C.ink;
+  ctx.fillText(team.abbrev, x, y + r * 0.06);
+  // Team color tick.
+  ctx.fillStyle = team.color;
+  ctx.fillRect(x - r * 0.45, y + r + 5, r * 0.9, 3);
+  ctx.restore();
+}
+
+// Labels claim a free spot above, beside, or below their node, and are
+// skipped rather than stacked (the same rule the app uses in the Northeast).
+const LABELS = (() => {
+  const placed = [];
+  const nodes = TEAMS.map((t) => ({ x0: t.x - 24, y0: t.y - 24, x1: t.x + 24, y1: t.y + 30 }));
+  const hit = (b) => [...placed.map((p) => p.box), ...nodes].some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+  const order = [...TEAMS].filter((t) => Math.abs(t.delta) >= 0.0025).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  for (const t of order) {
+    const big = t.abbrev === "MTL";
+    const w = big ? 0 : 74, h = 32;
+    const spots = [[0, -50], [44 + w / 2, -2], [-44 - w / 2, -2], [0, 54], [36 + w / 2, -40], [-36 - w / 2, -40]];
+    for (const [dx, dy] of spots) {
+      const cx = t.x + dx, cy = t.y + dy;
+      const box = { x0: cx - w / 2 - 4, y0: cy - h / 2, x1: cx + w / 2 + 4, y1: cy + h / 2 };
+      if (big || !hit(box)) { placed.push({ team: t, x: cx, y: cy, box }); break; }
+    }
+  }
+  return placed;
+})();
+
+function drawMap(ctx, t) {
+  if (t < T.mapIn - 0.3 || t > T.sims + 0.5) return;
+  const cam = camera(t);
+  const landIn = ease(clamp((t - T.mapIn + 0.2) / 0.9));
+  const landOut = ease(clamp((t - T.bars) / 0.7));
+  const la = landIn * (1 - landOut);
+  // Basemap.
+  if (la > 0) {
+    ctx.save();
+    ctx.globalAlpha = la;
+    ctx.translate(SW / 2, SH / 2);
+    ctx.scale(cam.s, cam.s);
+    ctx.translate(-cam.fx, -cam.fy);
+    ctx.fillStyle = C.land;
+    ctx.fill(LAND);
+    ctx.save();
+    ctx.clip(LAND);
+    ctx.strokeStyle = "rgba(227,235,240,0.035)";
+    ctx.lineWidth = 1.2 / cam.s;
+    ctx.stroke(SCRATCHES);
+    ctx.restore();
+    ctx.fillStyle = C.ice;
+    ctx.fill(LAKES);
+    ctx.strokeStyle = C.scratch;
+    ctx.lineWidth = 1.1 / cam.s;
+    ctx.stroke(BORDERS);
+    ctx.restore();
+  }
+  drawShockwave(ctx, t, cam, la);
+  // Nodes, which fly from the map into the ranking when the bars arrive.
+  for (const team of TEAMS) {
+    const d = Math.hypot(team.x - MTL.x, team.y - MTL.y);
+    const t0 = T.mapIn + 0.15 + d / 1400;
+    const pop = spring(t - t0, 14, 0.62);
+    if (pop <= 0.001) continue;
+    let [x, y] = toScreen(cam, team.x, team.y);
+    const st = nodeState(team, t);
+    const rank = RANKED.indexOf(team);
+    const fly = spring(t - T.bars - rank * 0.012, 8.5, 0.8);
+    x = lerp(x, barX(rank), fly);
+    y = lerp(y, BAR_Y, fly);
+    // Shake when the wave passes: M 6.8 is above the app's shake threshold.
+    const sh = shake(t, T.quake, 9, 0.35);
+    x += sh[0]; y += sh[1];
+    const r = lerp(19 * Math.min(1.5, Math.max(1, cam.s * 0.5)), 17, fly) * pop;
+    const out = 1 - ease(clamp((t - T.sims) / 0.4));
+    if (out <= 0) continue;
+    drawNode(ctx, x, y, r, st.p, team, clamp(pop) * out, st.hit, 0);
+  }
+  drawMapLabels(ctx, t, cam);
+  // Magnitude at the origin.
+  const mo = life(t, T.quake + 0.08, T.bars - 0.2, 11);
+  if (mo.v > 0) {
+    const [ox, oy] = toScreen(cam, MTL.x, MTL.y);
+    const m = G.magnitude * clamp(spring(t - T.quake, 4.5, 1));
+    ctx.save();
+    ctx.globalAlpha = mo.v;
+    ctx.font = font(26, 700, TEXT);
+    ctx.fillStyle = C.goal;
+    ctx.textAlign = "left";
+    ctx.fillText("M", ox + 38, oy - 92);
+    ctx.font = font(96, 900);
+    ctx.fillStyle = C.ink;
+    ctx.shadowColor = "rgba(255,74,87,0.6)";
+    ctx.shadowBlur = 30 * Math.exp(-(t - T.quake) * 1.5);
+    ctx.fillText(m.toFixed(1), ox + 64, oy - 74);
+    ctx.restore();
+  }
+  text(ctx, "Every team in the league felt it.", 120, 905, { t, t0: T.mapCaption, t1: T.bars - 0.25, size: 66, weight: 800 });
+  text(ctx, `${pp(G.totalShift)} points of playoff odds shaken across 32 teams. Magnitude ${G.magnitude.toFixed(1)}.`, 122, 950,
+    { t, t0: T.mapCaption + 0.25, t1: T.bars - 0.25, size: 27, weight: 400, family: TEXT, color: C.soft });
+}
+
+function drawShockwave(ctx, t, cam, la) {
+  const k = t - T.quake;
+  if (k < 0 || k > 3.4) return;
+  const [ox, oy] = toScreen(cam, MTL.x, MTL.y);
+  const maxR = 1700;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  // Origin flash.
+  const f = Math.exp(-k * 3.2);
+  const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, 260);
+  g.addColorStop(0, `rgba(255,74,87,${0.9 * f})`);
+  g.addColorStop(1, "rgba(255,74,87,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(ox - 260, oy - 260, 520, 520);
+  // The front and two echoes. Thickness and opacity scale with magnitude.
+  const rings = [[0, 9, 0.95], [0.16, 4, 0.55], [0.34, 2, 0.32]];
+  for (const [lag, wdt, a] of rings) {
+    const R = (k - lag) * SPEED * cam.s;
+    if (R <= 0) continue;
+    const fade = 1 - ease(clamp(R / (maxR * cam.s)));
+    ctx.globalAlpha = a * fade;
+    ctx.strokeStyle = C.goal;
+    ctx.shadowColor = C.goal;
+    ctx.shadowBlur = 26;
+    ctx.lineWidth = wdt;
+    ctx.beginPath();
+    ctx.arc(ox, oy, R, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // A faint wash inside the front.
+  const R0 = k * SPEED * cam.s;
+  if (R0 > 10) {
+    const fade = 1 - ease(clamp(R0 / (maxR * cam.s)));
+    const w = ctx.createRadialGradient(ox, oy, R0 * 0.6, ox, oy, R0);
+    w.addColorStop(0, "rgba(255,74,87,0)");
+    w.addColorStop(1, `rgba(255,74,87,${0.1 * fade})`);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = w;
+    ctx.beginPath();
+    ctx.arc(ox, oy, R0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMapLabels(ctx, t, cam) {
+  for (const L of LABELS) {
+    const team = L.team;
+    const at = arrival(team) + 0.05;
+    const lv = life(t, at, T.bars - 0.15, 12);
+    if (lv.v <= 0) continue;
+    const big = team.abbrev === "MTL";
+    let [x, y] = toScreen(cam, L.x, L.y);
+    const up = team.delta > 0;
+    const col = up ? C.blue : C.goal;
+    const s = big ? 46 : 27;
+    const str = pp(team.delta);
+    ctx.save();
+    ctx.globalAlpha = lv.v;
+    const b = 8 * Math.max(0, 1 - Math.min(lv.i, 1)) + 8 * lv.o;
+    if (b > 0.3) ctx.filter = `blur(${b.toFixed(1)}px)`;
+    y += 14 * (1 - Math.min(lv.i, 1)) - 10 * lv.o;
+    if (big) { [x, y] = toScreen(cam, MTL.x - 150, MTL.y - 92); }
+    ctx.font = font(s, 800);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const w = ctx.measureText(str).width;
+    tri(ctx, x - w / 2 - (big ? 14 : 8), y, big ? 9 : 6, up, col);
+    ctx.fillStyle = col;
+    ctx.fillText(str, x + (big ? 4 : 2), y + 1);
+    if (big) {
+      ctx.font = font(20, 600, TEXT);
+      ctx.fillStyle = C.soft;
+      ctx.fillText("pp playoff odds", x + 4, y + 34);
+    }
+    ctx.restore();
+  }
+}
+
+function shake(t, t0, amp, dur) {
+  const k = t - t0;
+  if (k < 0 || k > dur) return [0, 0];
+  const e = amp * (1 - k / dur) * (1 - k / dur);
+  return [noise1(k * 60) * e, noise1(k * 60 + 50) * e];
+}
+function mix(a, b, k) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = (p, s) => (p >> s) & 255;
+  const m = (s) => Math.round(lerp(ch(pa, s), ch(pb, s), clamp(k)));
+  return `rgb(${m(16)},${m(8)},${m(0)})`;
+}
+
+// ---------------------------------------------------------------- scene: who it moved
+
+function drawBars(ctx, t) {
+  if (t < T.bars || t > T.sims + 0.8) return;
+  const grow = (i) => spring(t - T.bars - 0.45 - i * 0.02, 10, 0.72);
+  const shrink = 1 - spring(t - T.sims, 11, 0.9);
+  ctx.save();
+  for (let i = 0; i < 32; i++) {
+    const team = RANKED[i];
+    const x = barX(i);
+    const h = team.delta * 100 * BAR_SCALE * grow(i) * shrink;
+    const up = team.delta >= 0;
+    const col = up ? C.blue : C.goal;
+    const top = up ? BAR_Y - 28 - h : BAR_Y + 34;
+    const len = up ? h : -h;
+    const g = ctx.createLinearGradient(0, up ? BAR_Y - 28 : BAR_Y + 34, 0, up ? BAR_Y - 28 - h : BAR_Y + 34 - h);
+    g.addColorStop(0, up ? "rgba(90,162,255,0.25)" : "rgba(255,74,87,0.25)");
+    g.addColorStop(1, col);
+    ctx.fillStyle = g;
+    if (Math.abs(len) > 0.5) ctx.fillRect(x - 9, up ? top : BAR_Y + 34, 18, Math.abs(len));
+    // Value at the bar's tip.
+    const lv = clamp((grow(i) - 0.3) / 0.7) * shrink;
+    if (lv > 0.01) {
+      ctx.globalAlpha = lv;
+      ctx.font = font(team.abbrev === "MTL" || team.abbrev === "NSH" ? 34 : 22, 800);
+      ctx.textAlign = "center";
+      ctx.fillStyle = Math.abs(team.delta) < 0.0005 ? C.soft : col;
+      const ty = up ? BAR_Y - 40 - Math.abs(h) : BAR_Y + 62 + Math.abs(h);
+      ctx.fillText(pp(team.delta, Math.abs(team.delta) < 0.001 && team.delta !== 0 ? 2 : 1), x, ty);
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+  text(ctx, "Who it moved", 120, 170, { t, t0: T.bars + 0.3, t1: T.sims - 0.3, size: 84, weight: 800 });
+  text(ctx, "Change in every team's playoff odds, in percentage points, from one goal in October.", 122, 218,
+    { t, t0: T.bars + 0.5, t1: T.sims - 0.3, size: 27, weight: 400, family: TEXT, color: C.soft });
+}
+
+// ---------------------------------------------------------------- scene: 20,000 seasons
+
+const SIM_X0 = 160, SIM_X1 = 1540, SIM_GOAL_X = 640;
+const SIM_LINES = 260;
+/** One simulated season: the same random walk with or without the goal. */
+function simPath(i, x, withGoal) {
+  const u = (x - SIM_X0) / (SIM_X1 - SIM_X0);
+  let y = 0;
+  // Fixed per-line randomness: the shared dice.
+  for (let k = 1; k <= 5; k++) y += noise1(u * (2.5 * k) + i * 13.37 + k * 101) * (95 / k);
+  y *= Math.pow(u, 0.75);
+  const bump = withGoal ? -120 * ease(clamp((x - SIM_GOAL_X) / 260)) : 0;
+  return 560 + y * 1.6 + bump;
+}
+function drawSims(ctx, t) {
+  if (t < T.sims - 0.2 || t > T.player + 0.9) return;
+  const reveal = (i) => clamp((t - T.sims - 0.1 - hash(i) * 0.9) / 0.9);
+  const split = spring(t - T.twice, 6, 0.9);
+  const out = 1 - ease(clamp((t - T.player) / 0.5));
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineWidth = 1.3;
+  for (let i = 0; i < SIM_LINES; i++) {
+    const r = ease(reveal(i));
+    if (r <= 0) continue;
+    const withGoal = i % 2 === 0;
+    const x1 = lerp(SIM_X0, SIM_X1, r);
+    ctx.beginPath();
+    for (let x = SIM_X0; x <= x1; x += 12) {
+      const y = lerp(simPath(i >> 1, x, false), simPath(i >> 1, x, withGoal), split);
+      if (x === SIM_X0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    // After the split the runs without the goal cool to grey.
+    const col = withGoal ? [90, 162, 255] : [Math.round(lerp(90, 150, split)), Math.round(lerp(162, 160, split)), Math.round(lerp(255, 170, split))];
+    ctx.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${(withGoal ? 0.11 : lerp(0.11, 0.09, split)) * out})`;
+    ctx.stroke();
+  }
+  ctx.restore();
+  // The two averages, drawn bold once the runs split.
+  const mk = clamp((t - T.twice - 0.35) / 0.8);
+  if (mk > 0) {
+    ctx.save();
+    ctx.globalAlpha = out;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    for (const withGoal of [false, true]) {
+      ctx.strokeStyle = withGoal ? C.blue : C.soft;
+      if (withGoal) { ctx.shadowColor = C.blue; ctx.shadowBlur = 14; }
+      ctx.beginPath();
+      const x1 = lerp(SIM_X0, SIM_X1, ease(mk));
+      for (let x = SIM_X0; x <= x1; x += 8) {
+        const y = 560 + (withGoal ? -120 * ease(clamp((x - SIM_GOAL_X) / 260)) : 0);
+        if (x === SIM_X0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // The goal marker.
+  const gm = life(t, T.twice + 0.1, T.player - 0.2);
+  if (gm.v > 0) {
+    ctx.save();
+    ctx.globalAlpha = gm.v;
+    ctx.strokeStyle = C.goal;
+    ctx.setLineDash([6, 8]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(SIM_GOAL_X, 300);
+    ctx.lineTo(SIM_GOAL_X, 860 * gm.v + 300 * (1 - gm.v));
+    ctx.stroke();
+    ctx.restore();
+    text(ctx, "the goal", SIM_GOAL_X + 14, 318, { t, t0: T.twice + 0.2, t1: T.player - 0.2, size: 24, weight: 700, family: TEXT, color: C.goal });
+  }
+  // Counter.
+  const n = Math.round(20000 * clamp(spring(t - T.sims - 0.15, 3.2, 1)));
+  const tw = T.twice - 0.15;
+  text(ctx, n.toLocaleString("en-US"), 120, 260, { t, t0: T.sims + 0.1, t1: tw, size: 200, weight: 900 });
+  text(ctx, "seasons played out after every goal.", 126, 322, { t, t0: T.sims + 0.35, t1: tw, size: 36, weight: 600, family: TEXT });
+  text(ctx, "In about 120 ms, in Rust.", 126, 370, { t, t0: T.sims + 0.6, t1: tw, size: 28, weight: 400, family: TEXT, color: C.soft });
+  // With and without.
+  const te = T.player - 0.25;
+  text(ctx, "Twice. With the goal and without it.", 120, 170, { t, t0: T.twice + 0.05, t1: te, size: 76, weight: 800 });
+  text(ctx, "Same random numbers in every simulated game, so the only difference is the goal.", 122, 216,
+    { t, t0: T.twice + 0.3, t1: te, size: 27, weight: 400, family: TEXT, color: C.soft });
+  const withP = MTL.after, withoutP = MTL.after - MTL.delta;
+  text(ctx, pct(withP, 2), 1590, 455, { t, t0: T.twice + 0.7, t1: te, size: 60, weight: 800, color: C.blue });
+  text(ctx, "with the goal", 1590, 487, { t, t0: T.twice + 0.75, t1: te, size: 22, weight: 600, family: TEXT, color: C.soft });
+  text(ctx, pct(withoutP, 2), 1590, 590, { t, t0: T.twice + 0.8, t1: te, size: 60, weight: 800, color: C.soft });
+  text(ctx, "without it", 1590, 622, { t, t0: T.twice + 0.85, t1: te, size: 22, weight: 600, family: TEXT, color: C.soft });
+  text(ctx, `${pp(MTL.delta, 2)} pp. Playoff Probability Added.`, 120, 960, { t, t0: T.twice + 1.1, t1: te, size: 54, weight: 800, color: C.blue });
+}
+
+// ---------------------------------------------------------------- scene: a player's season
+
+const SEASON0 = Date.parse("2025-10-01"), SEASON1 = Date.parse("2026-06-15");
+const PX = (date) => lerp(170, 1750, (Date.parse(date) - SEASON0) / (SEASON1 - SEASON0));
+function drawPlayer(ctx, t) {
+  if (t < T.player - 0.1 || t > T.team + 0.6) return;
+  const P = PQ.player;
+  const base = 760;
+  const out = T.team - 0.25;
+  const outK = ease(clamp((t - out) / 0.35));
+  const best = P.goals.reduce((a, b) => (b.magnitude > a.magnitude ? b : a));
+  ctx.save();
+  for (let i = 0; i < P.goals.length; i++) {
+    const g = P.goals[i];
+    const x = PX(g.date) + (i % 3) * 3;
+    const t0 = T.player + 0.3 + ((x - 170) / 1580) * 1.3;
+    const k = spring(t - t0, 15, 0.55) * (1 - outK);
+    if (k <= 0) continue;
+    const h = g.magnitude * 56 * k;
+    const isBest = g === best;
+    ctx.strokeStyle = isBest ? C.ink : C.blue;
+    ctx.globalAlpha = isBest ? 1 : 0.85;
+    ctx.lineWidth = isBest ? 4 : 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x, base);
+    ctx.lineTo(x, base - h);
+    ctx.stroke();
+    ctx.fillStyle = isBest ? C.ink : C.blue;
+    ctx.beginPath();
+    ctx.arc(x, base - h, isBest ? 6 : 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  const bx = PX(best.date);
+  text(ctx, `Oct 16 vs ${best.opponent}`, bx + 18, base - best.magnitude * 56 - 4, { t, t0: T.player + 1.0, t1: out, size: 24, weight: 700, family: TEXT });
+  text(ctx, `M ${best.magnitude.toFixed(1)}`, bx + 18, base - best.magnitude * 56 + 26, { t, t0: T.player + 1.05, t1: out, size: 24, weight: 400, family: TEXT, color: C.soft });
+  // Season axis labels.
+  const months = [["2025-10-01", "Oct"], ["2025-12-01", "Dec"], ["2026-02-01", "Feb"], ["2026-04-01", "Apr"], ["2026-06-01", "Jun"]];
+  for (const [d, m] of months) text(ctx, m, PX(d), base + 40, { t, t0: T.player + 0.3, t1: out, size: 22, weight: 600, family: TEXT, color: C.soft });
+  text(ctx, P.name, 120, 200, { t, t0: T.player + 0.05, t1: out, size: 120, weight: 900 });
+  text(ctx, "Montreal, 2025-26. Every goal, by how hard it shook the race.", 124, 250, { t, t0: T.player + 0.25, t1: out, size: 28, weight: 400, family: TEXT, color: C.soft });
+  const goals = Math.round(P.season.goals * clamp(spring(t - T.player - 0.4, 4, 1)));
+  const ppa = P.season.ppa * clamp(spring(t - T.player - 0.55, 4, 1));
+  text(ctx, String(goals), 1240, 200, { t, t0: T.player + 0.4, t1: out, size: 120, weight: 900, align: "right" });
+  text(ctx, "goals", 1240, 246, { t, t0: T.player + 0.45, t1: out, size: 26, weight: 600, family: TEXT, color: C.soft, align: "right" });
+  text(ctx, "+" + (ppa * 100).toFixed(1), 1680, 200, { t, t0: T.player + 0.55, t1: out, size: 120, weight: 900, align: "right", color: C.blue });
+  text(ctx, "pp of playoff odds added", 1680, 246, { t, t0: T.player + 0.6, t1: out, size: 26, weight: 600, family: TEXT, color: C.soft, align: "right" });
+}
+
+// ---------------------------------------------------------------- scene: the morphing panel
+
+// One shape, never cut: it grows out of the trace, then becomes a team page,
+// the season calendar, and the What-If Lab in turn.
+function panelRect(t) {
+  const x = track(t, [[0, 960], [T.team, 260], [T.nights, 210], [T.whatif, 460], [T.stats - 0.15, 960]], 11, 0.78);
+  const y = track(t, [[0, 1012], [T.team, 250], [T.nights, 280], [T.whatif, 230], [T.stats - 0.15, 1012]], 11, 0.78);
+  const w = track(t, [[0, 0], [T.team, 1400], [T.nights, 1500], [T.whatif, 1000], [T.stats - 0.15, 0]], 11, 0.78);
+  const h = track(t, [[0, 2], [T.team, 600], [T.nights, 540], [T.whatif, 640], [T.stats - 0.15, 2]], 11, 0.78);
+  const r = track(t, [[0, 1], [T.team, 28], [T.nights, 16], [T.whatif, 36], [T.stats - 0.15, 1]], 11, 0.78);
+  return { x, y, w, h, r };
+}
+function drawPanel(ctx, t) {
+  if (t < T.team - 0.05 || t > T.stats + 0.5) return;
+  const P = panelRect(t);
+  if (P.w < 2) return;
+  ctx.save();
+  roundRect(ctx, P.x, P.y, P.w, P.h, P.r);
+  ctx.fillStyle = C.land;
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 60;
+  ctx.shadowOffsetY = 24;
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = C.scratch;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.clip();
+  drawTeamPage(ctx, t, P);
+  drawNights(ctx, t, P);
+  drawWhatIf(ctx, t, P);
+  ctx.restore();
+  // Section label outside the panel.
+  const lbl = [["A page for every team", T.team + 0.15, T.nights - 0.15], ["Every night, replayable goal by goal", T.nights + 0.15, T.whatif - 0.15],
+    ["What-If Lab: pick results, rerun the season", T.whatif + 0.15, T.stats - 0.3]];
+  for (const [s, a, b] of lbl) text(ctx, s, SW / 2, 140, { t, t0: a, t1: b, size: 54, weight: 800, align: "center" });
+}
+
+function drawTeamPage(ctx, t, P) {
+  const a = T.team + 0.12, b = T.nights - 0.12;
+  const L = life(t, a, b);
+  if (L.v <= 0) return;
+  const M = PQ.mtl;
+  const cx = P.x + 250, cy = P.y + P.h / 2;
+  ctx.save();
+  ctx.globalAlpha = L.v;
+  const p = M.playoffs * clamp(spring(t - a - 0.1, 5, 0.9));
+  ctx.lineWidth = 26;
+  ctx.strokeStyle = C.scratch;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 170, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = C.ink;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 170, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+  ctx.stroke();
+  ctx.font = font(104, 900);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = C.ink;
+  ctx.fillText(pct(p), cx, cy + 4);
+  ctx.font = font(22, 600, TEXT);
+  ctx.fillStyle = C.soft;
+  ctx.fillText("playoff odds", cx, cy + 70);
+  ctx.fillStyle = "#AF1E2D";
+  ctx.fillRect(cx - 18, cy + 205, 36, 6);
+  ctx.restore();
+  const x0 = P.x + 520;
+  text(ctx, M.name, x0, P.y + 150, { t, t0: a + 0.05, t1: b, size: 96, weight: 900 });
+  const stats = [["Division title", pct(M.division)], ["Stanley Cup", pct(M.cup)], ["Projected points", String(Math.round(M.points))]];
+  stats.forEach(([k, v], i) => {
+    const sx = x0 + i * 270;
+    text(ctx, k, sx, P.y + 225, { t, t0: a + 0.15 + i * 0.06, t1: b, size: 22, weight: 600, family: TEXT, color: C.soft });
+    text(ctx, v, sx, P.y + 290, { t, t0: a + 0.18 + i * 0.06, t1: b, size: 64, weight: 800 });
+  });
+  // Odds over the season, as the team page draws it.
+  const hx0 = x0, hx1 = P.x + P.w - 80, hy = P.y + 470;
+  const hs = M.history;
+  const k = clamp((t - a - 0.25) / 0.8);
+  ctx.save();
+  ctx.globalAlpha = L.v;
+  ctx.strokeStyle = C.scratch;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(hx0, hy + 0.5);
+  ctx.lineTo(hx1, hy + 0.5);
+  ctx.stroke();
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  const n = Math.max(2, Math.floor(hs.length * ease(k)));
+  for (let i = 0; i < n; i++) {
+    const x = lerp(hx0, hx1, i / (hs.length - 1));
+    const y = hy - (hs[i] - 0.5) * 1100;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+  text(ctx, "50%", hx0, hy + 30, { t, t0: a + 0.3, t1: b, size: 20, weight: 600, family: TEXT, color: C.soft });
+}
+
+function drawNights(ctx, t, P) {
+  const a = T.nights + 0.12, b = T.whatif - 0.12;
+  const L = life(t, a, b);
+  if (L.v <= 0) return;
+  const N = PQ.nights;
+  const e = N.map((n) => Math.log10(1 + n.energy));
+  const emin = Math.min(...e), emax = Math.max(...e);
+  const d0 = Date.parse(N[0].date);
+  const day0 = new Date(d0).getUTCDay();
+  const cell = 30, gap = 6;
+  const cols = 37;
+  const gx = P.x + (P.w - cols * (cell + gap)) / 2, gy = P.y + 120;
+  ctx.save();
+  ctx.globalAlpha = L.v;
+  const monthsAt = new Map();
+  N.forEach((n, i) => {
+    const dd = Math.round((Date.parse(n.date) - d0) / 86400000) + day0;
+    const col = Math.floor(dd / 7), row = dd % 7;
+    if (col >= cols) return;
+    const x = gx + col * (cell + gap), y = gy + row * (cell + gap);
+    if (!monthsAt.has(n.date.slice(0, 7))) monthsAt.set(n.date.slice(0, 7), x);
+    const k = clamp((t - a - col * 0.018) / 0.25);
+    if (k <= 0) return;
+    const v = (e[i] - emin) / (emax - emin);
+    const s = cell * easeOut(k);
+    ctx.fillStyle = v > 0.82 ? mix(C.scratch, C.goal, (v - 0.55) / 0.45) : mix(C.scratch, C.ink, v * 0.9);
+    roundRect(ctx, x + (cell - s) / 2, y + (cell - s) / 2, s, s, 5);
+    ctx.fill();
+  });
+  ctx.restore();
+  const names = { "2025-10": "Oct", "2025-11": "Nov", "2025-12": "Dec", "2026-01": "Jan", "2026-02": "Feb", "2026-03": "Mar", "2026-04": "Apr", "2026-05": "May", "2026-06": "Jun" };
+  for (const [m, x] of monthsAt) text(ctx, names[m] || "", x, gy - 24, { t, t0: a + 0.1, t1: b, size: 22, weight: 600, family: TEXT, color: C.soft });
+  text(ctx, `${N.length} nights of 2025-26. The brighter the square, the harder the night shook the race.`, gx, gy + 7 * (cell + gap) + 52,
+    { t, t0: a + 0.3, t1: b, size: 24, weight: 400, family: TEXT, color: C.soft });
+}
+function drawWhatIf(ctx, t, P) {
+  const a = T.whatif + 0.12, b = T.stats - 0.3;
+  const L = life(t, a, b);
+  if (L.v <= 0) return;
+  const rows = PQ.picks;
+  const x0 = P.x + 70, w = P.w - 140;
+  // The cursor picks Montreal in each game, one per beat.
+  const clicks = rows.map((_, i) => a + 0.35 + i * BEAT * 0.9);
+  text(ctx, "Montreal's next three games", x0, P.y + 86, { t, t0: a, t1: b, size: 40, weight: 800 });
+  rows.forEach((g, i) => {
+    const y = P.y + 140 + i * 120;
+    const mtlHome = g.home === "MTL";
+    const pMtl = mtlHome ? g.homeWin : 1 - g.homeWin;
+    const picked = spring(t - clicks[i] - 0.05, 16, 0.7);
+    const rl = life(t, a + 0.08 + i * 0.06, b);
+    ctx.save();
+    ctx.globalAlpha = rl.v;
+    ctx.translate(0, 20 * (1 - Math.min(rl.i, 1)));
+    roundRect(ctx, x0, y, w, 92, 14);
+    ctx.fillStyle = C.ice;
+    ctx.fill();
+    // Two team buttons.
+    const bw = 180, by = y + 16;
+    const teamsRow = [g.away, g.home];
+    teamsRow.forEach((ab, j) => {
+      const bx = x0 + 24 + j * (bw + 70);
+      const isMtl = ab === "MTL";
+      roundRect(ctx, bx, by, bw, 60, 10);
+      ctx.fillStyle = isMtl ? mix(C.land, C.blue, clamp(picked) * 0.9) : C.land;
+      ctx.fill();
+      ctx.strokeStyle = isMtl && picked > 0.5 ? C.blue : C.scratch;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.font = font(36, 800);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = C.ink;
+      ctx.fillText(ab, bx + bw / 2, by + 32);
+    });
+    ctx.font = font(22, 600, TEXT);
+    ctx.fillStyle = C.soft;
+    ctx.textAlign = "center";
+    ctx.fillText("at", x0 + 24 + bw + 35, by + 32);
+    ctx.textAlign = "right";
+    ctx.fillText(new Date(g.date + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }), x0 + w - 230, by + 32);
+    ctx.font = font(40, 800);
+    ctx.fillStyle = C.ink;
+    ctx.fillText(pct(pMtl, 0), x0 + w - 30, by + 26);
+    ctx.font = font(18, 600, TEXT);
+    ctx.fillStyle = C.soft;
+    ctx.fillText("MTL win chance", x0 + w - 30, by + 54);
+    ctx.restore();
+  });
+  // Rerun spinner after the third pick.
+  const rr = life(t, clicks[2] + 0.35, b);
+  if (rr.v > 0) {
+    const y = P.y + P.h - 70;
+    ctx.save();
+    ctx.globalAlpha = rr.v;
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    const sp = (t - clicks[2]) * 9;
+    ctx.beginPath();
+    ctx.arc(x0 + 18, y, 14, sp, sp + 4.2);
+    ctx.stroke();
+    ctx.restore();
+    text(ctx, "Rerunning 20,000 seasons in your browser, in WebAssembly", x0 + 50, y + 9, { t, t0: clicks[2] + 0.4, t1: b, size: 26, weight: 600, family: TEXT });
+  }
+  drawCursor(ctx, t, P, clicks, a, b);
+}
+function drawCursor(ctx, t, P, clicks, a, b) {
+  const L = life(t, a + 0.1, b);
+  if (L.v <= 0) return;
+  const x0 = P.x + 70;
+  const target = (i) => [x0 + 24 + (PQ.picks[i].home === "MTL" ? 250 : 0) + 120, P.y + 140 + i * 120 + 56];
+  const keys = [[0, P.x + P.w + 60], ...clicks.map((c, i) => [c - 0.28, target(i)[0]])];
+  const keysY = [[0, P.y + P.h + 40], ...clicks.map((c, i) => [c - 0.28, target(i)[1]])];
+  let x = track(t, keys, 14, 0.85), y = track(t, keysY, 14, 0.85);
+  const press = clicks.reduce((m, c) => Math.max(m, Math.exp(-Math.pow((t - c) / 0.07, 2))), 0);
+  ctx.save();
+  ctx.globalAlpha = L.v;
+  ctx.translate(x, y);
+  ctx.scale(1 - press * 0.15, 1 - press * 0.15);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, 36);
+  ctx.lineTo(9, 28);
+  ctx.lineTo(16, 43);
+  ctx.lineTo(22, 40);
+  ctx.lineTo(15, 26);
+  ctx.lineTo(27, 26);
+  ctx.closePath();
+  ctx.fillStyle = "#fff";
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = C.deep;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+  // Click ripple.
+  clicks.forEach((c) => {
+    const k = t - c;
+    if (k < 0 || k > 0.5) return;
+    const [cx, cy] = [track(c, keys, 14, 0.85), track(c, keysY, 14, 0.85)];
+    ctx.save();
+    ctx.globalAlpha = (1 - k / 0.5) * L.v;
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 8 + 40 * easeOut(k / 0.5), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+// ---------------------------------------------------------------- scene: proof
+
+const STATS = [
+  ["0.755", "Expected-goals AUC, on a season the model never saw"],
+  ["59.4%", "of games picked right, using only what was known that morning"],
+  ["9 of 9", "seasons of official NHL standings reproduced exactly"],
+  ["120 ms", "to play out the rest of the season 20,000 times"],
+];
+function drawStats(ctx, t) {
+  if (t < T.stats - 0.1 || t > T.logo + 0.5) return;
+  STATS.forEach(([big, small], i) => {
+    const a = T.stats + i * 1.0, b = a + 0.82;
+    text(ctx, big, SW / 2, 560, { t, t0: a, t1: b, size: 300, weight: 900, align: "center", rise: 50, blur: 16, w: 16 });
+    text(ctx, small, SW / 2, 860, { t, t0: a + 0.08, t1: b, size: 38, weight: 600, family: TEXT, color: C.soft, align: "center" });
+  });
+}
+
+// ---------------------------------------------------------------- scene: logo
+
+function drawLogo(ctx, t) {
+  if (t < T.logo - 0.1) return;
+  const end = T.loop;
+  // Wordmark lands with the hit, shaken by its own tremor.
+  const sh = shake(t, T.logo, 12, 0.4);
+  ctx.save();
+  ctx.translate(sh[0], sh[1]);
+  text(ctx, "Puckquake", SW / 2, 560, { t, t0: T.logo, t1: end, size: 280, weight: 900, align: "center", rise: 40, blur: 22, w: 15 });
+  ctx.restore();
+  text(ctx, "Every goal in the NHL is an earthquake.", SW / 2, 820, { t, t0: T.logo + 0.6, t1: end, size: 44, weight: 600, family: TEXT, align: "center" });
+  text(ctx, "Puckquake shows how far it travels.", SW / 2, 878, { t, t0: T.logo + 1.0, t1: end, size: 44, weight: 600, family: TEXT, color: C.soft, align: "center" });
+}
+
+// ---------------------------------------------------------------- frame
+
+function background(ctx, t) {
+  ctx.fillStyle = C.ice;
+  ctx.fillRect(0, 0, SW, SH);
+  // A soft pool of arena light that drifts toward whatever is happening.
+  const lx = track(t, [[0, 960], [T.mapIn, MTL.x], [T.bars, 960], [T.player, 700], [T.team, 960]], 3, 1);
+  const g = ctx.createRadialGradient(lx, 420, 0, lx, 420, 1300);
+  g.addColorStop(0, "rgba(40,66,88,0.55)");
+  g.addColorStop(1, "rgba(13,24,34,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, SW, SH);
+  ctx.strokeStyle = "rgba(227,235,240,0.022)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke(SCRATCHES);
+}
+
+function draw(ctx, t) {
+  t = ((t % DURATION) + DURATION) % DURATION;
+  ctx.save();
+  background(ctx, t);
+  const sh = shake(t, T.goal, 16, 0.45);
+  ctx.translate(sh[0], sh[1]);
+  drawLamp(ctx, t);
+  drawMap(ctx, t);
+  drawBars(ctx, t);
+  drawSims(ctx, t);
+  drawPlayer(ctx, t);
+  drawPanel(ctx, t);
+  drawTrace(ctx, t);
+  drawScoreboard(ctx, t);
+  drawOneGoal(ctx, t);
+  drawStats(ctx, t);
+  drawLogo(ctx, t);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- output
+
+const out = document.getElementById("out");
+out.width = OUT_W;
+out.height = OUT_H;
+const octx = out.getContext("2d");
+const work = document.createElement("canvas");
+work.width = OUT_W;
+work.height = OUT_H;
+const wctx = work.getContext("2d");
+
+// The stage is fit inside the output and centered (for square or tall cuts).
+function stageTransform(ctx) {
+  const s = Math.max(OUT_W / SW, OUT_H / SH) * (+(params.get("zoom")) || 1) ;
+  const fit = Math.min(OUT_W / SW, OUT_H / SH);
+  const k = params.get("fit") === "cover" ? s : fit;
+  ctx.setTransform(k, 0, 0, k, (OUT_W - SW * k) / 2, (OUT_H - SH * k) / 2);
+}
+
+// Film grain, fixed tiles picked by frame, to keep gradients from banding.
+const GRAIN = Array.from({ length: 6 }, (_, n) => {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d");
+  const img = g.createImageData(256, 256);
+  for (let i = 0; i < 256 * 256; i++) {
+    const v = Math.floor(hash(i * 1.618 + n * 7919) * 255);
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+});
+
+/** Render the frame at time t, averaging subframes across the shutter for motion blur. */
+window.renderFrame = function (t, fps = 60, sub = 6, shutter = 0.5) {
+  for (let i = 0; i < sub; i++) {
+    const ts = t + ((i + 0.5) / sub - 0.5) * (shutter / fps);
+    wctx.setTransform(1, 0, 0, 1, 0, 0);
+    wctx.fillStyle = C.ice;
+    wctx.fillRect(0, 0, OUT_W, OUT_H);
+    stageTransform(wctx);
+    draw(wctx, ts);
+    octx.globalAlpha = 1 / (i + 1);
+    octx.drawImage(work, 0, 0);
+  }
+  octx.globalAlpha = 1;
+  // Vignette and grain on the finished frame.
+  const v = octx.createRadialGradient(OUT_W / 2, OUT_H / 2, Math.min(OUT_W, OUT_H) * 0.35, OUT_W / 2, OUT_H / 2, Math.hypot(OUT_W, OUT_H) * 0.62);
+  v.addColorStop(0, "rgba(4,8,12,0)");
+  v.addColorStop(1, "rgba(4,8,12,0.55)");
+  octx.fillStyle = v;
+  octx.fillRect(0, 0, OUT_W, OUT_H);
+  const tile = GRAIN[Math.floor(t * fps) % GRAIN.length];
+  octx.save();
+  octx.globalAlpha = 0.045;
+  octx.globalCompositeOperation = "overlay";
+  octx.fillStyle = octx.createPattern(tile, "repeat");
+  octx.fillRect(0, 0, OUT_W, OUT_H);
+  octx.restore();
+};
+window.DURATION = DURATION;
+window.BEAT = BEAT;
+
+window.ready = (async () => {
+  const faces = ["600", "700", "800", "900"].map((w) => `${w} 40px ${DISPLAY}`)
+    .concat(["400", "600", "700"].map((w) => `${w} 40px ${TEXT}`));
+  await Promise.all(faces.map((f) => document.fonts.load(f)));
+  await document.fonts.ready;
+  if (!params.has("still")) {
+    // Preview: play in real time.
+    const t0 = performance.now() - (+(params.get("t")) || 0) * 1000;
+    const loop = () => { renderFrame((performance.now() - t0) / 1000, 60, 1); requestAnimationFrame(loop); };
+    if (!params.has("render")) loop();
+  }
+  return true;
+})();
+</script>
+</body>
+</html>

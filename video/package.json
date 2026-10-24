@@ -1,0 +1,16 @@
+{
+  "name": "puckquake-demo-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare-data": "node prepare.mjs",
+    "audio": "python3 audio.py",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@fontsource/big-shoulders-display": "5.1.0",
+    "@fontsource/overpass": "5.1.0",
+    "d3-geo": "3.1.1",
+    "topojson-client": "3.1.0"
+  }
+}

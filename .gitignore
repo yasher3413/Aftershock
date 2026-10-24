@@ -48,3 +48,6 @@ docs/media/raw/
 # Vercel CLI project link
 .vercel
 .superpowers/
+
+# Demo video renders
+video/out/
