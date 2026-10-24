@@ -72,7 +72,8 @@ function PipelineRail() {
 
 function Evidence({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <details className="mt-5 border-y border-ice-scratch">
+    // Only a top rule: the next section's heading draws the line beneath.
+    <details className="mt-5 border-t border-ice-scratch">
       <summary className="min-h-[44px] cursor-pointer py-3 text-[15px] font-semibold hover:text-ink-soft">
         {label}
       </summary>
