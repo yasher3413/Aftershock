@@ -104,6 +104,34 @@ export default function WhatIfPage() {
       { replace: true, preventScrollReset: true },
     );
   };
+  // A short share link (/what-if?id=...) names saved picks: swap them into the address.
+  const sharedId = params.get("id");
+  const [sharedMissing, setSharedMissing] = useState(false);
+  useEffect(() => {
+    if (!sharedId) return;
+    let live = true;
+    api<{ id: string; encoded: string }>(`/scenarios/${encodeURIComponent(sharedId)}`)
+      .then(
+        (r) => r.encoded,
+        () => null,
+      )
+      .then((encoded) => {
+        if (!live) return;
+        setSharedMissing(!encoded);
+        setParams(
+          (current) => {
+            const result = new URLSearchParams(current);
+            result.delete("id");
+            if (encoded) result.set("s", encoded);
+            return result;
+          },
+          { replace: true, preventScrollReset: true },
+        );
+      });
+    return () => {
+      live = false;
+    };
+  }, [sharedId, setParams]);
   const [team, setTeam] = useState("");
   const [range, setRange] = useState("7");
   const [highStakes, setHighStakes] = useState(false);
@@ -275,6 +303,11 @@ export default function WhatIfPage() {
               How to use it
             </Link>
           </p>
+          {sharedMissing && (
+            <p role="status" className="mt-2 text-[14px] font-semibold">
+              That shared scenario could not be found. Make your own below.
+            </p>
+          )}
         </div>
         <div className="text-right text-[13px] text-ink-soft" aria-live="polite">
           {updating
@@ -397,7 +430,9 @@ export default function WhatIfPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {pickCount > 0 && !updating && <ShareMenu card={shareCard} tweet={shareTweet} />}
+          {pickCount > 0 && !updating && (
+            <ShareMenu card={shareCard} tweet={shareTweet} encoded={encode(scenario)} />
+          )}
           {/* On wide screens the forecast sits beside the picks; on phones it is far below them. */}
           <button
             type="button"

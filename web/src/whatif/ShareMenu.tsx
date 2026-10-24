@@ -1,7 +1,32 @@
 import { useEffect, useRef, useState } from "react";
+import { api } from "../api/client";
 import { drawScenarioCard, type CardInput } from "./shareCard";
 
 type Status = "idle" | "working" | "copied" | "saved" | "error";
+
+// Short links already made this visit, by scenario.
+const saved = new Map<string, Promise<string>>();
+
+/** A short link to these picks (/what-if?id=...), or the full address if
+ * the server cannot save them. */
+function shortLink(encoded: string): Promise<string> {
+  let link = saved.get(encoded);
+  if (!link) {
+    link = api<{ id: string }>("/scenarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ encoded }),
+    }).then(
+      (r) => `${window.location.origin}/what-if?id=${r.id}`,
+      () => {
+        saved.delete(encoded);
+        return window.location.href;
+      },
+    );
+    saved.set(encoded, link);
+  }
+  return link;
+}
 
 /**
  * Share a What-If scenario: copy its link, share or save an image of it (the
@@ -11,15 +36,31 @@ type Status = "idle" | "working" | "copied" | "saved" | "error";
 export function ShareMenu({
   card,
   tweet,
+  encoded,
 }: {
   card: Omit<CardInput, "site">;
   /** Post text without the link; the link is added by X. */
   tweet: string;
+  /** The picks, as in the address's `s`. */
+  encoded: string;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const ref = useRef<HTMLDivElement>(null);
-  const url = window.location.href;
+  // The link is made when the menu opens, so it is usually ready by the time
+  // an option is chosen (browsers allow copying and pop-ups only right after
+  // a click).
+  const [link, setLink] = useState<{ encoded: string; url: string } | null>(null);
+  const url = link?.encoded === encoded ? link.url : null;
+
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void shortLink(encoded).then((u) => live && setLink({ encoded, url: u }));
+    return () => {
+      live = false;
+    };
+  }, [open, encoded]);
 
   useEffect(() => {
     if (!open) return;
@@ -69,7 +110,7 @@ export function ShareMenu({
             await navigator.share({
               files: [file],
               title: "My NHL what-if",
-              text: `${tweet} ${url}`,
+              text: `${tweet} ${url ?? (await shortLink(encoded))}`,
             });
             setStatus("idle");
           } catch {
@@ -95,7 +136,15 @@ export function ShareMenu({
       hint: "Opens these exact picks",
       run: async () => {
         try {
-          await navigator.clipboard.writeText(url);
+          if (url) await navigator.clipboard.writeText(url);
+          else if (typeof ClipboardItem !== "undefined")
+            // Safari keeps the click's permission to copy only this way.
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                "text/plain": shortLink(encoded).then((u) => new Blob([u], { type: "text/plain" })),
+              }),
+            ]);
+          else await navigator.clipboard.writeText(await shortLink(encoded));
           flash("copied");
         } catch {
           flash("error");
@@ -105,11 +154,24 @@ export function ShareMenu({
     {
       label: "Post to X",
       hint: "A ready-made post with your biggest swings",
-      run: () => {
-        const intent = new URL("https://x.com/intent/post");
-        intent.searchParams.set("text", tweet);
-        intent.searchParams.set("url", url);
-        window.open(intent, "_blank", "noopener");
+      run: async () => {
+        const intent = (u: string) => {
+          const x = new URL("https://x.com/intent/post");
+          x.searchParams.set("text", tweet);
+          x.searchParams.set("url", u);
+          return x.toString();
+        };
+        if (url) {
+          window.open(intent(url), "_blank", "noopener");
+          return;
+        }
+        // Open the tab during the click (later would be blocked), then fill it.
+        const tab = window.open("about:blank", "_blank");
+        const u = await shortLink(encoded);
+        if (tab) {
+          tab.opener = null;
+          tab.location.href = intent(u);
+        } else window.open(intent(u), "_blank", "noopener");
       },
     },
   ];
