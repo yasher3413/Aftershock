@@ -6,7 +6,7 @@ import { useClock } from "../live/clock";
 import { useMyTeam } from "../lib/myTeam";
 import { useDarkScheme, useReducedMotion } from "../lib/useMedia";
 import { announceTremor } from "../lib/announce";
-import { arrow, clock, pct, periodLabel, pp } from "../lib/format";
+import { arrow, liveClock, pct, pp } from "../lib/format";
 import { MapController, type MapLayout } from "./controller";
 import { TeamLogo } from "../components/TeamLogo";
 import type { GameSummary } from "../api/types.gen";
@@ -153,7 +153,13 @@ export function MapView() {
             const lat = v?.lat ?? home?.lat;
             const lon = v?.lon ?? home?.lon;
             if (lat == null || lon == null) return null;
-            const p = layout.place(lat, lon);
+            // At the home arena, pulse on the home team's circle, which the
+            // layout may have nudged off the arena's exact spot; a neutral
+            // site pulses where it really is.
+            const node = positions.find((n) => n.id === g.home);
+            const atHome = !v || !home || v.name === home.arena;
+            const p =
+              atHome && node ? { x: node.x, y: node.y, offMap: false } : layout.place(lat, lon);
             if (!p) return null;
             return (
               <div
@@ -175,14 +181,28 @@ export function MapView() {
           const o = odds[p.id];
           if (!t) return null;
           const g = gameByTeam[p.id];
+          const live = !!g && LIVE.has(g.state);
           const change = o && oddsStart[p.id] ? o.p_playoffs - oddsStart[p.id]!.p_playoffs : 0;
-          const label = `${t.name}. Playoff odds ${o ? pct(o.p_playoffs) : "unknown"}.${
+          const label = `${t.name}${live ? ", playing now" : ""}. Playoff odds ${o ? pct(o.p_playoffs) : "unknown"}.${
             change ? ` ${pp(change, 1, " percentage points")} today.` : ""
           }`;
           const size = p.r * 2;
           const targetSize = Math.max(24, size);
           return (
             <div key={p.id}>
+              {/* Both teams in a game on now get a red outline; the arena also pulses. */}
+              {live && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute rounded-full border-2 border-goal"
+                  style={{
+                    left: p.x - p.r - 4,
+                    top: p.y - p.r - 4,
+                    width: (p.r + 4) * 2,
+                    height: (p.r + 4) * 2,
+                  }}
+                />
+              )}
               <button
                 type="button"
                 aria-label={label}
@@ -246,7 +266,7 @@ export function MapView() {
                     <div className="mt-2 border-t border-ice-scratch pt-2 text-ink-soft">
                       {g.away} at {g.home}
                       {LIVE.has(g.state)
-                        ? `, ${g.away_score}-${g.home_score}, ${periodLabel(g.period, g.period_type)} ${clock(g.clock_seconds)}`
+                        ? `, ${g.away_score}-${g.home_score}, ${liveClock(g)}`
                         : g.state === "FUT" || g.state === "PRE"
                           ? `, ${new Date(g.start_utc).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
                           : `, final ${g.away_score}-${g.home_score}`}
