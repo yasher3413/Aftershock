@@ -9,6 +9,7 @@ import { MyTeamPicker } from "../panels/MyTeamPicker";
 import { ConnectionNote } from "../panels/ConnectionNote";
 import { PageLoading } from "../components/PageLoading";
 import { RecapCard } from "../panels/RecapCard";
+import { ComingUpTonight } from "../panels/ComingUp";
 import { useLiveBootstrap } from "../live/bootstrap";
 import { Tour } from "../tour/Tour";
 import { tourSeen, useTour } from "../tour/store";
@@ -178,6 +179,7 @@ export default function HomePage() {
             {loaded && (
               <div className="divide-y divide-ice-scratch">
                 <TonightPanel />
+                <ComingUpTonight />
                 <TremorFeed limit={6} />
                 <StandingsPanel />
                 <RecapCard />
@@ -232,6 +234,7 @@ export default function HomePage() {
             {loaded && tab === "Tonight" && (
               <>
                 <TonightPanel />
+                <ComingUpTonight />
                 <RecapCard />
               </>
             )}
