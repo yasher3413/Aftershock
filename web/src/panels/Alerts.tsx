@@ -20,7 +20,7 @@ export function Alerts({ team }: { team: string }) {
     typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
   const key = useQuery({
     queryKey: ["push-key"],
-    queryFn: () => api<{ key: string }>("/push/key"),
+    queryFn: () => api<{ key: string | null }>("/push/key"),
     retry: false,
     enabled: supported,
     staleTime: Infinity,
@@ -36,7 +36,8 @@ export function Alerts({ team }: { team: string }) {
     });
   }, [supported]);
 
-  if (!supported || !key.data) return null;
+  const serverKey = key.data?.key;
+  if (!supported || !serverKey) return null;
 
   const enable = async () => {
     setStatus("working");
@@ -51,7 +52,7 @@ export function Alerts({ team }: { team: string }) {
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: b64ToBytes(key.data.key),
+          applicationServerKey: b64ToBytes(serverKey),
         }));
       const json = sub.toJSON();
       await api("/push/subscribe", {

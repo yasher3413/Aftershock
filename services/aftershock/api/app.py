@@ -536,10 +536,10 @@ async def status(st: State, session: Db) -> S.StatusResponse:
 
 
 @router.get("/push/key")
-async def push_key(st: State) -> dict[str, str]:
-    if not st.settings.vapid_public_key:
-        raise HTTPException(404, "Push notifications are not configured on this server.")
-    return {"key": st.settings.vapid_public_key}
+async def push_key(st: State) -> dict[str, str | None]:
+    """The server's push key, or null when alerts are not set up (the team
+    page then hides them; a 404 would log an error on every visit)."""
+    return {"key": st.settings.vapid_public_key or None}
 
 
 @router.post("/push/subscribe", status_code=204)
