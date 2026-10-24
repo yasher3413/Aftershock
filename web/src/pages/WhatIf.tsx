@@ -381,7 +381,9 @@ export default function WhatIfPage() {
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">
         <section
           aria-label="Games"
-          className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-2"
+          id="scenario-games"
+          // Below the sticky summary bar, so its first rows are never hidden.
+          className="scroll-mt-28 lg:sticky lg:top-[5.75rem] lg:max-h-[calc(100dvh-6.75rem)] lg:overflow-y-auto lg:pr-2"
         >
           {/* Same header frame as the forecast's, so the two columns align. */}
           <div className="flex min-h-[56px] flex-wrap items-end border-b-2 border-ink pb-3">
