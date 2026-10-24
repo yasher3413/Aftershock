@@ -15,10 +15,47 @@ type Hit = { kind: "team" | "player"; to: string; label: string; team: string; d
 const BOARDS: LeadersResponse["kind"][] = ["skater", "assist", "goalie", "plus_minus"];
 
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const WORDS = /[\s.'-]+/;
+
+// What fans actually type for each team, beyond its name and code.
+const NICKNAMES: Record<string, string> = {
+  ANA: "ducks",
+  BOS: "bs bruins",
+  BUF: "sabres",
+  CAR: "canes",
+  CBJ: "jackets cbj",
+  CGY: "flames",
+  CHI: "hawks",
+  COL: "avs",
+  DAL: "stars",
+  DET: "wings",
+  EDM: "oilers",
+  FLA: "cats panthers",
+  LAK: "kings",
+  MIN: "wild",
+  MTL: "habs",
+  NJD: "devils",
+  NSH: "preds",
+  NYI: "isles",
+  NYR: "blueshirts",
+  OTT: "sens",
+  PHI: "flyers",
+  PIT: "pens",
+  SEA: "kraken",
+  SJS: "sharks",
+  STL: "blues",
+  TBL: "bolts",
+  TOR: "leafs buds",
+  UTA: "mammoth",
+  VAN: "nucks",
+  VGK: "knights",
+  WPG: "jets",
+  WSH: "caps",
+};
 
 /** Every word of the query starts some word of the text. Lower is a better match. */
 function score(query: string[], text: string, exact?: string): number | null {
-  const words = fold(text).split(/[\s.'-]+/);
+  const words = fold(text).split(WORDS);
   if (exact && query.length === 1 && query[0] === fold(exact)) return 0;
   if (!query.every((q) => words.some((w) => w.startsWith(q)))) return null;
   return fold(text).startsWith(query.join(" ")) ? 1 : 2;
@@ -58,9 +95,12 @@ function Results({ query, onPick }: { query: string; onPick: (to: string) => voi
     },
   });
 
-  const q = fold(query.trim()).split(/\s+/).filter(Boolean);
+  // Split the query the way names are split, so "st. louis" matches "St. Louis".
+  const q = fold(query.trim()).split(WORDS).filter(Boolean);
   const teams = TEAMS.flatMap((t) => {
-    const s = q.length ? score(q, `${t.name} ${t.abbrev}`, t.abbrev) : null;
+    const s = q.length
+      ? score(q, `${t.name} ${t.abbrev} ${NICKNAMES[t.abbrev] ?? ""}`, t.abbrev)
+      : null;
     const hit: Hit = {
       kind: "team",
       to: `/team/${t.abbrev}`,
