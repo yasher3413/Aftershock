@@ -36,7 +36,7 @@ from aftershock.live import persist as P
 from aftershock.live.engine import OddsSnapshot, SeasonEngine
 from aftershock.live.source import ReplayGame
 from aftershock.live.state import odds_list
-from aftershock.ml.strength import RatingEngine, records_from_table
+from aftershock.ml.strength import RatingEngine, load_point_totals, records_from_table
 from aftershock.ml.strength_fit import load_params
 from aftershock.ml.wp import WinProbModel
 from aftershock.ml.xg import XgModel
@@ -174,7 +174,7 @@ class SeasonPrecompute:
         nights = sorted({g.night_date for g in games})
         rows = sorted(all_game_rows(self.s), key=lambda r: (r["start_utc"], r["game_id"]))
         records = records_from_table(rows)
-        engine = RatingEngine(params=self.params)
+        engine = RatingEngine(params=self.params, market=load_point_totals())
         cursor = 0
         n = schedule.n
         inputs = SimInputs(

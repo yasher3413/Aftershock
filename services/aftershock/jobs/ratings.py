@@ -27,6 +27,7 @@ from aftershock.ml.strength import (
     Pregame,
     RatingEngine,
     StrengthParams,
+    load_point_totals,
     records_from_table,
 )
 from aftershock.ml.strength_fit import MODEL_VERSION, load_params
@@ -90,7 +91,7 @@ def replay(
     rows: list[dict[str, Any]], params: StrengthParams
 ) -> tuple[RatingEngine, list[dict[str, Any]], list[dict[str, Any]]]:
     """(final engine, pregame rows, rating snapshots)."""
-    engine = RatingEngine(params=params)
+    engine = RatingEngine(params=params, market=load_point_totals())
     pregames: list[dict[str, Any]] = []
     snaps: list[dict[str, Any]] = []
     games = records_from_table(rows)

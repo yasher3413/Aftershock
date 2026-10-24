@@ -44,6 +44,12 @@ TEST_SEASONS = (20212022, 20222023, 20232024, 20242025, 20252026)
 # 0.6626 on the test seasons). Without it, a team's October odds lean almost
 # entirely on last season.
 SEASON_REGRESS = 0.30
+# How far each team's points pace moves toward its preseason betting point
+# total at the start of a season (config/market/point_totals.json). Chosen
+# on 2016-19 by early-season game log loss (0.5 best); on 2021-26 it cut
+# that log loss from 1.0436 to 1.0419, and early playoff-odds Brier was
+# better in 5 of 8 seasons and about 1% better on average.
+MARKET_WEIGHT = 0.5
 
 GRID: dict[str, list[float]] = {
     "blend_w": [0.2, 0.35, 0.5, 0.65, 0.8],
@@ -219,7 +225,7 @@ def fit(settings: Settings | None = None) -> dict[str, Any]:
     tuned = tune(bt_games, tuned, rounds=1)
     # Game-by-game log loss is indifferent to the new-season fade (it picks
     # 0), but season playoff odds are not: see SEASON_REGRESS.
-    tuned = replace(tuned, regress=SEASON_REGRESS)
+    tuned = replace(tuned, regress=SEASON_REGRESS, market_weight=MARKET_WEIGHT)
     tuned = calibrate_tie(bt_games, tuned, rates["p_beyond_reg"])
 
     test = evaluate(bt_games, tuned, TEST_SEASONS)

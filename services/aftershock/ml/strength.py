@@ -18,10 +18,12 @@ rates (section 8.2 of the design brief).
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date
+from functools import lru_cache
 from typing import Any
 
 import numpy as np
@@ -46,6 +48,7 @@ class StrengthParams:
     league_goals: float = 2.95  # regulation goals per team per game (prior)
     league_alpha: float = 0.002  # learning rate of the league average
     smooth: float = 1.0  # additive smoothing in the performance ratio
+    market_weight: float = 0.0  # pull toward preseason betting point totals (see market prior)
 
     def to_dict(self) -> dict[str, float]:
         return asdict(self)
@@ -120,6 +123,8 @@ class RatingEngine:
     ratings: dict[str, TeamRating] = field(default_factory=dict)
     league_goals: float = 0.0
     season: int | None = None
+    # Preseason sportsbook point totals by season, {season: {team: points}}.
+    market: dict[int, dict[str, float]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.league_goals == 0.0:
@@ -143,6 +148,50 @@ class RatingEngine:
             r.defense *= keep
             r.last_game = None
         self.season = season
+        self._market_prior(season)
+
+    def points_per_game(self, team: str) -> float:
+        """Expected standings points per game against an average opponent,
+        half at home and half away."""
+        avg = "__avg__"
+        self.ratings[avg] = TeamRating()
+        total = 0.0
+        for home, away, at_home in ((team, avg, True), (avg, team, False)):
+            p = self.predict(home, away, None).p
+            win = sum(p[0:3]) if at_home else sum(p[3:6])
+            otl = p[4] + p[5] if at_home else p[1] + p[2]
+            total += 2 * win + otl
+        del self.ratings[avg]
+        return total / 2
+
+    def _market_prior(self, season: int) -> None:
+        """Move each team's points pace part of the way to its preseason betting
+        line, read relative to the league's average line. The season's games
+        then wash it out like any other part of the rating. Teams with no
+        rating yet (expansion clubs) are left alone."""
+        lines = self.market.get(season)
+        w = self.params.market_weight
+        if not lines or w <= 0:
+            return
+        mean_line = sum(lines.values()) / len(lines)
+        model = {t: self.points_per_game(t) for t in lines if t in self.ratings}
+        if not model:
+            return
+        mean_model = sum(model.values()) / len(model)
+        for t, pace in model.items():
+            target = (1 - w) * pace + w * (mean_model + (lines[t] - mean_line) / 82)
+            r = self.ratings[t]
+            off0, def0 = r.off, r.defense
+            lo, hi = -1.0, 1.0
+            for _ in range(30):  # bisection on an even shift of offense and defense
+                x = (lo + hi) / 2
+                r.off, r.defense = off0 + x / 2, def0 - x / 2
+                if self.points_per_game(t) < target:
+                    lo = x
+                else:
+                    hi = x
+            x = (lo + hi) / 2
+            r.off, r.defense = off0 + x / 2, def0 - x / 2
 
     def _b2b(self, r: TeamRating, day: date) -> bool:
         return r.last_game is not None and (day - r.last_game).days == 1
@@ -280,7 +329,7 @@ def run_history(
     games: list[GameRecord], params: StrengthParams
 ) -> Iterator[tuple[AsOfPrediction, RatingEngine]]:
     """Predict every game with as-of ratings, then update. Yields in order."""
-    engine = RatingEngine(params=params)
+    engine = RatingEngine(params=params, market=load_point_totals())
     for g in games:
         engine.start_season(g.season)
         pre = engine.predict(g.home, g.away, g.day, playoff=g.game_type == 3)
@@ -299,3 +348,15 @@ def run_history(
 
 def with_params(params: StrengthParams, **changes: float) -> StrengthParams:
     return replace(params, **changes)
+
+
+@lru_cache(maxsize=1)
+def load_point_totals() -> dict[int, dict[str, float]]:
+    """Preseason sportsbook point totals from config/market/point_totals.json."""
+    from aftershock.config import REPO_ROOT
+
+    path = REPO_ROOT / "config" / "market" / "point_totals.json"
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text())
+    return {int(k): {t: float(v) for t, v in teams.items()} for k, teams in data["seasons"].items()}

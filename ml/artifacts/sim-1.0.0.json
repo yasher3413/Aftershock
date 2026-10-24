@@ -1,8 +1,8 @@
 {
   "ramp_fraction": 0.15,
-  "shrink_mid": 1.0,
-  "shrink_start": 0.7,
-  "team_sigma": 0.1,
+  "shrink_mid": 0.7,
+  "shrink_start": 0.6,
+  "team_sigma": 0.0,
   "tuned_on": [
     20162017,
     20172018,

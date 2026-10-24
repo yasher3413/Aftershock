@@ -28,7 +28,12 @@ from sklearn.linear_model import LogisticRegression
 from aftershock.config import REPO_ROOT, Settings, get_settings
 from aftershock.ml import metrics
 from aftershock.ml.games_table import load_games_table
-from aftershock.ml.strength import RatingEngine, StrengthParams, records_from_table
+from aftershock.ml.strength import (
+    RatingEngine,
+    StrengthParams,
+    load_point_totals,
+    records_from_table,
+)
 from aftershock.ml.strength_fit import load_params
 from aftershock.ml.xg import BACKTEST_VERSION
 from aftershock.sim.inputs import END_CODES, config_name, playoff_matrix
@@ -71,7 +76,7 @@ def build_checkpoints(
     games = records_from_table(load_games_table(BACKTEST_VERSION, settings).iter_rows(named=True))
     wanted = sorted((s, d) for s in seasons for d in checkpoints(s))
     out: list[Checkpoint] = []
-    engine = RatingEngine(params=params)
+    engine = RatingEngine(params=params, market=load_point_totals())
     pts: dict[tuple[int, str], list[int]] = {}
     i = 0
     for season, day in wanted:
