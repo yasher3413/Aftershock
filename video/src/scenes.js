@@ -244,15 +244,27 @@ export function drawRankLabels(ctx, t, project) {
   label(ctx, "20,000 seasons simulated after every goal, in about 120 ms.", 960, 1000, { t, t0: T.rank + 1.2, t1: out, size: 24, weight: 600, align: "center" });
 }
 
-// ---------------------------------------------------------------- the wordmark
+// ---------------------------------------------------------------- the finale
 
-export function drawWordmark(ctx, t) {
-  if (t < T.word - 0.2) return;
-  const sh = shake(t, T.word, 10, 0.4);
+/** Under the name the shockwave engraved: the line, and where to find it. */
+export function drawFinale(ctx, t) {
+  if (t < T.tagline - 0.2) return;
+  mask(ctx, "Every goal in the NHL is an earthquake.", 960, 790, { t, t0: T.tagline, size: 54, weight: 800, align: "center" });
+  const u = life(t, T.url, Infinity, 0.6);
+  if (u.v <= 0) return;
   ctx.save();
-  ctx.translate(sh[0], sh[1]);
-  mask(ctx, "Puckquake", 960, 560, { t, t0: T.word, size: 250, weight: 900, align: "center", inDur: 0.8 });
+  ctx.globalAlpha = u.v;
+  ctx.font = font(34, 700, TEXT);
+  ctx.textAlign = "center";
+  const w = ctx.measureText("puckquake.com").width;
+  const y = 852 + 10 * (1 - u.i);
+  ctx.fillStyle = C.ink;
+  ctx.fillText("puckquake.com", 960 + 12, y);
+  ctx.fillStyle = C.goal;
+  ctx.shadowColor = C.goal;
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.arc(960 - w / 2 - 8, y - 11, 6, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
-  label(ctx, "Every goal in the NHL is an earthquake.", 960, 764, { t, t0: T.word + 0.7, size: 40, weight: 600, color: C.ink, align: "center" });
-  label(ctx, "Puckquake shows how far it travels.", 960, 816, { t, t0: T.word + 1.0, size: 40, weight: 600, align: "center" });
 }

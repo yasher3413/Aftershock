@@ -17,14 +17,17 @@ import numpy as np
 
 HERE = Path(__file__).parent
 SR = 48000
-DUR = 25.0
+DUR = 45.0
 BEAT = 0.5
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 
 # Timeline, from src/timeline.js.
 GOAL, CRANE, LIGHTS, QUAKE, WIDE = 2.0, 3.5, 3.75, 5.5, 9.0
-RANK, HOME, PRODUCT, PAYOFF, WORD = 11.0, 14.0, 15.0, 20.6, 21.4
+RANK, HOME, PRODUCT = 11.0, 14.0, 15.0
+CARD, PLAYER, TEAMP, WHATIF, NIGHTS = 20.6, 24.6, 28.6, 32.1, 36.1
+FINALE, ENGRAVE, TAGLINE, URL = 39.1, 39.9, 41.7, 42.4
+CLICKS = [WHATIF + 0.95 + i * BEAT * 1.4 for i in range(3)]
 NIGHT_T0, NIGHT_T1, TAU0, TAU1 = 15.4, 19.4, 7900, 9000
 SPEED = 3.6  # shockwave, world units per second
 
@@ -164,14 +167,19 @@ mtl = W(by["MTL"])
 pan_of = lambda tm: max(-0.85, min(0.85, (tm["x"] - 960) / 960))
 
 # Harmony: D minor under the open, B flat for the reveal, F for the ranking,
-# G minor under the product, and home to D with an added ninth at the end.
+# G minor under the product, a climb through the pages to A, and home to D.
 CHORDS = [
     (0.0, GOAL, ["D3", "A3", "F4"]),
     (GOAL, QUAKE, ["D3", "A3", "F4", "A4"]),
     (QUAKE, RANK, ["A#2", "F3", "D4"]),
     (RANK, HOME, ["F3", "C4", "A4"]),
-    (HOME, PAYOFF, ["G3", "A#3", "D4"]),
-    (WORD - 0.1, DUR, ["D3", "A3", "E4", "F4"]),
+    (HOME, CARD, ["G3", "A#3", "D4"]),
+    (CARD, PLAYER, ["A#2", "F3", "D4"]),
+    (PLAYER, TEAMP, ["F3", "C4", "A4"]),
+    (TEAMP, WHATIF, ["G3", "A#3", "D4"]),
+    (WHATIF, NIGHTS, ["A2", "E3", "C#4"]),
+    (NIGHTS, FINALE, ["A#2", "F3", "D4"]),
+    (ENGRAVE - 0.1, DUR, ["D3", "A3", "E4", "F4"]),
 ]
 for t0, t1, notes in CHORDS:
     add(pad([note(n) for n in notes], t1 - t0 + 1.4, 0.13 if t0 < GOAL else 0.2), t0 - 0.2)
@@ -213,15 +221,17 @@ for tm in teams:
     k = min(4, int(abs(d) * 100 / 0.15))
     add(ping(note((UP if d > 0 else DOWN)[k])), at, 0.1 + min(0.25, abs(d) * 4), pan_of(tm))
 
-# A restrained pulse from the quake to the payoff, resting for the wide shot.
-for tb in np.arange(QUAKE + 4 * BEAT, PAYOFF, BEAT):
+# A restrained pulse from the quake to the dive, resting for the wide shot
+# and the camera's climb, and lighter under the product pages.
+for tb in np.arange(QUAKE + 4 * BEAT, FINALE - 0.9, BEAT):
     if WIDE <= tb < RANK - 0.01 or HOME <= tb < PRODUCT:
         continue
-    add(kick(0.45), tb)
-    add(hat(), tb + BEAT / 2, 0.14, 0.25)
-for t0, t1, notes in CHORDS[2:5]:
+    soft = 0.7 if tb >= CARD else 1.0
+    add(kick(0.45 * soft), tb)
+    add(hat(), tb + BEAT / 2, 0.14 * soft, 0.25)
+for t0, t1, notes in CHORDS[2:10]:
     root = note(notes[0]) / 2
-    for tb in np.arange(max(t0, QUAKE + 2), min(t1, PAYOFF), BEAT / 2):
+    for tb in np.arange(max(t0, QUAKE + 2), min(t1, FINALE - 0.9), BEAT / 2):
         if WIDE <= tb < RANK:
             continue
         t = tvec(BEAT / 2)
@@ -248,14 +258,37 @@ for tr in data["night"]["tremors"]:
     add(boom(2.0), at, 0.75 * g)
     add(ping(note("A5") * (1 + tr["magnitude"] / 20), 0.6), at, 0.12 * g, pan_of(by[tr["home"]]))
 
-# The payoff: the room empties, then the wordmark lands on one resolved chord.
-add(whoosh(0.8, 0.75), WORD - 0.75, 0.6)
-add(boom(4.5), WORD, 1.1)
-add(kick(1.0), WORD)
-for n_, g in (("D2", 0.5), ("A3", 0.35), ("D4", 0.3), ("E4", 0.22), ("F#4", 0.0), ("F4", 0.25)):
-    if g:
-        t = tvec(DUR - WORD)
-        add(lowpass(saw(note(n_), t, 8, 1.6), 1800, 2) * env(t, 0.02, 2.6) * g * 0.5, WORD)
+# The product pages.
+card_t = tvec(0.12)
+add(highpass(rng.standard_normal(len(card_t)), 2500) * env(card_t, 0.001, 0.02) * 0.6, CARD + 0.05, 0.6)
+add(ping(note("D6"), 0.8), CARD + 0.2, 0.12)
+for i, g in enumerate(data["player"]["goals"]):
+    frac = (np.datetime64(g["date"]) - np.datetime64("2025-10-01")).astype(int) / 257
+    add(ping(note("A5") * (1 + g["magnitude"] / 14), 0.2), PLAYER + 0.7 + frac * 1.1, 0.025 + g["magnitude"] / 260, frac * 1.2 - 0.6)
+ring_t = tvec(1.6)
+add(np.sin(2 * np.pi * np.cumsum(note("D5") * (1 + 0.5 * np.minimum(1, ring_t / 1.2))) / SR) * env(ring_t, 0.3, 0.6) * 0.06, TEAMP + 0.45)
+for i, c in enumerate(CLICKS):
+    add(tick(), c, 0.55, 0.35)
+    add(ping(note(["D5", "F5", "A5"][i]), 0.6), c + 0.4, 0.16)
+add(whoosh(1.0, 0.9), NIGHTS - 0.8, 0.4)
+add(highpass(lowpass(rng.standard_normal(int(1.2 * SR)), 9000), 3000) * env(tvec(1.2), 0.5, 0.3) * 0.05, NIGHTS + 0.35)
+# The dive into October 16, and the ice.
+add(whoosh(1.2, 1.1), FINALE - 1.1, 0.9)
+add(boom(2.5), FINALE, 0.6)
+
+# The finale: the last wave crosses the ice and each letter rings as it is cut.
+add(boom(4.0), ENGRAVE, 1.1)
+add(kick(0.9), ENGRAVE)
+for i in range(9):
+    x = -4.5 + i * 9 / 8
+    at = ENGRAVE + (x + 6.9) / SPEED
+    add(glass(note(["D5", "E5", "F5", "A5", "D6", "E6", "F6", "A6", "D7"][i]), 0.9), at, 0.07, x / 6)
+# The tagline lands on one resolved chord; puckquake.com on a last tick.
+for n_, g in (("D2", 0.5), ("A3", 0.35), ("D4", 0.3), ("E4", 0.22), ("F4", 0.25)):
+    t = tvec(DUR - TAGLINE)
+    add(lowpass(saw(note(n_), t, 8, 1.6), 1800, 2) * env(t, 0.05, 2.8) * g * 0.5, TAGLINE)
+add(tick(), URL, 0.5)
+add(ping(note("D6"), 1.2), URL, 0.1)
 
 # ---------------------------------------------------------------- master
 

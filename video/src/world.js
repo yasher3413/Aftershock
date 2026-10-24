@@ -69,12 +69,35 @@ function makeMask() {
       g.stroke();
     }
   });
+  // The finale's engraving: the wordmark, and a seismograph line under it.
+  const word = layer((g) => {
+    g.fillStyle = "#fff";
+    g.strokeStyle = "#fff";
+    let size = 300;
+    g.font = `900 ${size}px "Big Shoulders Display"`;
+    size *= 940 / g.measureText("Puckquake").width;
+    g.font = `900 ${size}px "Big Shoulders Display"`;
+    g.textAlign = "center";
+    g.fillText("Puckquake", 960, 540 + size * 0.34);
+    g.lineWidth = 7;
+    g.lineJoin = "round";
+    g.beginPath();
+    for (let x = 490; x <= 1430; x += 2) {
+      const k = (x - 1180) / 55;
+      const y = 540 + size * 0.34 + 74 - (k > 0 ? 46 * Math.exp(-k * 0.55) * Math.sin(k * 2.6) : 0);
+      if (x === 490) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.stroke();
+    g.beginPath();
+    g.arc(1430, 540 + size * 0.34 + 74, 11, 0, Math.PI * 2);
+    g.fill();
+  });
   const data = new Uint8Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
     data[i * 4] = land[i * 4];
     data[i * 4 + 1] = lines[i * 4];
     data[i * 4 + 2] = scratches[i * 4];
-    data[i * 4 + 3] = 255;
+    data[i * 4 + 3] = word[i * 4];
   }
   const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
   tex.flipY = false; // row 0 is the north edge (z0)
@@ -152,6 +175,11 @@ const ICE_FRAG = /* glsl */ `
   varying vec3 vNormal;
   varying vec2 vUv;
   varying float vFront;
+  uniform float wordIn;
+  uniform float wordT0;
+  uniform vec2 wordOrigin;
+  uniform float time;
+  uniform vec4 wave;
 
   void main() {
     vec4 m = texture2D(mask, vUv);
@@ -176,6 +204,24 @@ const ICE_FRAG = /* glsl */ `
     col += env * fres * 0.4;
     vec3 H = normalize(L + V);
     col += pow(max(dot(N, H), 0.0), 260.0) * vec3(0.55, 0.66, 0.78) * 0.22;
+
+    // The engraving: cut into the ice, lit as the last shockwave passes.
+    if (wordIn > 0.0) {
+      vec2 px = vec2(1.6 / 3200.0, 1.6 / 2100.0);
+      float aL = texture2D(mask, vUv - vec2(px.x, 0.0)).a, aR = texture2D(mask, vUv + vec2(px.x, 0.0)).a;
+      float aU = texture2D(mask, vUv - vec2(0.0, px.y)).a, aD = texture2D(mask, vUv + vec2(0.0, px.y)).a;
+      vec2 grad = vec2(aR - aL, aD - aU);
+      float a = m.a * wordIn;
+      float r = distance(vPos.xz, wordOrigin);
+      float passed = (time - wordT0) * wave.x - r;
+      float lit = smoothstep(-0.05, 0.9, passed);
+      float flare = exp(-pow(passed / 0.35, 2.0));
+      vec3 Nb = normalize(vec3(-grad.x * 3.0, 1.0, -grad.y * 3.0));
+      float rim = clamp(dot(Nb, normalize(vec3(-0.5, 0.6, 0.6))), 0.0, 1.0);
+      col = mix(col, col * 0.45, a);                                  // the cut is darker ice
+      col += length(grad) * wordIn * (0.2 + 0.8 * lit) * vec3(0.75, 0.86, 1.0) * rim;   // its edges catch light
+      col += a * (0.2 * lit + 0.6 * flare) * vec3(0.72, 0.84, 1.0);  // and glow as the wave crosses
+    }
 
     // The shockwave front, and the flash at the origin.
     col += vec3(1.0, 0.29, 0.34) * vFront * 0.95;
@@ -266,6 +312,9 @@ export function createWorld(canvas, width, height) {
       plane: { value: new THREE.Vector4(PLANE.x0, PLANE.x1, PLANE.z0, PLANE.z1) },
       camPos: { value: new THREE.Vector3() },
       landIn: { value: 1 },
+      wordIn: { value: 0 },
+      wordT0: { value: 0 },
+      wordOrigin: { value: new THREE.Vector2() },
       flash: { value: 0 },
     },
     extensions: { derivatives: true },
@@ -374,7 +423,11 @@ export function createWorld(canvas, width, height) {
       else v.set(0, 0, 0, 0);
     });
     // The continent is etched into the ice as the camera leaves ice level.
-    ice.uniforms.landIn.value = smooth(clamp((t - T.crane + 0.05) / 1.5));
+    ice.uniforms.landIn.value = smooth(clamp((t - T.crane + 0.05) / 1.5)) * (1 - smooth(clamp((t - T.finale + 1.2) / 1.0)));
+    const fin = WAVES.find((w) => w.finale);
+    ice.uniforms.wordIn.value = smooth(clamp((t - T.finale + 0.6) / 0.8));
+    ice.uniforms.wordT0.value = fin.t0;
+    ice.uniforms.wordOrigin.value.set(fin.team.wx, fin.team.wz);
     const fk = t - T.quake;
     ice.uniforms.flash.value = fk > 0 ? Math.exp(-fk * 2.6) * 2.2 : 0;
     // The goal itself flashes the lamp at Montreal.

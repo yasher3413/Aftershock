@@ -1,0 +1,13 @@
+# Runs the What-If Lab's simulator natively, exactly as the page runs it in
+# WebAssembly, so the film's What-If numbers are real. See whatif.py.
+[package]
+name = "whatif"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+aftershock-wasm = { path = "../../crates/aftershock-wasm" }
+serde_json = "1"

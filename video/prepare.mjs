@@ -109,6 +109,8 @@ const data = {
     after: goal.score_after,
     magnitude: goal.magnitude,
     totalShift: goal.total_shift,
+    // The share card lists the first three deltas as stored.
+    cardDeltas: goal.deltas.slice(0, 3).map((d) => ({ team: d.team, d: d.d_playoffs })),
     ppa: goal.ppa,
     homeWinBefore: wpHome(goal.wp_before),
     homeWinAfter: wpHome(goal.wp_after),
@@ -127,12 +129,22 @@ const data = {
   },
   mtl: {
     name: team.team.name,
+    division: team.team.division,
+    conference: team.team.conference,
+    color: team.team.color_primary,
+    // Who to root for this week, as the team page lists it.
+    rooting: team.rooting
+      .filter((r) => !r.involves_team)
+      .slice(0, 4)
+      .map((r) => ({ home: r.home, away: r.away, start: r.start_utc, rootFor: r.root_for, impact: Math.abs(r.impact) })),
     playoffs: team.odds.p_playoffs,
-    division: team.odds.p_division,
+    pDivision: team.odds.p_division,
     cup: team.odds.p_cup,
     points: team.odds.exp_points,
     history: team.history.p_playoffs.map((h) => h.value),
   },
+  // The What-If Lab's own simulator, run natively by whatif.py.
+  whatif: JSON.parse(readFileSync(new URL("whatif-results.json", import.meta.url))),
   // Montreal's next three games in the What-If Lab, with the model's odds.
   picks: whatif.games
     .filter((g) => g.status === "future" && (g.home === "MTL" || g.away === "MTL"))

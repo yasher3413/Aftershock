@@ -3,8 +3,9 @@
 import { createWorld } from "./world.js";
 import { DURATION, BEAT, T } from "./timeline.js";
 import { clamp, smooth, hash } from "./motion.js";
-import { drawGoalTrace, drawColdOpen, drawLamp, drawQuakeLabels, drawRankLabels, drawWordmark } from "./scenes.js";
+import { drawGoalTrace, drawColdOpen, drawLamp, drawQuakeLabels, drawRankLabels, drawFinale } from "./scenes.js";
 import { drawProduct } from "./ui.js";
+import { drawFeatures } from "./features.js";
 
 const params = new URLSearchParams(location.search);
 const W = +(params.get("w") || 1920), H = +(params.get("h") || 1080);
@@ -13,15 +14,19 @@ out.width = W;
 out.height = H;
 const octx = out.getContext("2d");
 const gl = document.getElementById("gl");
-const world = createWorld(gl, W, H);
+let world = null; // created once the fonts load: the ice engraving needs them
 const work = document.createElement("canvas");
 work.width = W;
 work.height = H;
 const wctx = work.getContext("2d");
 const S = W / 1920; // the 2D layer is laid out at 1920x1080
 
-function frame(ctx, t, jx, jy) {
-  world.render(t, jx, jy);
+// During the product pages the world is dimmed and drifting slowly, so one
+// render per frame is enough; everywhere else every subframe is rendered.
+const reuseWorld = (t) => t > T.card + 0.8 && t < T.finale - 1.2;
+
+function frame(ctx, t, jx, jy, first) {
+  if (first || !reuseWorld(t)) world.render(t, jx, jy);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(gl, 0, 0);
   ctx.setTransform(S, 0, 0, S, jx * S * 0, 0);
@@ -29,19 +34,14 @@ function frame(ctx, t, jx, jy) {
     const p = world.project(x, y, z);
     return p && [p[0] / S, p[1] / S, p[2]];
   };
-  // Darkness returns for the wordmark.
-  const dark = smooth(clamp((t - T.payoff - 0.1) / 0.9));
-  if (dark > 0) {
-    ctx.fillStyle = `rgba(5,9,14,${dark})`;
-    ctx.fillRect(0, 0, 1920, 1080);
-  }
   drawLamp(ctx, t);
   drawGoalTrace(ctx, t, project);
   drawQuakeLabels(ctx, t, project);
   drawRankLabels(ctx, t, project);
   drawProduct(ctx, t, project);
+  drawFeatures(ctx, t);
   drawColdOpen(ctx, t);
-  drawWordmark(ctx, t);
+  drawFinale(ctx, t);
 }
 
 // Fixed grain tiles, picked by frame, keep the dark gradients from banding.
@@ -65,7 +65,7 @@ window.renderFrame = (t, fps = 60, sub = 4, shutter = 0.5) => {
   for (let i = 0; i < sub; i++) {
     const ts = t + ((i + 0.5) / sub - 0.5) * (shutter / fps);
     const jx = sub > 1 ? halton(i + 1, 2) - 0.5 : 0, jy = sub > 1 ? halton(i + 1, 3) - 0.5 : 0;
-    frame(wctx, ts, jx, jy);
+    frame(wctx, ts, jx, jy, i === 0);
     octx.globalAlpha = 1 / (i + 1);
     octx.drawImage(work, 0, 0);
   }
@@ -88,5 +88,6 @@ window.ready = (async () => {
   const faces = ["600", "700", "800", "900"].map((w) => `${w} 40px "Big Shoulders Display"`)
     .concat(["400", "600", "700"].map((w) => `${w} 40px "Overpass"`));
   await Promise.all(faces.map((f) => document.fonts.load(f)));
+  world = createWorld(gl, W, H);
   return true;
 })();

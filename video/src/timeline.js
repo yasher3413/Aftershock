@@ -3,7 +3,7 @@ import { track, trackVec, spring, clamp, lerp, smooth } from "./motion.js";
 
 export const PQ = window.PQ;
 export const BEAT = 0.5;
-export const DURATION = 25;
+export const DURATION = 45;
 
 // Cue times in seconds, on the 120 BPM grid.
 export const T = {
@@ -15,9 +15,16 @@ export const T = {
   rank: 11.0, // columns line up
   home: 14.0, // columns go home, camera rises
   product: 15.0, // the map is the app
-  payoff: 20.6, // the app falls away, the trace stays
-  word: 21.4,
-  end: 25.0,
+  card: 20.6, // Caufield's tremor row becomes his share card
+  player: 24.6, // his name becomes his player page
+  team: 28.6, // his team becomes its team page
+  whatif: 32.1, // its next games go into the What-If Lab
+  nights: 36.1, // every night, and the camera dives into October 16
+  finale: 39.1, // back on the ice
+  engrave: 39.9, // the last shockwave writes the name into the ice
+  tagline: 41.7,
+  url: 42.4,
+  end: 45.0,
 };
 
 // World: one unit is 100 px of the 1920x1080 map stage, Y is up.
@@ -61,6 +68,10 @@ export function camera(t) {
     [T.wide, [0.6, 9.2, 10.0]],
     [T.rank, [0.0, 2.2, 19.5]],
     [T.home, TOP.pos],
+    [T.card, [3.6, 7.2, 10.5]], // a slow drift behind the product pages
+    [T.whatif, [-3.4, 6.4, 10.0]],
+    [T.finale - 0.9, [0.0, 9.6, 10.6]],
+    [T.engrave, [0.0, 8.7, 9.7]],
   ], 2.4);
   const target = trackVec(t, [
     [0, [M[0] - 2.6, 0.76, M[1]]], // looking up 4 degrees puts the horizon low
@@ -69,8 +80,13 @@ export function camera(t) {
     [T.wide, [0.0, 0.0, 0.7]],
     [T.rank, [0.0, 2.3, ROW.z]],
     [T.home, TOP.target],
+    [T.card, [0.6, 0.0, 0.4]],
+    [T.whatif, [-0.6, 0.0, 0.2]],
+    [T.finale - 0.9, [0.0, 0.0, 1.05]],
+    [T.engrave, [0.0, 0.0, 1.0]],
   ], 2.4);
-  const fov = track(t, [[0, 30], [T.crane, 40], [T.wide, 40], [T.rank, 33], [T.home, TOP.fov]], 2.4);
+  const fov = track(t, [[0, 30], [T.crane, 40], [T.wide, 40], [T.rank, 33], [T.home, TOP.fov],
+    [T.card, 36], [T.finale - 0.9, 30]], 2.4);
   return { pos, target, fov };
 }
 
@@ -95,10 +111,11 @@ export function teamState(team, t) {
   const deltaH = team.delta * 100 * ROW.scale;
   const lit = smooth(clamp((t - lightsOn(team)) / 0.5));
   const sink = 1 - smooth(clamp((t - T.home - 0.5) / 0.6)); // columns retract for the product view
+  const gone = 1 - smooth(clamp((t - T.nights - 0.4) / 0.8)); // arenas dim before the finale
   return {
     hit: t - at,
     odds,
-    lit,
+    lit: lit * gone,
     away,
     x: lerp(team.wx, rowX(rank), away),
     z: lerp(team.wz, ROW.z, away),
@@ -131,6 +148,8 @@ export const WAVES = [
       scorerTeam: tr.team,
       tremor: tr,
     })),
+  // The last one crosses the empty ice and engraves the name.
+  { team: { wx: -6.9, wz: 0.25 }, t0: T.engrave, amp: 0.55, magnitude: 0, finale: true },
 ];
 
 /** The night's playoff odds for a team at game second tau (from the replay). */
@@ -149,6 +168,7 @@ export function pulse(team, t) {
   const idx = TEAMS.indexOf(team);
   let best = { k: 0, up: true };
   for (const w of WAVES) {
+    if (w.finale) continue;
     const at = w.t0 + Math.hypot(team.wx - w.team.wx, team.wz - w.team.wz) / WAVE.speed;
     const dt = t - at;
     if (dt < 0 || dt > 1.4) continue;
@@ -164,7 +184,7 @@ function nightOdds(team, t) {
   const idx = TEAMS.indexOf(team);
   let p = replayOdds(idx, NIGHT.tau0);
   for (const w of WAVES) {
-    if (w.hero) continue;
+    if (w.hero || w.finale) continue;
     if (t >= w.t0 + Math.hypot(team.wx - w.team.wx, team.wz - w.team.wz) / WAVE.speed) p = replayOdds(idx, w.tremor.t + 0.5);
   }
   return p;

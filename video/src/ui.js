@@ -13,6 +13,10 @@ const STRIP_Y = 1080 - APP.strip;
 // The game list in the order the rail shows it: by start time.
 const GAMES = [...N.games].sort((a, b) => a.start.localeCompare(b.start) || a.id - b.id);
 
+// Where the newest tremor row sits in the rail, for the shared-element handoff.
+const TREMORS_Y = TOP + 64 + GAMES.length * 51 + 28;
+export const TREMOR_ROW = { x: RAIL_X + 26, y: TREMORS_Y + 22, w: APP.rail - 52, h: 44 };
+
 function gameAt(id, tau) {
   let g = null;
   for (const u of N.updates) {
@@ -33,13 +37,12 @@ function statusOf(u, game) {
 }
 
 // Chrome timing: in after the camera arrives overhead, out at the payoff.
-const IN = T.product, OUT = T.payoff;
+const IN = T.product, OUT = T.card;
 const slide = (t, t0) => expoOut(clamp((t - t0) / 0.7)) * (1 - expoIn(clamp((t - OUT - (t0 - IN) * 0.5) / 0.45)));
 
 export function drawProduct(ctx, t, project) {
-  if (t < IN - 0.1) return;
+  if (t < IN - 0.1 || t > OUT + 1.2) return;
   const tau = clamp(nightTau(t), NIGHT.tau0, NIGHT.tau1);
-  if (t > OUT + 1.2) return drawNightTrace(ctx, t, tau, 0); // the trace stays to the end
   drawMapLabels(ctx, t, project);
   drawStrip(ctx, t, tau);
   drawRail(ctx, t, tau);
@@ -176,13 +179,15 @@ function drawRail(ctx, t, tau) {
     ctx.restore();
   });
   // Tremors: the latest three.
-  const ty = TOP + 64 + GAMES.length * 51 + 28;
+  const ty = TREMORS_Y;
   ctx.font = font(28, 700);
   ctx.fillStyle = C.ink;
   ctx.textAlign = "left";
   ctx.fillText("Tremors", x0, ty);
   const latest = N.tremors.filter((tr) => tr.t <= tau).slice(-3).reverse();
   latest.forEach((tr, i) => {
+    // Caufield's row leaves the rail and becomes his share card (features.js).
+    if (i === 0 && tr.scorer === PQ.goal.scorer && t > OUT - 0.05) return;
     const y = ty + 22 + i * 46;
     const age = t - filmTime(tr.t);
     const nk = i === 0 ? expoOut(clamp(age / 0.4)) : 1;
@@ -212,11 +217,10 @@ const stripX = (tau) => lerp(SX0, SX1, tau / NIGHT_LEN);
 
 function drawStrip(ctx, t, tau) {
   const k = slide(t, IN + 0.25);
-  const pay = spring(t - OUT, 3.6, 1);
   ctx.save();
   if (k > 0) {
     ctx.globalAlpha = k;
-    ctx.translate(0, APP.strip * (1 - Math.min(1, k + pay)));
+    ctx.translate(0, APP.strip * (1 - k));
     ctx.fillStyle = C.ice;
     ctx.fillRect(0, STRIP_Y, 1920, APP.strip);
     ctx.fillStyle = C.scratch;
@@ -237,61 +241,42 @@ function drawStrip(ctx, t, tau) {
   drawNightTrace(ctx, t, tau, k);
 }
 
-/** The night's trace, which at the payoff lifts off the strip and becomes the line under the wordmark. */
+/** The night's trace along the strip, drawn up to the playhead. */
 function drawNightTrace(ctx, t, tau, k) {
-  const pay = spring(t - OUT, 3.6, 1);
-  const vis = Math.max(k, pay > 0.001 ? 1 : 0);
-  if (vis <= 0) return;
-  const yStrip = STRIP_Y + 54;
-  const yMid = 652;
-  const amp = lerp(46, 0, pay);
-  const sEnd = lerp(tau / NIGHT_LEN, 1, pay);
+  if (k <= 0) return;
+  const y0 = STRIP_Y + 54 + APP.strip * (1 - k);
   ctx.save();
-  ctx.globalAlpha = vis;
+  ctx.globalAlpha = k;
   ctx.lineJoin = "round";
   ctx.beginPath();
+  const sEnd = tau / NIGHT_LEN;
   let pen = null;
   for (let s = 0; s <= sEnd + 1e-9; s += 0.0006) {
-    const xs = stripX(s * NIGHT_LEN);
-    const xm = lerp(360, 1560, s);
-    const x = lerp(xs, xm, pay);
-    // A new tremor lands with the wordmark.
-    const u = t - (1 - s) * 3.2;
-    const kk = u - T.word;
-    const fresh = kk > 0 ? 70 * Math.exp(-kk * 2.6) * Math.sin(2 * Math.PI * 5.5 * kk) * Math.min(1, kk * 40) * pay : 0;
-    const y = lerp(yStrip, yMid, pay) - nightTrace(s * NIGHT_LEN) * amp - fresh;
+    const x = stripX(s * NIGHT_LEN), y = y0 - nightTrace(s * NIGHT_LEN) * 46;
     if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     pen = [x, y];
   }
   ctx.strokeStyle = C.ink;
-  ctx.lineWidth = lerp(1.6, 2.6, pay);
+  ctx.lineWidth = 1.6;
   ctx.stroke();
-  // Labels on the night's big tremors.
-  if (pay < 0.5) {
-    for (const w of WAVES) {
-      if (w.hero || w.magnitude < 5 || w.tremor.t > tau) continue;
-      const x = stripX(w.tremor.t);
-      ctx.globalAlpha = vis * (1 - pay * 2) * clamp((t - w.t0) / 0.3);
-      ctx.font = font(18, 800);
-      ctx.fillStyle = w.scorer === PQ.goal.scorer ? C.goal : C.ink;
-      ctx.textAlign = "center";
-      ctx.fillText(w.magnitude.toFixed(1), x, STRIP_Y + 22);
-    }
+  for (const w of WAVES) {
+    if (w.hero || w.finale || w.magnitude < 5 || w.tremor.t > tau) continue;
+    ctx.globalAlpha = k * clamp((t - w.t0) / 0.3);
+    ctx.font = font(18, 800);
+    ctx.fillStyle = w.scorer === PQ.goal.scorer ? C.goal : C.ink;
+    ctx.textAlign = "center";
+    ctx.fillText(w.magnitude.toFixed(1), stripX(w.tremor.t), y0 - 32);
   }
-  ctx.globalAlpha = vis;
-  // Playhead, which becomes the pen.
+  ctx.globalAlpha = k;
   if (pen) {
     ctx.fillStyle = C.goal;
     ctx.shadowColor = C.goal;
     ctx.shadowBlur = 16;
     ctx.beginPath();
-    ctx.arc(pen[0], pen[1], lerp(4, 6.5, pay), 0, Math.PI * 2);
+    ctx.arc(pen[0], pen[1], 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-    if (pay < 0.9) {
-      ctx.globalAlpha = vis * (1 - pay);
-      ctx.fillRect(pen[0] - 0.75, STRIP_Y + 8, 1.5, APP.strip - 30);
-    }
+    ctx.fillRect(pen[0] - 0.75, y0 - 46, 1.5, APP.strip - 30);
   }
   ctx.restore();
 }
@@ -299,7 +284,7 @@ function drawNightTrace(ctx, t, tau, k) {
 /** Magnitude at each tremor's arena, as the app labels its origin. */
 function drawMapLabels(ctx, t, project) {
   for (const w of WAVES) {
-    if (w.hero) continue;
+    if (w.hero || w.finale) continue;
     const lv = life(t, w.t0, Math.min(w.t0 + 3, OUT - 0.2), 0.35, 0.4);
     if (lv.v <= 0) continue;
     const p = project(w.team.wx, 0, w.team.wz);
