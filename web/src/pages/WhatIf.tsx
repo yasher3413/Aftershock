@@ -18,6 +18,7 @@ import {
 } from "../whatif/scenario";
 import { useSimulator, type SimOutput } from "../whatif/useSimulator";
 import { TeamLogo } from "../components/TeamLogo";
+import { useMyTeam } from "../lib/myTeam";
 
 const N_SIMS = 10_000;
 const DEBOUNCE_MS = 150;
@@ -112,6 +113,7 @@ export default function WhatIfPage() {
   const sim = useSimulator();
   const reduce = useReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myTeam = useMyTeam((s) => s.team);
   const [copied, setCopied] = useState(false);
   const share = async () => {
     const url = window.location.href;
@@ -605,7 +607,7 @@ export default function WhatIfPage() {
                   <motion.tr
                     key={t.team}
                     layout={reduce ? false : "position"}
-                    className="border-t border-ice-scratch"
+                    className={`border-t border-ice-scratch ${t.team === myTeam ? "bg-surface font-semibold" : ""}`}
                   >
                     <td className="py-2">
                       <Link
