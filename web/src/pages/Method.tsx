@@ -26,20 +26,33 @@ const STEPS = [
 /** The method is a pipeline: each step feeds the next. The rail follows the reader. */
 function PipelineRail() {
   const [active, setActive] = useState(STEPS[0]!.id);
+  // The current step is the last heading that has scrolled past the top
+  // band, whichever direction the reader is going.
   useEffect(() => {
-    const els = STEPS.map((st) => document.getElementById(st.id)).filter(Boolean) as HTMLElement[];
-    if (!els.length || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const top = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (top) setActive(top.target.id);
-      },
-      { rootMargin: "0px 0px -70% 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      let current = STEPS[0]!.id;
+      for (const st of STEPS) {
+        const el = document.getElementById(st.id);
+        if (el && el.getBoundingClientRect().top <= 140) current = st.id;
+      }
+      // The last sections are short and may never reach the band.
+      const article = document.querySelector("article");
+      if (article && article.getBoundingClientRect().bottom <= innerHeight) {
+        current = STEPS.at(-1)!.id;
+      }
+      setActive(current);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
   const links = (
     <ol className="border-l border-ice-scratch">
