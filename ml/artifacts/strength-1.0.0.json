@@ -11,9 +11,9 @@
     "ot_shrink": 0.5,
     "p_home_so": 0.5301645338208409,
     "p_so_given_ot": 0.3470812182741117,
-    "regress": 0.0,
+    "regress": 0.3,
     "smooth": 1.0,
-    "tie_theta": 1.5185956100001925
+    "tie_theta": 1.5088636202737686
   },
   "xg_version": "xg-1.0.0"
 }

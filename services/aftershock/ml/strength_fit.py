@@ -36,6 +36,14 @@ MODEL_VERSION = "strength-1.0.0"
 WARMUP_SEASON = 20152016
 TUNE_SEASONS = (20162017, 20172018, 20182019, 20192020, 20202021)
 TEST_SEASONS = (20212022, 20222023, 20232024, 20242025, 20252026)
+# Share of each rating removed when a new season starts. Replaying eight
+# seasons (2016-17 to 2025-26) from late October, November, and later
+# checkpoints, 0.25 to 0.35 gave the best playoff-odds Brier score and log
+# loss at every checkpoint (0.30: early-season log loss 0.491 against 0.499
+# with no fade), while pregame game log loss was unchanged (0.6624 against
+# 0.6626 on the test seasons). Without it, a team's October odds lean almost
+# entirely on last season.
+SEASON_REGRESS = 0.30
 
 GRID: dict[str, list[float]] = {
     "blend_w": [0.2, 0.35, 0.5, 0.65, 0.8],
@@ -209,6 +217,9 @@ def fit(settings: Settings | None = None) -> dict[str, Any]:
     tuned = calibrate_tie(bt_games, tuned, rates["p_beyond_reg"])
     # A second pass with the calibrated tie rate, then recalibrate.
     tuned = tune(bt_games, tuned, rounds=1)
+    # Game-by-game log loss is indifferent to the new-season fade (it picks
+    # 0), but season playoff odds are not: see SEASON_REGRESS.
+    tuned = replace(tuned, regress=SEASON_REGRESS)
     tuned = calibrate_tie(bt_games, tuned, rates["p_beyond_reg"])
 
     test = evaluate(bt_games, tuned, TEST_SEASONS)
