@@ -228,22 +228,18 @@ function NightReplay({ date }: { date: string }) {
 
   return (
     <div className="night-page flex flex-1 flex-col">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-ice-scratch px-4 py-5 md:px-6">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
+      {/* Full-width rule, contents in the header's column so the title lines
+        up with the logo. The header already says this is a replay. */}
+      <header className="border-b border-ice-scratch">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4 px-4 py-5 md:px-6">
+          <div>
             <h1 className="display text-[38px] font-bold md:text-[48px]">{longDate(date)}</h1>
-            <span
-              role="note"
-              className="rounded-[var(--radius)] bg-ice-land px-2.5 py-1 text-[12px] font-semibold"
-            >
-              Replay
-            </span>
+            <p className="mt-2 text-[14px] text-ink-soft">
+              Every goal, replayed, and the playoff odds it moved.
+            </p>
           </div>
-          <p className="mt-2 text-[14px] text-ink-soft">
-            Every goal, and the playoff odds it moved.
-          </p>
+          <NightNav date={date} />
         </div>
-        <NightNav date={date} />
       </header>
       <section
         aria-label="Night replay"
