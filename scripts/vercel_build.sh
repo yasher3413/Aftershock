@@ -12,13 +12,14 @@ mv dist/index.html dist/app.html
 # Pages are cached for a few minutes and still name earlier deploys' hashed
 # files, which a new deploy no longer serves. Carry the last two deploys'
 # own files forward: asset-list.txt is this build's files, and
-# asset-list-prev.txt the deploy before it.
+# asset-list-prev.txt the deploy before it. The production address may be
+# the bare domain, which redirects to www, so curl follows redirects.
 (cd dist/assets && ls) > dist/asset-list.txt
 : > dist/asset-list-prev.txt
-live="https://${VERCEL_PROJECT_PRODUCTION_URL:-aftershock-fawn.vercel.app}"
+live="https://${VERCEL_PROJECT_PRODUCTION_URL:-www.puckquake.com}"
 : > /tmp/carry.txt
 for list in asset-list.txt asset-list-prev.txt; do
-  if curl -fsS --max-time 20 "$live/$list" -o "/tmp/$list"; then
+  if curl -fsSL --max-time 20 "$live/$list" -o "/tmp/$list"; then
     cat "/tmp/$list" >> /tmp/carry.txt
     [ "$list" = asset-list.txt ] && cp /tmp/asset-list.txt dist/asset-list-prev.txt
   fi
@@ -26,7 +27,7 @@ done
 carried=0
 while read -r f; do
   [ -n "$f" ] && [ ! -e "dist/assets/$f" ] || continue
-  if curl -fsS --max-time 20 "$live/assets/$f" -o "dist/assets/$f"; then
+  if curl -fsSL --max-time 20 "$live/assets/$f" -o "dist/assets/$f"; then
     carried=$((carried + 1))
   else
     rm -f "dist/assets/$f"
