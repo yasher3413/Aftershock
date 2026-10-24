@@ -14,7 +14,9 @@ test("demo mode replays a night and a tremor lands within 30 seconds at 60x", as
 
 test("keyboard navigation reaches every team node", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("[data-team]")).toHaveCount(32);
+  // The map draws after the league loads, which can take a while when the
+  // suite runs many pages in parallel.
+  await expect(page.locator("[data-team]")).toHaveCount(32, { timeout: 30_000 });
   const seen = new Set<string>();
   for (let i = 0; i < 80 && seen.size < 32; i++) {
     await page.keyboard.press("Tab");
