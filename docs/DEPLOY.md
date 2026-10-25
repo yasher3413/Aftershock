@@ -108,16 +108,20 @@ scripts/deploy/push_data.sh ubuntu@<IP>
   them the model skips that prior for the season.
 - **Model update markers:** when a model change moves the live odds, add an
   entry to `web/src/lib/modelChanges.ts` so team odds charts mark the step.
-- **The domain** (done for the site on 2026-10-24): www.puckquake.com is the
-  Vercel production domain and puckquake.com redirects to it, and the VM's
-  `.env` has `PUBLIC_BASE_URL=https://www.puckquake.com` and
-  `INDEX_HTML=https://www.puckquake.com/app.html` (recreate the api and
-  worker with `up -d` after changing `.env`; `restart` keeps the old
-  values). The api is still on the sslip.io name. To move it: point `api.<domain>`
-  at the VM's IP with an A record, then set `API_HOST=api.<domain>`,
-  `PUBLIC_BASE_URL=https://<domain>`, and `INDEX_HTML=https://<domain>/app.html`
-  in the VM's `.env`, rerun `scripts/set_api_host.sh api.<domain>`, and set
-  `VITE_WS_URL=wss://api.<domain>/ws/live` in Vercel.
+- **The domain** (2026-10-24): www.puckquake.com is the Vercel production
+  domain and puckquake.com redirects to it. The api is api.puckquake.com (an
+  A record at Namecheap to the VM's IP); Caddy also still answers on the old
+  sslip.io name, so both work: the VM's `.env` has
+  `API_HOST="api.puckquake.com, 140.238.146.151.sslip.io"`,
+  `PUBLIC_BASE_URL=https://www.puckquake.com`, and
+  `INDEX_HTML=https://www.puckquake.com/app.html`. Vercel has
+  `VITE_WS_URL=wss://api.puckquake.com/ws/live`, and `vercel.json` sends
+  `/api`, page paths, robots, and the sitemap to api.puckquake.com. After
+  changing `.env`, recreate the containers with `up -d` (`restart` keeps the
+  old values). To change the api host again, run
+  `scripts/set_api_host.sh <host>` (it fills `vercel.template.json`, which
+  must stay in step with `vercel.json`), set `VITE_WS_URL` in Vercel, and
+  update `API_HOST`.
 
 ## Goal bot on X
 

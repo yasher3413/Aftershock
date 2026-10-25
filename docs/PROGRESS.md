@@ -310,11 +310,10 @@ built from the recording:
 3. From the critique, still open: merge Night's two transport rows; open
    teams and goals in a sheet over the map instead of leaving it. (Home and
    Night now share one panel component, `panels/SidePanels.tsx`.)
-4. The domain is live (www.puckquake.com; share links, sitemap, robots, and
-   page tags use it). Still to do: add the site to Google Search Console
-   and submit the sitemap; optionally move the api from the sslip.io name
-   to api.puckquake.com (DEPLOY, "The domain"). Later: fill the 2024-25
-   shift-chart gap from NHL HTML reports; goalie "PPA saved".
+4. The domain is done: www.puckquake.com for the site, api.puckquake.com for
+   the api and live updates, and the site is in Google Search Console with
+   the sitemap submitted (2026-10-24). Later: fill the 2024-25 shift-chart
+   gap from NHL HTML reports; goalie "PPA saved".
 5. Later: goal alerts. The code is done, but the VM has no VAPID keys, so
    `/api/push/key` returns a null key and the team page hides the alerts option.
    Generate a key pair, put both in the VM's `.env`, restart, and check a
