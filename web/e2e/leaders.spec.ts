@@ -85,6 +85,26 @@ test("switching views keeps the page where it is", async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, 200));
   await page.getByRole("button", { name: "Assists", exact: true }).click();
   await expect(page).toHaveURL(/view=assist/);
-  await page.waitForTimeout(300);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(150);
+  await expect(page.getByRole("button", { name: "Assists", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(150);
+});
+
+test("a row opens its player, and its team code opens the team", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("**/api/leaders/ppa?**", (route) =>
+    route.fulfill({ json: { kind: "skater", season: 20262027, rows } }),
+  );
+  await page.goto("/leaders");
+  const row = page.getByRole("listitem").filter({ hasText: "Player 3" }).first();
+  await row.getByRole("link", { name: "TOR" }).click();
+  await expect(page).toHaveURL(/\/team\/TOR/);
+  await page.goBack();
+  await expect(page.getByRole("link", { name: /^Player / })).toHaveCount(20);
+  await row.scrollIntoViewIfNeeded();
+  const box = (await row.boundingBox())!;
+  await page.mouse.click(box.x + box.width - 20, box.y + box.height / 2);
+  await expect(page).toHaveURL(/\/player\/102/);
 });

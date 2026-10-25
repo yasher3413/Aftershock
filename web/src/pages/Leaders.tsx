@@ -194,7 +194,7 @@ function LeaderBoard({
           return (
             <li
               key={`${r.rank}-${r.player?.id ?? r.team}`}
-              className="grid grid-cols-[1.75rem_minmax(0,1fr)_4.75rem] items-center gap-x-2 py-3 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem]"
+              className="relative grid grid-cols-[1.75rem_minmax(0,1fr)_4.75rem] items-center gap-x-2 py-2.5 sm:grid-cols-[2.5rem_minmax(0,19rem)_1fr_5.5rem] sm:py-3"
             >
               <span className="display text-right text-[24px] font-bold leading-none text-ink-soft tabular-nums">
                 {r.rank}
@@ -216,7 +216,8 @@ function LeaderBoard({
                     {r.player ? (
                       <Link
                         to={`/player/${r.player.id}?season=${season}`}
-                        className="inline-flex min-h-[44px] items-center underline-offset-4 hover:underline sm:min-h-[24px]"
+                        // The whole row is the player's link; the team code sits above it.
+                        className="inline-flex items-center underline-offset-4 after:absolute after:inset-0 hover:underline"
                       >
                         {r.player.name}
                       </Link>
@@ -230,7 +231,7 @@ function LeaderBoard({
                     {r.player && (
                       <Link
                         to={`/team/${r.team}`}
-                        className="display inline-flex min-h-[44px] items-center gap-1 text-[14px] font-bold text-ink sm:min-h-[24px]"
+                        className="display relative z-10 inline-flex min-h-[28px] items-center gap-1 text-[14px] font-bold text-ink hover:underline"
                       >
                         <TeamLogo team={r.team} size={16} />
                         {r.team}
