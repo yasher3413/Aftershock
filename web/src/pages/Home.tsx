@@ -45,14 +45,16 @@ function TonightContext() {
   const replaying = mode === "demo" && replay;
   const next = replay?.next_live_utc ? Date.parse(replay.next_live_utc) - now : null;
   return (
-    // The band runs edge to edge like the map; its contents sit in the same
-    // column as the header and every other page, so the logo never jumps.
+    // The band runs edge to edge like the map. The title sits in the same
+    // column as the header and every other page, so it lines up with the logo;
+    // on wide screens the controls sit over the side panel, lined up with the
+    // games list below them.
     <div
       className={`border-b border-ice-scratch transition-colors ${replaying ? "bg-ice-land" : ""}`}
       data-tour="status"
     >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 md:px-6">
-        <div className="min-w-0">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 md:px-6 lg:max-w-none lg:flex-nowrap lg:items-stretch lg:gap-0 lg:p-0">
+        <div className="min-w-0 lg:flex-1 lg:py-3 lg:pr-6 lg:pl-[max(1.5rem,calc((100%-72rem)/2+1.5rem))]">
           <h1 className="display flex flex-wrap items-baseline gap-x-3 text-[30px] font-bold">
             {replaying ? `${monthDay(replay.night_date)}, replayed` : "Tonight's playoff race"}
           </h1>
@@ -79,7 +81,7 @@ function TonightContext() {
             )}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:w-[440px] lg:shrink-0 lg:justify-between lg:border-l lg:border-ice-scratch lg:px-4 lg:py-3">
           <button
             type="button"
             onClick={() => useTour.getState().start()}
