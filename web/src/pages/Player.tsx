@@ -210,7 +210,9 @@ export default function PlayerPage() {
                 No goals yet in {seasonLabel(data.season)}. Last time out:{" "}
                 <button
                   type="button"
-                  onClick={() => setParams({ season: String(previous.season) })}
+                  onClick={() =>
+                    setParams({ season: String(previous.season) }, { preventScrollReset: true })
+                  }
                   className="font-semibold text-blue-line underline-offset-4 hover:underline"
                 >
                   {previous.goals} goals and {pp(previous.ppa)} in {seasonLabel(previous.season)}
@@ -223,7 +225,9 @@ export default function PlayerPage() {
                 Season
                 <select
                   value={data.season}
-                  onChange={(e) => setParams({ season: e.target.value })}
+                  onChange={(e) =>
+                    setParams({ season: e.target.value }, { preventScrollReset: true })
+                  }
                   className="rounded-[var(--radius)] border border-ice-scratch bg-surface px-2 py-1 text-ink"
                 >
                   {seasonIds.map((id) => (
@@ -363,7 +367,9 @@ export default function PlayerPage() {
                     <td className="py-1.5">
                       <button
                         type="button"
-                        onClick={() => setParams({ season: String(x.season) })}
+                        onClick={() =>
+                          setParams({ season: String(x.season) }, { preventScrollReset: true })
+                        }
                         className={x.season === data.season ? "font-semibold" : "text-blue-line"}
                       >
                         {seasonLabel(x.season)}

@@ -74,3 +74,17 @@ for (const { view, path, name } of [
       ).toBeVisible();
   });
 }
+
+test("switching views keeps the page where it is", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("**/api/leaders/ppa?**", (route) =>
+    route.fulfill({ json: { kind: "skater", season: 20262027, rows } }),
+  );
+  await page.goto("/leaders");
+  await expect(page.getByRole("link", { name: /^Player / })).toHaveCount(20);
+  await page.evaluate(() => window.scrollTo(0, 200));
+  await page.getByRole("button", { name: "Assists", exact: true }).click();
+  await expect(page).toHaveURL(/view=assist/);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(150);
+});

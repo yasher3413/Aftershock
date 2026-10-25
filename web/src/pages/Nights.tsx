@@ -203,7 +203,7 @@ export default function NightsPage() {
         <div className="flex flex-wrap items-center gap-3 text-[13px]">
           <select
             value={season}
-            onChange={(e) => setParams({ season: e.target.value })}
+            onChange={(e) => setParams({ season: e.target.value }, { preventScrollReset: true })}
             aria-label="Season"
             className="min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-2"
           >

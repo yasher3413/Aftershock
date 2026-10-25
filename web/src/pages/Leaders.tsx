@@ -432,7 +432,8 @@ export default function LeadersPage() {
     const next = new URLSearchParams(params);
     next.set("season", String(selectedSeason));
     next.set("view", view);
-    setParams(next);
+    // Switching views keeps the page where it is.
+    setParams(next, { preventScrollReset: true });
     setSearch("");
   };
   const seasonLabel = SEASONS.find((s) => s.id === season)!.label;
