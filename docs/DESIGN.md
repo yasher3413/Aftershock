@@ -252,17 +252,26 @@ full-width section below the picks, every round showing the favorite's
 chance to win the series. Picks never move the page. Below laptop width the
 picks, the forecast, and the bracket take turns on screen (Picks, Forecast,
 Bracket in the sticky summary bar, with sharing as an icon beside them)
-instead of one 14-screen page. Share scenario opens a
-menu (a sheet along the bottom on phones): Post to X, Copy link, Share image
-(only where the browser can hand files to other apps), and Download image.
-Links are short (`/what-if?id=...`, saved picks) and their preview is the
-server's 1200 by 630 card of the same scenario. Post to X copies the card
-picture as it opens X's composer, so the post carries the picture (paste
-it in) and X shows no link preview; X's share link cannot attach a
+instead of one 14-screen page. Links are short (`/what-if?id=...`, saved picks) and their preview is the
+server's 1200 by 630 card of the same scenario. The card the menu shares is
+1200 by 675, drawn on a canvas in the viewer's light or dark palette, with
+no logos so the canvas is never tainted. How it works has a "Use the What-If Lab" guide, linked from the lab.
+
+**Sharing.** The What-If Lab, goal pages, and game pages share through one
+menu (`components/ShareMenu.tsx`; a sheet along the bottom on phones) with
+three options in this order: Post on X, Share, Copy link. Post on X copies
+the card picture as it opens X's composer, so the post carries the picture
+(paste it in) and X shows no link preview; X's share link cannot attach a
 picture itself, and where a browser will not copy one, the card downloads
-instead. The downloaded card is 1200
-by 675, drawn on a canvas in the viewer's light or dark palette, with no
-logos so the canvas is never tainted. How it works has a "Use the What-If Lab" guide, linked from the lab.
+instead. Share opens the phone's share sheet with the card; where a browser
+cannot share files (most laptops) it is Download image. Goal and game cards
+are drawn by the server (`/api/og/tremor`, `/api/og/game`), which also uses
+them as the pages' link previews.
+
+**Phones.** Long lists start short with a Show all button (team pages,
+`components/PhoneFold.tsx`); the footer shows team logos by division and
+the sources as one sentence; Leaders rows are one tap target each with the
+team code on top.
 
 **Charts.** Percentage charts label their shared corner once. Calibration
 charts zoom to where their predictions are and list the diagonal in the

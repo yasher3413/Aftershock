@@ -286,6 +286,14 @@ built from the recording:
     image now builds the simulator for it), menu order Post to X, Copy link,
     Share image (only where files can be shared), Download image, a bottom
     sheet on phones, and the downloaded card in the viewer's theme.
+  - Owner's list, 2026-10-24: one share menu for What-If, goals, and games
+    (Post on X with the card copied to paste in, Share, Copy link) and a
+    server game card; scroll position kept on Leaders, Nights, and player
+    season switches; What-If picks no longer shift the page on phones, the
+    picks and forecast scroll together on laptops, and phones switch
+    between Picks, Forecast, and Bracket; Tonight's controls line up with
+    the games panel; a one-screen footer on phones; shorter team pages and
+    Leaders rows on phones.
   - Goal bot for X (`services/aftershock/bot/`): built from the approved
     design and plan (`docs/superpowers/specs/2026-10-23-goal-bot-design.md`,
     `docs/superpowers/plans/2026-10-24-goal-bot.md`) and deployed switched
