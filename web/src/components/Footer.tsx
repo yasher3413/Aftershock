@@ -23,13 +23,23 @@ const ABOUT = [
   { to: "/status", label: "Pipeline status" },
 ];
 
-function Column({ title, children }: { title: string; children: ReactNode }) {
+function Column({
+  title,
+  children,
+  className = "",
+  listClassName = "",
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+  listClassName?: string;
+}) {
   return (
-    <div>
+    <div className={className}>
       <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
         {title}
       </h2>
-      <ul className="mt-3 space-y-1 text-[14px]">{children}</ul>
+      <ul className={`mt-3 space-y-1 text-[14px] ${listClassName}`}>{children}</ul>
     </div>
   );
 }
@@ -51,13 +61,16 @@ const SOURCES = [
   { before: "Map from", label: "Natural Earth", href: "https://www.naturalearthdata.com" },
 ];
 
+const sourceLink =
+  "text-ink underline decoration-ice-scratch underline-offset-4 hover:decoration-ink";
+
 const linkClass = "inline-flex min-h-[32px] items-center hover:text-blue-line hover:underline";
 
 /** The site footer: every section, all 32 teams, and who made the site. */
 export function Footer() {
   return (
     <footer className="border-t border-ice-scratch">
-      <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 md:px-6 md:pt-10">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.5fr_0.8fr_1fr_1.3fr] lg:gap-x-10">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="display text-[30px] font-extrabold tracking-tight">
@@ -87,7 +100,8 @@ export function Footer() {
               ))}
             </ul>
           </div>
-          <Column title="Explore">
+          {/* The header's navigation is always on screen on phones. */}
+          <Column title="Explore" className="hidden md:block">
             {EXPLORE.map((l) => (
               <li key={l.to}>
                 <Link to={l.to} className={linkClass}>
@@ -96,7 +110,11 @@ export function Footer() {
               </li>
             ))}
           </Column>
-          <Column title="About">
+          <Column
+            title="About"
+            className="col-span-2 md:col-span-1"
+            listClassName="grid grid-cols-2 gap-x-6 space-y-0 md:block md:space-y-1"
+          >
             {ABOUT.map((l) => (
               <li key={l.to}>
                 <Link to={l.to} className={linkClass}>
@@ -105,17 +123,38 @@ export function Footer() {
               </li>
             ))}
           </Column>
-          <div className="col-span-2 lg:col-span-1">
+          {/* Phones get the sources as one sentence; the list is for wide screens. */}
+          <p className="col-span-2 text-[13px] text-ink-soft md:hidden">
+            Data from{" "}
+            <a href="https://www.nhl.com" target="_blank" rel="noreferrer" className={sourceLink}>
+              NHL.com
+            </a>{" "}
+            (games, shots, shift charts, standings, logos, and photos), preseason point totals from{" "}
+            <a
+              href="https://www.hockey-reference.com"
+              target="_blank"
+              rel="noreferrer"
+              className={sourceLink}
+            >
+              Hockey-Reference
+            </a>
+            , and the map from{" "}
+            <a
+              href="https://www.naturalearthdata.com"
+              target="_blank"
+              rel="noreferrer"
+              className={sourceLink}
+            >
+              Natural Earth
+            </a>
+            .
+          </p>
+          <div className="col-span-2 hidden md:block lg:col-span-1">
             <Column title="Sources">
               {SOURCES.map((src) => (
                 <li key={src.before} className="py-1 text-ink-soft">
                   {src.before}{" "}
-                  <a
-                    href={src.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-ink underline decoration-ice-scratch underline-offset-4 hover:decoration-ink"
-                  >
+                  <a href={src.href} target="_blank" rel="noreferrer" className={sourceLink}>
                     {src.label}
                   </a>
                 </li>
@@ -124,8 +163,35 @@ export function Footer() {
           </div>
         </div>
 
-        <nav aria-label="All teams" className="mt-10 border-t border-ice-scratch pt-8">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
+        <nav
+          aria-label="All teams"
+          className="mt-8 border-t border-ice-scratch pt-6 md:mt-10 md:pt-8"
+        >
+          {/* Phones: one row of logos per division instead of 32 names. */}
+          <div className="space-y-3 md:hidden">
+            {DIVISIONS.map((d) => (
+              <div key={d.name}>
+                <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                  {d.name}
+                </h2>
+                <ul className="mt-1 grid grid-cols-8">
+                  {d.teams.map(([abbrev, name]) => (
+                    <li key={abbrev}>
+                      <Link
+                        to={`/team/${abbrev}`}
+                        aria-label={name}
+                        title={name}
+                        className="flex h-11 items-center justify-center rounded-[var(--radius)] hover:bg-ice-land"
+                      >
+                        <TeamLogo team={abbrev} size={30} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="hidden grid-cols-2 gap-x-6 gap-y-8 md:grid md:grid-cols-4">
             {DIVISIONS.map((d) => (
               <Column key={d.name} title={d.name}>
                 {d.teams.map(([abbrev, name]) => (
