@@ -19,7 +19,8 @@ import {
 import { useSimulator, type SimOutput } from "../whatif/useSimulator";
 import { TeamLogo } from "../components/TeamLogo";
 import { projectBracket, type Series } from "../whatif/bracket";
-import { ShareMenu } from "../whatif/ShareMenu";
+import { ShareMenu } from "../components/ShareMenu";
+import { scenarioShare } from "../whatif/share";
 import { useMyTeam } from "../lib/myTeam";
 import { useMedia } from "../lib/useMedia";
 
@@ -458,9 +459,7 @@ export default function WhatIfPage() {
           )}
           {pickCount > 0 && (
             <ShareMenu
-              card={shareCard}
-              tweet={shareTweet}
-              encoded={encode(scenario)}
+              spec={scenarioShare(shareCard, shareTweet, encode(scenario))}
               disabled={updating}
               compact={stacked}
             />

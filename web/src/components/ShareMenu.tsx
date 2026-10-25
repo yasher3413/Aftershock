@@ -1,13 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api/client";
 import { useMedia } from "../lib/useMedia";
-import { drawScenarioCard, type CardInput } from "./shareCard";
 
 type Status = "idle" | "working" | "copied" | "saved" | "error" | "card";
+export type ImageUse = "x" | "share";
+
+export interface ShareSpec {
+  /** What is shared, for the button and the sheet: "Share scenario". */
+  label: string;
+  /** Post text without the link; X adds the link. */
+  tweet: string;
+  /** The page's link; may be made on demand (the What-If Lab saves picks). */
+  link: () => Promise<string>;
+  /** The card for a post on X (landscape) or for the share sheet. */
+  image: (use: ImageUse) => Promise<Blob>;
+  /** Identifies this link and card, so each is made once while the menu is open. */
+  key: string;
+  fileName: string;
+  linkHint: string;
+  imageHint: string;
+}
 
 /** Phones can hand an image to other apps. Most desktop browsers cannot, and
- * there a Share image option would only download it. */
+ * there a Share option would only download it. */
 function canShareFiles(): boolean {
   try {
     return !!navigator.canShare?.({ files: [new File([""], "card.png", { type: "image/png" })] });
@@ -16,89 +31,62 @@ function canShareFiles(): boolean {
   }
 }
 
-// The last card drawn, by its contents.
-let drawn: { key: string; blob: Promise<Blob> } | null = null;
-
-function cardFor(card: CardInput): Promise<Blob> {
-  const key = JSON.stringify(card);
-  if (drawn?.key !== key) drawn = { key, blob: drawScenarioCard(card) };
-  return drawn.blob;
-}
-
-// Short links already made this visit, by scenario.
-const saved = new Map<string, Promise<string>>();
-
-/** A short link to these picks (/what-if?id=...), or the full address if
- * the server cannot save them. */
-function shortLink(encoded: string): Promise<string> {
-  let link = saved.get(encoded);
-  if (!link) {
-    link = api<{ id: string }>("/scenarios", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ encoded }),
-    }).then(
-      (r) => `${window.location.origin}/what-if?id=${r.id}`,
-      () => {
-        saved.delete(encoded);
-        return window.location.href;
-      },
-    );
-    saved.set(encoded, link);
+// Links and cards made this visit, newest last; a few are kept.
+const made = new Map<string, Promise<unknown>>();
+function once<T>(key: string, make: () => Promise<T>): Promise<T> {
+  let p = made.get(key) as Promise<T> | undefined;
+  if (!p) {
+    p = make();
+    p.catch(() => made.delete(key));
+    made.set(key, p);
+    if (made.size > 12) made.delete(made.keys().next().value!);
   }
-  return link;
+  return p;
 }
 
 /**
- * Share a What-If scenario: copy its link, share or save an image of it (the
- * phone's share sheet can save it to Photos or send it anywhere), or open a
- * ready-made post on X.
+ * The share button and its menu, the same everywhere: post on X (with the
+ * card copied to paste in), share the card through the phone's share sheet
+ * (or download it where a browser cannot share files), and copy the link.
  */
 export function ShareMenu({
-  card,
-  tweet,
-  encoded,
+  spec,
   disabled = false,
   compact = false,
 }: {
-  card: CardInput;
-  /** Post text without the link; the link is added by X. */
-  tweet: string;
-  /** The picks, as in the address's `s`. */
-  encoded: string;
-  /** While the odds rerun: the card would show the previous numbers. */
+  spec: ShareSpec;
+  /** While what would be shared is still changing. */
   disabled?: boolean;
-  /** Icon only, beside the view switch on narrow screens; words return while it reports. */
+  /** Icon only; words return while it reports. */
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const ref = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  // On a phone the menu is a sheet along the bottom of the screen; beside a
-  // button in the sticky bar it would run off the edge.
+  // On a phone the menu is a sheet along the bottom of the screen.
   const phone = useMedia("(max-width: 639px)");
-  // The link is made when the menu opens, so it is usually ready by the time
-  // an option is chosen (browsers allow copying and pop-ups only right after
-  // a click).
-  const [link, setLink] = useState<{ encoded: string; url: string } | null>(null);
-  const url = link?.encoded === encoded ? link.url : null;
-  const cardBlob = () => cardFor(card);
+  const link = () => once(`link:${spec.key}`, spec.link);
+  const card = (use: ImageUse) => once(`card:${use}:${spec.key}`, () => spec.image(use));
+  // The link and cards are made when the menu opens, so they are usually
+  // ready by the time an option is chosen: browsers allow copying and
+  // pop-ups only right after a click.
+  const [ready, setReady] = useState<{ key: string; url: string } | null>(null);
+  const url = ready?.key === spec.key ? ready.url : null;
 
   useEffect(() => {
     if (!open) return;
     let live = true;
-    void shortLink(encoded).then((u) => live && setLink({ encoded, url: u }));
+    const key = spec.key;
+    void once(`link:${key}`, spec.link).then(
+      (u) => live && setReady((r) => (r?.key === key && r.url === u ? r : { key, url: u })),
+    );
+    for (const use of ["x", "share"] as const)
+      void once(`card:${use}:${key}`, () => spec.image(use)).catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [open, encoded]);
-
-  // The card is drawn when the menu opens, so Post to X can copy it while the
-  // click still allows copying.
-  useEffect(() => {
-    if (open) void cardFor(card).catch(() => undefined);
-  }, [open, card]);
+  }, [open, spec]);
 
   useEffect(() => {
     if (!open) return;
@@ -119,25 +107,23 @@ export function ShareMenu({
     };
   }, [open]);
 
-  const flash = (s: Status) => {
+  const flash = (s: Status, ms = 2000) => {
     setStatus(s);
-    setTimeout(() => setStatus("idle"), 2000);
+    setTimeout(() => setStatus("idle"), ms);
   };
-  const image = async () =>
-    new File([await cardBlob()], "puckquake-what-if.png", {
-      type: "image/png",
-    });
-  const download = (file: File) => {
+  const file = async (use: ImageUse) =>
+    new File([await card(use)], spec.fileName, { type: "image/png" });
+  const download = (f: File) => {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(file);
-    a.download = file.name;
+    a.href = URL.createObjectURL(f);
+    a.download = f.name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
 
   const actions: { label: string; hint: string; run: () => Promise<void> | void }[] = [
     {
-      label: "Post to X",
+      label: "Post on X",
       hint: "Opens a ready-made post and copies the card: paste it in",
       run: async () => {
         // X's post link cannot attach a picture, so the card goes on the
@@ -147,13 +133,13 @@ export function ShareMenu({
         const copied =
           typeof ClipboardItem === "undefined"
             ? Promise.resolve(false)
-            : navigator.clipboard.write([new ClipboardItem({ "image/png": cardBlob() })]).then(
+            : navigator.clipboard.write([new ClipboardItem({ "image/png": card("x") })]).then(
                 () => true,
                 () => false,
               );
         const intent = (u: string) => {
           const x = new URL("https://x.com/intent/post");
-          x.searchParams.set("text", tweet);
+          x.searchParams.set("text", spec.tweet);
           x.searchParams.set("url", u);
           return x.toString();
         };
@@ -161,7 +147,7 @@ export function ShareMenu({
         else {
           // Open the tab during the click (later would be blocked), then fill it.
           const tab = window.open("about:blank", "_blank");
-          const u = await shortLink(encoded);
+          const u = await link();
           if (tab) {
             tab.opener = null;
             tab.location.href = intent(u);
@@ -169,14 +155,41 @@ export function ShareMenu({
         }
         // Where the browser will not copy a picture, save it to attach instead.
         const ok = await copied;
-        if (!ok) download(await image());
-        setStatus(ok ? "card" : "saved");
-        setTimeout(() => setStatus("idle"), 8000);
+        if (!ok) download(await file("x"));
+        flash(ok ? "card" : "saved", 8000);
       },
     },
+    canShareFiles()
+      ? {
+          label: "Share",
+          hint: "Send the card to Messages, Instagram, Photos, and more",
+          run: async () => {
+            setStatus("working");
+            const f = await file("share");
+            try {
+              await navigator.share({
+                files: [f],
+                title: spec.label.replace(/^Share /, ""),
+                text: `${spec.tweet} ${url ?? (await link())}`,
+              });
+            } catch {
+              // closed the sheet
+            }
+            setStatus("idle");
+          },
+        }
+      : {
+          label: "Download image",
+          hint: spec.imageHint,
+          run: async () => {
+            setStatus("working");
+            download(await file("share"));
+            flash("saved");
+          },
+        },
     {
       label: "Copy link",
-      hint: "Opens these exact picks",
+      hint: spec.linkHint,
       run: async () => {
         try {
           if (url) await navigator.clipboard.writeText(url);
@@ -184,45 +197,14 @@ export function ShareMenu({
             // Safari keeps the click's permission to copy only this way.
             await navigator.clipboard.write([
               new ClipboardItem({
-                "text/plain": shortLink(encoded).then((u) => new Blob([u], { type: "text/plain" })),
+                "text/plain": link().then((u) => new Blob([u], { type: "text/plain" })),
               }),
             ]);
-          else await navigator.clipboard.writeText(await shortLink(encoded));
+          else await navigator.clipboard.writeText(await link());
           flash("copied");
         } catch {
           flash("error");
         }
-      },
-    },
-    ...(canShareFiles()
-      ? [
-          {
-            label: "Share image",
-            hint: "Save to Photos, Messages, Instagram, and more",
-            run: async () => {
-              setStatus("working");
-              const file = await image();
-              try {
-                await navigator.share({
-                  files: [file],
-                  title: "My NHL what-if",
-                  text: `${tweet} ${url ?? (await shortLink(encoded))}`,
-                });
-              } catch {
-                // closed the sheet
-              }
-              setStatus("idle");
-            },
-          },
-        ]
-      : []),
-    {
-      label: "Download image",
-      hint: "A 1200 by 675 picture of your picks",
-      run: async () => {
-        setStatus("working");
-        download(await image());
-        flash("saved");
       },
     },
   ];
@@ -237,11 +219,11 @@ export function ShareMenu({
           : status === "working"
             ? "Making image"
             : status === "error"
-              ? "Could not copy"
-              : "Share scenario";
+              ? "Could not share"
+              : spec.label;
 
   const menu = (
-    <div role="menu" aria-label="Share scenario">
+    <div role="menu" aria-label={spec.label}>
       {actions.map((a) => (
         <button
           key={a.label}
@@ -299,7 +281,7 @@ export function ShareMenu({
                 className="fixed inset-x-0 bottom-0 z-50 rounded-t-[12px] border-t border-ice-scratch bg-surface px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_28px_rgba(10,20,30,0.25)]"
               >
                 <p className="px-3 pt-2 pb-1 text-[13px] font-semibold text-ink-soft">
-                  Share scenario
+                  {spec.label}
                 </p>
                 {menu}
                 <button

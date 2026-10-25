@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useStateQuery, useTremor, isNotFound } from "../api/client";
 import { useWidth } from "../charts/useWidth";
@@ -9,13 +8,32 @@ import { Headshot } from "../components/Headshot";
 import { TeamLogo } from "../components/TeamLogo";
 import { PageLoading } from "../components/PageLoading";
 import { PageMessage, Unreachable } from "../components/PageMessage";
+import { ShareMenu, type ShareSpec } from "../components/ShareMenu";
+import { fetchCard } from "../lib/fetchCard";
+import type { Tremor } from "../api/types.gen";
+
+/** What the share menu posts for a goal: its story, card, and page. */
+function goalShare(t: Tremor): ShareSpec {
+  const who = t.scorer?.name ?? `A ${t.team} goal`;
+  const odds = Math.abs(t.ppa) >= 0.0005 ? `, ${t.team} playoff odds ${pp(t.ppa)}` : "";
+  return {
+    label: "Share goal",
+    tweet: `${who} (${t.team}) scored a magnitude ${t.magnitude.toFixed(1)} goal against ${t.opponent}${odds}. See how far it shook the playoff race:`,
+    link: async () => `${window.location.origin}/tremor/${t.id}`,
+    // X shows a landscape picture best; the share sheet gets the tall card.
+    image: (use) => fetchCard(`/api/og/tremor/${t.id}.png${use === "x" ? "" : "?size=card"}`),
+    key: `tremor:${t.id}`,
+    fileName: `puckquake-goal-${t.id}.png`,
+    linkHint: "Opens this goal",
+    imageHint: "A 1080 by 1350 card of this goal",
+  };
+}
 
 export default function TremorPage() {
   const id = useParams().id ?? "";
   const { data: t, isLoading, isError, error, refetch } = useTremor(id);
   const state = useStateQuery();
   const [ref, width] = useWidth<HTMLDivElement>(640);
-  const [copied, setCopied] = useState(false);
   const title = t ? `${t.scorer?.name ?? t.team}: magnitude ${t.magnitude.toFixed(1)}` : "Tremor";
   useDocumentMeta(
     title,
@@ -142,29 +160,8 @@ export default function TremorPage() {
             <dt className="text-ink-soft">Total shift across the league</dt>
             <dd className="text-right tabular-nums">{pp(t.total_shift, 1).replace("+", "")}</dd>
           </dl>
-          <div className="mt-5 flex gap-3">
-            <button
-              type="button"
-              className="rounded-[var(--radius)] bg-ink px-3 py-2 text-[14px] font-semibold text-ice"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(window.location.href);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                } catch {
-                  setCopied(false);
-                }
-              }}
-            >
-              {copied ? "Link copied" : "Copy link"}
-            </button>
-            <a
-              href={`/api/og/tremor/${t.id}.png?size=card`}
-              download={`puckquake-tremor-${t.id}.png`}
-              className="rounded-[var(--radius)] border border-ice-scratch px-3 py-2 text-[14px] font-semibold"
-            >
-              Download card
-            </a>
+          <div className="mt-5">
+            <ShareMenu spec={goalShare(t)} />
           </div>
         </div>
         <div ref={ref} className="min-w-0">
