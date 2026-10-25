@@ -151,3 +151,19 @@ test("picking a team on a phone does not move the page", async ({ page }) => {
   await track();
   expect([...heights]).toHaveLength(1);
 });
+
+test("on a laptop the picks and the forecast scroll together", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/what-if");
+  await expect(page.getByText(/seasons in \d+ ms/)).toBeVisible({ timeout: 30_000 });
+  const games = page.locator("#scenario-games");
+  const forecast = page.locator("#scenario-results");
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await page.waitForTimeout(200);
+  const before = (await games.boundingBox())!.y;
+  const box = (await forecast.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, 500);
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(400);
+  expect((await games.boundingBox())!.y).toBeLessThan(before - 300);
+});

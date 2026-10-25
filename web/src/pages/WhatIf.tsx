@@ -460,7 +460,8 @@ export default function WhatIfPage() {
           aria-label="Games"
           id="scenario-games"
           // Below the sticky summary bar, so its first rows are never hidden.
-          className="scroll-mt-28 lg:sticky lg:top-[5.75rem] lg:max-h-[calc(100dvh-6.75rem)] lg:overflow-y-auto lg:pr-2"
+          // It scrolls with the page, beside the forecast, not in a box of its own.
+          className="scroll-mt-28"
         >
           {/* Same header frame as the forecast's, so the two columns align. */}
           <div className="flex min-h-[56px] flex-wrap items-end border-b-2 border-ink pb-3">
