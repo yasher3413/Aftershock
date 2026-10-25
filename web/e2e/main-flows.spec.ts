@@ -99,3 +99,35 @@ test("compact phone map keeps every team target inside its viewport", async ({ p
   );
   expect(clipped).toEqual([]);
 });
+
+test("the map zooms with its buttons and ctrl+scroll, spreading crowded teams", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  const map = page.getByTestId("map");
+  const tor = map.locator('[data-team="TOR"]');
+  const mtl = map.locator('[data-team="MTL"]');
+  await expect(tor).toBeVisible({ timeout: 15000 });
+  const gap = async () => {
+    const a = (await tor.boundingBox())!;
+    const b = (await mtl.boundingBox())!;
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  const start = await gap();
+  await map.getByRole("button", { name: "Zoom in" }).click();
+  await expect.poll(gap).toBeGreaterThan(start * 1.15);
+  await map.getByRole("button", { name: "Reset map" }).click();
+  await expect.poll(gap).toBeLessThan(start * 1.05);
+  const box = (await tor.boundingBox())!;
+  await page.mouse.move(box.x, box.y);
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -300);
+  await page.keyboard.up("Control");
+  await expect.poll(gap).toBeGreaterThan(start * 1.15);
+  // Plain scrolling still scrolls the page, not the map.
+  const before = await gap();
+  await page.mouse.wheel(0, 200);
+  await page.waitForTimeout(300);
+  expect(Math.abs((await gap()) - before)).toBeLessThan(1);
+});

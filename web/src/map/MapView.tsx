@@ -26,6 +26,9 @@ export function MapView() {
   const pointer = useRef("mouse");
   const [pinned, setPinned] = useState(false);
   const replaying = useClock((s) => s.mode === "replay");
+  const outer = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [zoomHint, setZoomHint] = useState(false);
   const navigate = useNavigate();
 
   const teams = useLive((s) => s.teams);
@@ -45,6 +48,7 @@ export function MapView() {
     const c = new MapController(el);
     ctrl.current = c;
     c.onLayout = setLayout;
+    c.onZoom = setZoom;
     c.shakeTarget = shaker.current;
     let alive = true;
     c.init().then(() => alive && setReady(true));
@@ -55,6 +59,89 @@ export function MapView() {
       ro.disconnect();
       c.destroy();
       ctrl.current = null;
+    };
+  }, []);
+
+  // Zoom: ctrl or cmd + scroll (and a trackpad pinch, which arrives the same
+  // way) zooms at the pointer; two fingers pinch on a touch screen; a drag
+  // pans once zoomed in. Plain scrolling is left to the page.
+  useEffect(() => {
+    const el = outer.current;
+    if (!el) return;
+    const local = (x: number, y: number) => {
+      const r = el.getBoundingClientRect();
+      return [x - r.left, y - r.top] as const;
+    };
+    let hintTimer: ReturnType<typeof setTimeout> | undefined;
+    const onWheel = (e: WheelEvent) => {
+      const c = ctrl.current;
+      if (!c) return;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const d = Math.max(-60, Math.min(60, e.deltaY));
+        c.zoomAt(Math.exp(-d * 0.01), ...local(e.clientX, e.clientY));
+      } else {
+        setZoomHint(true);
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => setZoomHint(false), 1600);
+      }
+    };
+    const pts = new Map<number, { x: number; y: number }>();
+    let pinch: { cx: number; cy: number; d: number } | null = null;
+    let moved = 0;
+    const onDown = (e: PointerEvent) => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 1) moved = 0;
+      pinch = null;
+    };
+    const onMove = (e: PointerEvent) => {
+      const prev = pts.get(e.pointerId);
+      const c = ctrl.current;
+      if (!prev || !c) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size >= 2) {
+        const [a, b] = [...pts.values()] as [{ x: number; y: number }, { x: number; y: number }];
+        const cx = (a.x + b.x) / 2;
+        const cy = (a.y + b.y) / 2;
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch && pinch.d > 0) {
+          c.zoomAt(d / pinch.d, ...local(cx, cy));
+          c.panBy(cx - pinch.cx, cy - pinch.cy);
+          moved += 10;
+        }
+        pinch = { cx, cy, d };
+      } else if (c.zoomLevel > 1 && (e.pointerType !== "mouse" || e.buttons === 1)) {
+        const dx = e.clientX - prev.x;
+        const dy = e.clientY - prev.y;
+        moved += Math.abs(dx) + Math.abs(dy);
+        if (moved > 4) c.panBy(dx, dy);
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      pts.delete(e.pointerId);
+      pinch = null;
+      // A drag or pinch is not a tap: swallow the click it would end in.
+      if (e.type === "pointerup" && moved > 6 && pts.size === 0) {
+        const stop = (ev: Event) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+        };
+        el.addEventListener("click", stop, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener("click", stop, { capture: true }), 0);
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
+    return () => {
+      clearTimeout(hintTimer);
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
     };
   }, []);
 
@@ -130,7 +217,10 @@ export function MapView() {
 
   return (
     <div
+      ref={outer}
       className="relative h-full w-full overflow-hidden"
+      // One finger scrolls the page until the map is zoomed in; then it pans.
+      style={{ touchAction: zoom > 1 ? "none" : "pan-y" }}
       data-testid="map"
       data-tour="map"
       onClick={(e) => {
@@ -141,6 +231,19 @@ export function MapView() {
       }}
     >
       <MapKey nodes={keyNodes} width={layout?.width ?? 0} height={layout?.height ?? 0} />
+      <ZoomControls
+        zoom={zoom}
+        onZoom={(f) => ctrl.current?.zoomBy(f)}
+        onReset={() => ctrl.current?.resetZoom()}
+      />
+      <p
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 bottom-3 z-20 mx-auto w-max rounded-[var(--radius)] bg-ink/85 px-3 py-1.5 text-[13px] font-semibold text-ice transition-opacity duration-300 ${zoomHint ? "opacity-100" : "opacity-0"}`}
+      >
+        {/Mac|iPhone|iPad/.test(navigator.platform)
+          ? "Pinch or hold ⌘ and scroll to zoom the map"
+          : "Hold Ctrl and scroll to zoom the map"}
+      </p>
       <div className="sr-only" aria-live="polite" role="status">
         {announcement}
       </div>
@@ -285,6 +388,65 @@ export function MapView() {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+const icon = {
+  viewBox: "0 0 20 20",
+  width: 16,
+  height: 16,
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round" as const,
+  "aria-hidden": true,
+};
+
+/** Zoom buttons in the map's top right corner. */
+function ZoomControls({
+  zoom,
+  onZoom,
+  onReset,
+}: {
+  zoom: number;
+  onZoom: (factor: number) => void;
+  onReset: () => void;
+}) {
+  const button =
+    "flex h-10 w-10 items-center justify-center bg-surface text-ink hover:bg-ice-land disabled:text-ink-soft disabled:opacity-50 sm:h-9 sm:w-9";
+  return (
+    <div className="absolute right-3 top-3 z-20 flex gap-2">
+      {zoom > 1 && (
+        <button
+          type="button"
+          onClick={onReset}
+          aria-label="Reset map"
+          className={`${button} rounded-[var(--radius)] border border-ice-scratch`}
+        >
+          <svg {...icon}>
+            <path d="M4 10a6 6 0 1 0 2-4.5M4 3v3.5h3.5" />
+          </svg>
+        </button>
+      )}
+      <div className="flex overflow-hidden rounded-[var(--radius)] border border-ice-scratch">
+        <button
+          type="button"
+          onClick={() => onZoom(1 / 1.6)}
+          disabled={zoom <= 1}
+          aria-label="Zoom out"
+          className={`${button} border-r border-ice-scratch`}
+        >
+          <svg {...icon}>
+            <path d="M5 10h10" />
+          </svg>
+        </button>
+        <button type="button" onClick={() => onZoom(1.6)} aria-label="Zoom in" className={button}>
+          <svg {...icon}>
+            <path d="M5 10h10M10 5v10" />
+          </svg>
+        </button>
       </div>
     </div>
   );

@@ -268,6 +268,13 @@ cannot share files (most laptops) it is Download image. Goal and game cards
 are drawn by the server (`/api/og/tremor`, `/api/og/game`), which also uses
 them as the pages' link previews.
 
+**Map zoom.** Ctrl or cmd and scroll (or a trackpad pinch) zooms at the
+pointer, two fingers pinch on a touch screen, and once zoomed a drag pans;
++, -, and reset sit in the map's top right. Plain scrolling stays with the
+page (a hint says how to zoom), and on touch one finger scrolls the page
+until the map is zoomed in. The projection itself is scaled, so team circles
+keep their size and crowded areas like New York spread apart.
+
 **Phones.** Long lists start short with a Show all button (team pages,
 `components/PhoneFold.tsx`); the footer shows team logos by division and
 the sources as one sentence; Leaders rows are one tap target each with the

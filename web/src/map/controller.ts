@@ -76,6 +76,8 @@ interface Anim {
 const NODE_R = 15;
 
 /** Imperative owner of the Pixi scene. React feeds it data and events. */
+const MAX_ZOOM = 6;
+
 export class MapController {
   private app = new Application();
   private ready = false;
@@ -98,8 +100,14 @@ export class MapController {
   private labelBoxes: LabelBox[] = [];
   private shake: { start: number; magnitude: number } | null = null;
   private running = false;
+  /** Zoom: screen = k * fitted + (x, y). Team circles keep their size, so
+   * crowded areas spread apart as it grows. */
+  private zoom = { k: 1, x: 0, y: 0 };
+  private viewPending = false;
 
   onLayout: (layout: MapLayout) => void = () => {};
+  /** Told the zoom level whenever it changes (1 is the whole league). */
+  onZoom: (k: number) => void = () => {};
   reducedMotion = false;
   /** The element holding the canvas and the HTML team logos. A screen shake
    * moves it whole, so logos stay on their rings. */
@@ -161,9 +169,71 @@ export class MapController {
     if (width < 10 || height < 10) return;
     this.app.renderer.resize(width, height);
     this.vp = { width, height, padding: Math.max(24, Math.min(width, height) * 0.06) };
-    this.projection = makeProjection(this.vp);
+    this.clampZoom();
+    this.applyView();
+  }
+
+  /** Zoom by `factor` about a point in the map's own pixels. */
+  zoomAt(factor: number, fx: number, fy: number): void {
+    const { k, x, y } = this.zoom;
+    const next = Math.max(1, Math.min(MAX_ZOOM, k * factor));
+    const m = next / k;
+    this.zoom = { k: next, x: m * x + (1 - m) * fx, y: m * y + (1 - m) * fy };
+    this.clampZoom();
+    this.scheduleView();
+  }
+
+  /** Zoom about the middle of the map (the + and - buttons). */
+  zoomBy(factor: number): void {
+    this.zoomAt(factor, this.vp.width / 2, this.vp.height / 2);
+  }
+
+  panBy(dx: number, dy: number): void {
+    if (this.zoom.k === 1) return;
+    this.zoom = { ...this.zoom, x: this.zoom.x + dx, y: this.zoom.y + dy };
+    this.clampZoom();
+    this.scheduleView();
+  }
+
+  resetZoom(): void {
+    this.zoom = { k: 1, x: 0, y: 0 };
+    this.scheduleView();
+  }
+
+  get zoomLevel(): number {
+    return this.zoom.k;
+  }
+
+  /** Keep the zoomed map covering the whole view. */
+  private clampZoom(): void {
+    const { k } = this.zoom;
+    const { width: w, height: h } = this.vp;
+    this.zoom.x = Math.min(0, Math.max(w * (1 - k), this.zoom.x));
+    this.zoom.y = Math.min(0, Math.max(h * (1 - k), this.zoom.y));
+  }
+
+  /** Redraw at the next frame, once however many gesture events arrive. */
+  private scheduleView(): void {
+    if (this.viewPending) return;
+    this.viewPending = true;
+    requestAnimationFrame(() => {
+      this.viewPending = false;
+      if (!this.destroyed) this.applyView();
+    });
+  }
+
+  private applyView(): void {
+    if (!this.ready) return;
+    const p = makeProjection(this.vp);
+    const { k, x, y } = this.zoom;
+    if (k !== 1) {
+      const [tx, ty] = p.translate();
+      p.scale(p.scale() * k).translate([tx * k + x, ty * k + y]);
+    }
+    this.projection = p;
     this.drawBase();
     this.layout();
+    this.onZoom(k);
   }
 
   /** Current screen position of a lat/lon (edge chip for off-map venues). */
@@ -197,7 +267,10 @@ export class MapController {
       return { id: t.abbrev, x: pos.x, y: pos.y };
     });
     // Leave square hit areas clear even when teams sit diagonally together.
+    const zoomed = this.zoom.k > 1;
     const out = layoutNodes(inputs, r + 7).map((n) => {
+      // Zoomed in, teams off the edge stay off it instead of piling up there.
+      if (zoomed) return n;
       const margin = r + 3;
       const x = Math.max(margin, Math.min(this.vp.width - margin, n.x));
       const y = Math.max(margin, Math.min(this.vp.height - margin, n.y));
