@@ -414,12 +414,12 @@ export default function WhatIfPage() {
       </p>
       <div className="sticky top-0 z-20 mt-5 flex flex-wrap items-center justify-between gap-3 border-y-2 border-ink bg-surface px-4 py-3">
         <div className="min-w-0" aria-live="polite">
-          <p className="text-[14px] font-semibold">
+          <p className="truncate text-[14px] font-semibold">
             {pickCount
               ? `${pickCount} ${pickCount === 1 ? "pick" : "picks"} in your scenario`
               : "No picks yet: current forecast"}
           </p>
-          <p className="mt-1 text-[13px] text-ink-soft">
+          <p className="mt-1 truncate text-[13px] text-ink-soft">
             {updating
               ? "Recalculating odds"
               : focus
@@ -429,9 +429,16 @@ export default function WhatIfPage() {
                   : "Choose a team below to start."}
           </p>
         </div>
-        <div className="flex gap-2">
-          {pickCount > 0 && !updating && (
-            <ShareMenu card={shareCard} tweet={shareTweet} encoded={encode(scenario)} />
+        {/* The buttons keep their own row on phones and stay put while the odds
+            rerun, so the bar never changes height and the picks never move. */}
+        <div className="flex w-full gap-2 sm:w-auto">
+          {pickCount > 0 && (
+            <ShareMenu
+              card={shareCard}
+              tweet={shareTweet}
+              encoded={encode(scenario)}
+              disabled={updating}
+            />
           )}
           {/* On wide screens the forecast sits beside the picks; on phones it is far below them. */}
           <button

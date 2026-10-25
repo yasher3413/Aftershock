@@ -58,12 +58,15 @@ export function ShareMenu({
   card,
   tweet,
   encoded,
+  disabled = false,
 }: {
   card: CardInput;
   /** Post text without the link; the link is added by X. */
   tweet: string;
   /** The picks, as in the address's `s`. */
   encoded: string;
+  /** While the odds rerun: the card would show the previous numbers. */
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
@@ -251,8 +254,9 @@ export function ShareMenu({
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
+        disabled={disabled}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--radius)] border border-ink px-4 text-[13px] font-semibold"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--radius)] border border-ink px-4 text-[13px] font-semibold disabled:opacity-50"
       >
         <svg
           viewBox="0 0 20 20"

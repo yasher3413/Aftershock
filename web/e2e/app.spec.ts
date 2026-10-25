@@ -132,3 +132,22 @@ test("night replay can skip quiet time and restart without leaving the page", as
   await page.getByRole("tab", { name: "Standings", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Standings", exact: true })).toBeVisible();
 });
+
+test("picking a team on a phone does not move the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/what-if");
+  await expect(page.getByText(/seasons in \d+ ms/)).toBeVisible({ timeout: 30_000 });
+  const bar = page.locator(".sticky.top-0").first();
+  const heights = new Set<number>();
+  const track = async () => heights.add(Math.round((await bar.boundingBox())!.height));
+  await track();
+  const pick = page.locator('button[aria-label*="Not decided"]').nth(1);
+  await pick.click();
+  for (let i = 0; i < 15; i++) {
+    await track();
+    await page.waitForTimeout(60);
+  }
+  await expect(page.getByRole("button", { name: "Share scenario" })).toBeEnabled();
+  await track();
+  expect([...heights]).toHaveLength(1);
+});
