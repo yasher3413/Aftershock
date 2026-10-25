@@ -194,3 +194,19 @@ test("on a phone the What-If Lab shows picks, forecast, and bracket one at a tim
   await expect(bracket).toBeVisible();
   await expect(views).toBeHidden();
 });
+
+test("team page lists start short on a phone and open in full", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/team/MTL");
+  const section = page.locator("section", {
+    has: page.getByRole("heading", { name: "Coming up" }),
+  });
+  const rows = section.locator("tbody tr");
+  await expect(rows.first()).toBeVisible();
+  await expect(rows.filter({ visible: true })).toHaveCount(5);
+  await section.getByRole("button", { name: /Show all 12/ }).click();
+  await expect(rows.filter({ visible: true })).toHaveCount(12);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.reload();
+  await expect(rows.filter({ visible: true })).toHaveCount(12);
+});

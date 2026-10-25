@@ -13,6 +13,7 @@ import { Alerts } from "../panels/Alerts";
 import { Headshot } from "../components/Headshot";
 import { seasonOf } from "../lib/season";
 import { PageLoading } from "../components/PageLoading";
+import { usePhoneFold } from "../components/PhoneFold";
 import { PageMessage, Unreachable } from "../components/PageMessage";
 import { teamTickColor } from "../lib/teamColor";
 import { useDarkScheme } from "../lib/useMedia";
@@ -65,6 +66,12 @@ export default function TeamPage() {
   const dark = useDarkScheme();
   const [ref, width] = useWidth<HTMLDivElement>(720);
   const { team: myTeam, setTeam } = useMyTeam();
+  // On phones each list starts with its top few.
+  const rootFold = usePhoneFold(4);
+  const forFold = usePhoneFold(3);
+  const againstFold = usePhoneFold(3);
+  const schedFold = usePhoneFold(5);
+  const ppaFold = usePhoneFold(8);
   useDocumentMeta(
     data ? `${data.team.name} playoff odds` : abbrev,
     data?.odds
@@ -199,8 +206,8 @@ export default function TeamPage() {
             ) : (
               <div className="grid gap-x-10 md:grid-cols-2">
                 <ul className="divide-y divide-ice-scratch">
-                  {others.slice(0, 10).map((r) => (
-                    <li key={r.game_id} className="py-2 text-[14px]">
+                  {others.slice(0, 10).map((r, i) => (
+                    <li key={r.game_id} className={`py-2 text-[14px] ${rootFold.item(i)}`}>
                       <div className="flex items-baseline justify-between gap-2">
                         <span>
                           Root for <strong>{r.root_for}</strong>{" "}
@@ -217,6 +224,7 @@ export default function TeamPage() {
                     </li>
                   ))}
                 </ul>
+                {rootFold.more(Math.min(others.length, 10), "games")}
                 {own.length > 0 && (
                   <div>
                     <h3 className="mb-1 text-[13px] font-semibold text-ink-soft">
@@ -241,8 +249,8 @@ export default function TeamPage() {
           <div className="grid gap-x-10 md:grid-cols-2">
             <Section title="Biggest tremors for" id="for-h">
               <ul className="divide-y divide-ice-scratch">
-                {data.tremors_for.map((tr) => (
-                  <li key={tr.id}>
+                {data.tremors_for.map((tr, i) => (
+                  <li key={tr.id} className={forFold.item(i)}>
                     <TremorLine t={tr} myTeam={abbrev} focus={abbrev} />
                   </li>
                 ))}
@@ -250,11 +258,12 @@ export default function TeamPage() {
                   <li className="text-[14px] text-ink-soft">None yet this season.</li>
                 )}
               </ul>
+              {forFold.more(data.tremors_for.length, "goals")}
             </Section>
             <Section title="Biggest tremors against" id="against-h">
               <ul className="divide-y divide-ice-scratch">
-                {data.tremors_against.map((tr) => (
-                  <li key={tr.id}>
+                {data.tremors_against.map((tr, i) => (
+                  <li key={tr.id} className={againstFold.item(i)}>
                     <TremorLine t={tr} myTeam={abbrev} focus={abbrev} />
                   </li>
                 ))}
@@ -262,6 +271,7 @@ export default function TeamPage() {
                   <li className="text-[14px] text-ink-soft">None yet this season.</li>
                 )}
               </ul>
+              {againstFold.more(data.tremors_against.length, "goals")}
             </Section>
           </div>
 
@@ -298,8 +308,11 @@ export default function TeamPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.remaining.slice(0, 12).map((g) => (
-                    <tr key={g.game_id} className="border-t border-ice-scratch">
+                  {data.remaining.slice(0, 12).map((g, i) => (
+                    <tr
+                      key={g.game_id}
+                      className={`border-t border-ice-scratch ${schedFold.item(i)}`}
+                    >
                       <td className="py-1.5">
                         <Link to={`/game/${g.game_id}`} className="hover:underline">
                           {g.home ? "vs" : "at"} {g.opponent}
@@ -328,6 +341,7 @@ export default function TeamPage() {
                   ))}
                 </tbody>
               </table>
+              {schedFold.more(Math.min(data.remaining.length, 12), "games")}
             </Section>
             <Section title="Playoff Probability Added" id="ppa-h">
               <table className="w-full text-[14px]">
@@ -340,8 +354,11 @@ export default function TeamPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.players.map((p) => (
-                    <tr key={p.player.id} className="border-t border-ice-scratch">
+                  {data.players.map((p, i) => (
+                    <tr
+                      key={p.player.id}
+                      className={`border-t border-ice-scratch ${ppaFold.item(i)}`}
+                    >
                       <td className="py-1.5">
                         <Link
                           to={`/player/${p.player.id}`}
@@ -364,6 +381,7 @@ export default function TeamPage() {
                   ))}
                 </tbody>
               </table>
+              {ppaFold.more(data.players.length, "players")}
               {data.players.length === 0 && (
                 <p className="text-[14px] text-ink-soft">No goals yet this season.</p>
               )}
