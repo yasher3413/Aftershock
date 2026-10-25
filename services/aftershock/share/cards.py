@@ -343,3 +343,52 @@ def scenario_og(picks: list[str], movers: list[Any], pick_count: int) -> str:
 
 def _scenario_pct(p: float) -> str:
     return f"{p * 100:.{0 if p >= 0.995 or p < 0.005 else 1}f}%"
+
+
+def _game_status(g: S.GameSummary) -> str:
+    if g.state in ("OFF", "FINAL"):
+        end = g.last_period_type
+        return "Final" if end in (None, "REG") else f"Final ({end})"
+    if g.state in ("LIVE", "CRIT"):
+        if g.period_type in ("OT", "SO"):
+            return str(g.period_type)
+        return {1: "1st period", 2: "2nd period", 3: "3rd period"}.get(g.period or 0, "Live")
+    return f"{g.night_date:%B %-d, %Y}"
+
+
+def game_og(g: S.GameSummary, tremors: list[S.Tremor]) -> str:
+    """A game: the score (or the matchup and pregame odds before it starts)
+    and its three biggest goals by magnitude."""
+    w, h = 1200, 630
+    started = g.home_score is not None and g.state not in ("FUT", "PRE")
+    if started:
+        title = f"{g.away} {g.away_score}, {g.home} {g.home_score}"
+    else:
+        title = f"{g.away} at {g.home}"
+    parts = [
+        _text(56, 150, title, 96, family=DISPLAY, weight=800),
+        _text(60, 210, _game_status(g), 32, fill=INK_SOFT),
+    ]
+    goals = sorted((t for t in tremors if not t.overturned), key=lambda x: -x.magnitude)[:3]
+    y = 300
+    for t in goals:
+        who, _ = _headline(t)
+        parts.append(_text(60, y, f"{t.magnitude:.1f}", 64, family=DISPLAY, weight=800, fill=GOAL))
+        parts.append(_text(190, y - 10, f"{who} ({t.team})", 32, weight=600))
+        parts.append(_text(190, y + 22, f"{t.team} playoff odds {_pp(t.ppa)}", 24, fill=INK_SOFT))
+        y += 80
+    if not goals and not started and g.pregame is not None:
+        p_home = g.pregame.home_reg + g.pregame.home_ot + g.pregame.home_so
+        fav, p = (g.home, p_home) if p_home >= 0.5 else (g.away, 1 - p_home)
+        parts.append(_text(60, 320, f"{fav} {p * 100:.0f}% to win", 48, family=DISPLAY, weight=700))
+        parts.append(
+            _text(
+                60, 370, "Every goal will move the playoff race. Follow it live.", 26, fill=INK_SOFT
+            )
+        )
+    day = f"{g.night_date:%B %-d, %Y}"
+    venue = f"{g.venue}, {day}" if g.venue else day
+    parts.append(_text(60, 560, venue, 22, fill=INK_SOFT))
+    parts.append(_text(1140, 590, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"))
+    parts.append(_text(60, 600, ATTRIBUTION, 15, fill=INK_SOFT))
+    return _svg(w, h, "".join(parts))

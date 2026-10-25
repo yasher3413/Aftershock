@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 from aftershock.api import schemas as S
-from aftershock.share.cards import Projection, scenario_og, team_og, tremor_card, tremor_og
+from aftershock.share.cards import Projection, game_og, scenario_og, team_og, tremor_card, tremor_og
 from aftershock.sim.scenario_card import Mover
 
 SIX = S.SixWay(home_reg=0.4, home_ot=0.07, home_so=0.04, away_reg=0.38, away_ot=0.07, away_so=0.04)
@@ -92,3 +92,34 @@ def test_scenario_card_lists_picks_and_movers() -> None:
     assert "35.1% \u2192" in svg and "47.3%" in svg and "16.3%" in svg
     assert "puckquake.com/what-if" in svg
     assert "has been played" in scenario_og([], [], 0)
+
+
+def game(**kw: object) -> S.GameSummary:
+    base = dict(
+        id=2025020001,
+        season=20252026,
+        game_type=2,
+        night_date=date(2025, 10, 16),
+        start_utc=datetime(2025, 10, 16, 23, 0, tzinfo=UTC),
+        home="MTL",
+        away="NSH",
+        venue="Centre Bell",
+        state="OFF",
+        home_score=4,
+        away_score=3,
+        last_period_type="OT",
+    )
+    return S.GameSummary.model_validate({**base, **kw})
+
+
+def test_game_card_has_the_score_and_biggest_goals() -> None:
+    svg = game_og(game(), [tremor()])
+    assert svg.startswith("<svg") and 'width="1200"' in svg and 'height="630"' in svg
+    assert "NSH 3" in svg and "MTL 4" in svg and "Final (OT)" in svg
+    assert "6.4" in svg and "Cole Caufield &amp; Co" in svg and "+5.4 pp" in svg
+    assert "Centre Bell" in svg and "not affiliated" in svg
+    upcoming = game_og(
+        game(state="FUT", home_score=None, away_score=None, last_period_type=None, pregame=SIX),
+        [],
+    )
+    assert "NSH at MTL" in upcoming and "MTL 51% to win" in upcoming

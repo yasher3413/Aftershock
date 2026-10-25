@@ -297,6 +297,9 @@ async def test_pages_carry_share_previews(client: Any, tmp_path: Any) -> None:
         r = await c.get(dead)
         assert r.status_code == 404, dead
         assert "<title>Puckquake</title>" in r.text
+    game_page = (await c.get("/page/game/2026020008")).text
+    assert "/api/og/game/2026020008.png" in game_page
+    assert (await c.get("/api/og/game/1.png")).status_code == 404
     assert (await c.get("/page/embed/TOR")).status_code == 200
     assert (await c.get("/page/night/today")).status_code == 200
     pages._template.clear()

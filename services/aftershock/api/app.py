@@ -643,14 +643,14 @@ async def push_unsubscribe(body: S.PushSubscriptionIn, session: Db) -> Response:
 OG_CACHE = {"Cache-Control": "public, max-age=3600"}
 
 
-async def _png(svg: str) -> Response:
+async def _png(svg: str, cache: str = OG_CACHE["Cache-Control"]) -> Response:
     from aftershock.share.cards import CairoUnavailable, render_png
 
     try:
         data = await asyncio.to_thread(render_png, svg)
     except CairoUnavailable as exc:
         raise HTTPException(503, str(exc)) from exc
-    return Response(data, media_type="image/png", headers=OG_CACHE)
+    return Response(data, media_type="image/png", headers={"Cache-Control": cache})
 
 
 async def _teams(session: AsyncSession) -> list[S.TeamInfo]:
@@ -682,6 +682,21 @@ async def og_team(abbrev: str, session: Db) -> Response:
     run = await Q.latest_run(session, current_season())
     odds = await session.get(TeamOdds, (run.id, team.abbrev)) if run else None
     return await _png(team_og(S.TeamInfo.model_validate(team), Q.odds_out(odds) if odds else None))
+
+
+@router.get("/og/game/{game_id}.png")
+async def og_game(game_id: int, session: Db) -> Response:
+    from aftershock.share.cards import game_og
+
+    page = await Q.game_page(session, game_id)
+    if page is None:
+        raise HTTPException(404, f"No game {game_id}")
+    final = page.game.state in ("OFF", "FINAL")
+    # A game in progress changes with every goal; a final one never does.
+    return await _png(
+        game_og(page.game, page.tremors),
+        OG_CACHE["Cache-Control"] if final else "public, max-age=60",
+    )
 
 
 @router.get("/og/night/{night}.png")

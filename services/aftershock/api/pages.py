@@ -168,7 +168,7 @@ async def page_meta(
             f"{score} | {SITE}",
             f"{g.away} at {g.home}: win probability, shots, and how every goal moved the "
             "playoff race.",
-            f"/api/og/night/{g.night_date}.png",
+            f"/api/og/game/{g.id}.png",
         )
     if m := re.fullmatch(r"/player/(\d+)", path):
         name = await session.scalar(
