@@ -12,10 +12,10 @@
   },
   "redirects": [{ "source": "/teams", "destination": "/standings", "permanent": true }],
   "rewrites": [
-    { "source": "/robots.txt", "destination": "https://140.238.146.151.sslip.io/api/robots.txt" },
-    { "source": "/sitemap.xml", "destination": "https://140.238.146.151.sslip.io/api/sitemap.xml" },
-    { "source": "/api/:path*", "destination": "https://140.238.146.151.sslip.io/api/:path*" },
-    { "source": "/((?!assets/|_vercel/|app\\.html|favicon|sw\\.js|.*\\.[a-z0-9]+$).*)", "destination": "https://140.238.146.151.sslip.io/page/$1" }
+    { "source": "/robots.txt", "destination": "https://api.puckquake.com/api/robots.txt" },
+    { "source": "/sitemap.xml", "destination": "https://api.puckquake.com/api/sitemap.xml" },
+    { "source": "/api/:path*", "destination": "https://api.puckquake.com/api/:path*" },
+    { "source": "/((?!assets/|_vercel/|app\\.html|favicon|sw\\.js|.*\\.[a-z0-9]+$).*)", "destination": "https://api.puckquake.com/page/$1" }
   ],
   "headers": [
     {
