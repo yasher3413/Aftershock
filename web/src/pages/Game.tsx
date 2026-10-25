@@ -9,6 +9,31 @@ import { TeamLogo } from "../components/TeamLogo";
 import { useDocumentMeta } from "../lib/meta";
 import { PageLoading } from "../components/PageLoading";
 import { PageMessage, Unreachable } from "../components/PageMessage";
+import { ShareMenu, type ShareSpec } from "../components/ShareMenu";
+import { fetchCard } from "../lib/fetchCard";
+import type { GameSummary } from "../api/types.gen";
+
+/** What the share menu posts for a game: the score and its biggest goal. */
+function gameShare(g: GameSummary, biggest: Tremor | undefined): ShareSpec {
+  const started = g.home_score != null && g.state !== "FUT" && g.state !== "PRE";
+  const live = g.state === "LIVE" || g.state === "CRIT";
+  const lead = biggest
+    ? `, led by ${biggest.scorer?.name ?? `a ${biggest.team} goal`} at magnitude ${biggest.magnitude.toFixed(1)}`
+    : "";
+  return {
+    label: "Share game",
+    tweet: started
+      ? `${g.away} ${g.away_score}, ${g.home} ${g.home_score}${live ? " (live)" : ""}: how every goal moved the playoff race${lead}.`
+      : `${g.away} at ${g.home}: what this game means for the playoff race.`,
+    link: async () => `${window.location.origin}/game/${g.id}`,
+    image: () => fetchCard(`/api/og/game/${g.id}.png`),
+    // A new goal or a new state makes a new card.
+    key: `game:${g.id}:${g.away_score}-${g.home_score}:${g.state}`,
+    fileName: `puckquake-game-${g.id}.png`,
+    linkHint: "Opens this game",
+    imageHint: "A 1200 by 630 card of this game",
+  };
+}
 
 function Ripple({ t }: { t: Tremor }) {
   const max = Math.max(...t.deltas.map((d) => Math.abs(d.d_playoffs)), 1e-6);
@@ -180,15 +205,18 @@ export default function GamePage() {
     <div className="w-full">
       <header className="border-b border-ice-scratch bg-ice-land">
         <div className="mx-auto max-w-6xl px-4 py-7 md:px-6">
-          <p className="text-[13px] text-ink/80">
-            {new Date(g.start_utc).toLocaleDateString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-            {g.venue ? `, ${g.venue}` : ""}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[13px] text-ink/80">
+              {new Date(g.start_utc).toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+              {g.venue ? `, ${g.venue}` : ""}
+            </p>
+            <ShareMenu spec={gameShare(g, biggest)} />
+          </div>
           <h1 className="sr-only">
             {g.away} {g.away_score ?? ""} at {g.home} {g.home_score ?? ""}, {status}
           </h1>
