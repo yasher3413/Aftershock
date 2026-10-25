@@ -167,3 +167,30 @@ test("on a laptop the picks and the forecast scroll together", async ({ page }) 
   await page.waitForTimeout(400);
   expect((await games.boundingBox())!.y).toBeLessThan(before - 300);
 });
+
+test("on a phone the What-If Lab shows picks, forecast, and bracket one at a time", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/what-if");
+  await expect(page.getByText(/seasons in \d+ ms/)).toBeVisible({ timeout: 30_000 });
+  const views = page.getByRole("group", { name: "Show" });
+  const games = page.locator("#scenario-games");
+  const forecast = page.locator("#scenario-results");
+  const bracket = page.getByRole("heading", { name: "Projected playoff bracket" });
+  await expect(games).toBeVisible();
+  await expect(forecast).toBeHidden();
+  await views.getByRole("button", { name: "Forecast" }).click();
+  await expect(forecast).toBeVisible();
+  await expect(games).toBeHidden();
+  await views.getByRole("button", { name: "Bracket" }).click();
+  await expect(bracket).toBeVisible();
+  await expect(forecast).toBeHidden();
+  await views.getByRole("button", { name: "Picks" }).click();
+  await expect(games).toBeVisible();
+  // Everything still sits side by side on a laptop.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(forecast).toBeVisible();
+  await expect(bracket).toBeVisible();
+  await expect(views).toBeHidden();
+});

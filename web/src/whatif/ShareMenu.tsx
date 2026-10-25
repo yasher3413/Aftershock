@@ -59,6 +59,7 @@ export function ShareMenu({
   tweet,
   encoded,
   disabled = false,
+  compact = false,
 }: {
   card: CardInput;
   /** Post text without the link; the link is added by X. */
@@ -67,6 +68,8 @@ export function ShareMenu({
   encoded: string;
   /** While the odds rerun: the card would show the previous numbers. */
   disabled?: boolean;
+  /** Icon only, beside the view switch on narrow screens; words return while it reports. */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
@@ -224,6 +227,19 @@ export function ShareMenu({
     },
   ];
 
+  const label =
+    status === "card"
+      ? "Card copied"
+      : status === "copied"
+        ? "Link copied"
+        : status === "saved"
+          ? "Image saved"
+          : status === "working"
+            ? "Making image"
+            : status === "error"
+              ? "Could not copy"
+              : "Share scenario";
+
   const menu = (
     <div role="menu" aria-label="Share scenario">
       {actions.map((a) => (
@@ -256,7 +272,7 @@ export function ShareMenu({
         aria-haspopup="menu"
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--radius)] border border-ink px-4 text-[13px] font-semibold disabled:opacity-50"
+        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-[var(--radius)] border border-ink text-[13px] font-semibold disabled:opacity-50 ${compact && status === "idle" ? "px-0" : "px-4"}`}
       >
         <svg
           viewBox="0 0 20 20"
@@ -271,17 +287,7 @@ export function ShareMenu({
         >
           <path d="M10 3v10M6 7l4-4 4 4M4 11v5h12v-5" />
         </svg>
-        {status === "card"
-          ? "Card copied"
-          : status === "copied"
-            ? "Link copied"
-            : status === "saved"
-              ? "Image saved"
-              : status === "working"
-                ? "Making image"
-                : status === "error"
-                  ? "Could not copy"
-                  : "Share scenario"}
+        {compact && status === "idle" ? <span className="sr-only">{label}</span> : label}
       </button>
       {open &&
         (phone ? (

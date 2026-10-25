@@ -21,8 +21,15 @@ import { TeamLogo } from "../components/TeamLogo";
 import { projectBracket, type Series } from "../whatif/bracket";
 import { ShareMenu } from "../whatif/ShareMenu";
 import { useMyTeam } from "../lib/myTeam";
+import { useMedia } from "../lib/useMedia";
 
 const N_SIMS = 10_000;
+type View = "picks" | "forecast" | "bracket";
+const VIEWS: { id: View; label: string }[] = [
+  { id: "picks", label: "Picks" },
+  { id: "forecast", label: "Forecast" },
+  { id: "bracket", label: "Bracket" },
+];
 const DEBOUNCE_MS = 150;
 const RANGES = [
   { id: "7", label: "Next 7 days", days: 7 },
@@ -144,16 +151,17 @@ export default function WhatIfPage() {
   const reduce = useReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myTeam = useMyTeam((s) => s.team);
-  const [resultsInView, setResultsInView] = useState(false);
-  useEffect(() => {
-    const el = document.getElementById("scenario-results");
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setResultsInView(!!e?.isIntersecting), {
-      rootMargin: "0px 0px -50% 0px",
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [boot.data]);
+  // Below laptop width the picks, the forecast, and the bracket take turns
+  // on screen instead of stacking into one very long page.
+  const [view, setView] = useState<View>("picks");
+  const stacked = useMedia("(max-width: 1023px)");
+  const barTop = useRef<HTMLDivElement>(null);
+  const show = (v: View) => {
+    setView(v);
+    // Start the new view at its top, just under the summary bar.
+    const top = (barTop.current?.getBoundingClientRect().top ?? 0) + window.scrollY;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: "auto" });
+  };
 
   // Reality once, then the scenario on every change (debounced, same seed so changes are clean).
   useEffect(() => {
@@ -412,6 +420,7 @@ export default function WhatIfPage() {
           </button>
         )}
       </p>
+      <div ref={barTop} aria-hidden />
       <div className="sticky top-0 z-20 mt-5 flex flex-wrap items-center justify-between gap-3 border-y-2 border-ink bg-surface px-4 py-3">
         <div className="min-w-0" aria-live="polite">
           <p className="truncate text-[14px] font-semibold">
@@ -431,27 +440,31 @@ export default function WhatIfPage() {
         </div>
         {/* The buttons keep their own row on phones and stay put while the odds
             rerun, so the bar never changes height and the picks never move. */}
-        <div className="flex w-full gap-2 sm:w-auto">
+        <div className="flex w-full gap-2 lg:w-auto">
+          {stacked && (
+            <div role="group" aria-label="Show" className="flex flex-1 gap-1">
+              {VIEWS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  aria-pressed={view === v.id}
+                  onClick={() => show(v.id)}
+                  className={`min-h-[44px] flex-1 rounded-[var(--radius)] px-2 text-[13px] font-semibold ${view === v.id ? "bg-ink text-ice" : "text-ink-soft ring-1 ring-ice-scratch ring-inset"}`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          )}
           {pickCount > 0 && (
             <ShareMenu
               card={shareCard}
               tweet={shareTweet}
               encoded={encode(scenario)}
               disabled={updating}
+              compact={stacked}
             />
           )}
-          {/* On wide screens the forecast sits beside the picks; on phones it is far below them. */}
-          <button
-            type="button"
-            onClick={() =>
-              document
-                .getElementById(resultsInView ? "scenario-games" : "scenario-results")
-                ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" })
-            }
-            className="inline-flex min-h-[44px] items-center rounded-[var(--radius)] bg-ink px-4 text-[13px] font-semibold text-ice lg:hidden"
-          >
-            {resultsInView ? "Back to picks" : "View results"}
-          </button>
         </div>
       </div>
 
@@ -461,7 +474,7 @@ export default function WhatIfPage() {
           id="scenario-games"
           // Below the sticky summary bar, so its first rows are never hidden.
           // It scrolls with the page, beside the forecast, not in a box of its own.
-          className="scroll-mt-28"
+          className={`scroll-mt-28 ${view === "picks" ? "" : "hidden"} lg:block`}
         >
           {/* Same header frame as the forecast's, so the two columns align. */}
           <div className="flex min-h-[56px] flex-wrap items-end border-b-2 border-ink pb-3">
@@ -581,7 +594,7 @@ export default function WhatIfPage() {
         <section
           id="scenario-results"
           aria-label="Playoff odds under this scenario"
-          className="scroll-mt-28"
+          className={`scroll-mt-28 ${view === "forecast" ? "" : "hidden"} lg:block`}
         >
           <div className="flex min-h-[56px] flex-wrap items-end justify-between gap-3 border-b-2 border-ink pb-3">
             <h2 className="display text-[30px] font-bold">Your forecast</h2>
@@ -682,7 +695,11 @@ export default function WhatIfPage() {
         </section>
       </div>
 
-      {bracket && <BracketView bracket={bracket} />}
+      {bracket && (
+        <div className={`${view === "bracket" ? "" : "hidden"} lg:block`}>
+          <BracketView bracket={bracket} />
+        </div>
+      )}
     </div>
   );
 }
@@ -716,7 +733,7 @@ const ROUNDS = ["First round", "Second round", "Conference final"];
 
 function BracketView({ bracket }: { bracket: ReturnType<typeof projectBracket> }) {
   return (
-    <section aria-labelledby="bracket-title" className="mt-14">
+    <section aria-labelledby="bracket-title" className="mt-2 lg:mt-14">
       <h2 id="bracket-title" className="display border-b-2 border-ink pb-3 text-[30px] font-bold">
         Projected playoff bracket
       </h2>

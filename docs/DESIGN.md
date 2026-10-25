@@ -249,7 +249,10 @@ The home team's logo sits faded (14 percent) at center ice.
 **What-If Lab.** Each game shows its favorite's chance. Sorting by biggest
 change shows before, with your picks, and change. The projected bracket is a
 full-width section below the picks, every round showing the favorite's
-chance to win the series. Picks never move the page. Share scenario opens a
+chance to win the series. Picks never move the page. Below laptop width the
+picks, the forecast, and the bracket take turns on screen (Picks, Forecast,
+Bracket in the sticky summary bar, with sharing as an icon beside them)
+instead of one 14-screen page. Share scenario opens a
 menu (a sheet along the bottom on phones): Post to X, Copy link, Share image
 (only where the browser can hand files to other apps), and Download image.
 Links are short (`/what-if?id=...`, saved picks) and their preview is the
