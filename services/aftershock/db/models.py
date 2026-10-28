@@ -417,3 +417,38 @@ class PlayerEvent(Base):
     detail: Mapped[str | None] = mapped_column(String(64), nullable=True)
     tremor_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     ppa: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class PlayerValueRow(Base):
+    """A player's worth from the Roster Lab's player value model."""
+
+    __tablename__ = "player_values"
+    player_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text)
+    position: Mapped[str] = mapped_column(String(1))  # F, D, or G
+    last_team: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    off60: Mapped[float] = mapped_column(Float)
+    def60: Mapped[float] = mapped_column(Float)
+    finish_per_shot: Mapped[float] = mapped_column(Float)
+    shots_per60: Mapped[float] = mapped_column(Float)
+    gsax_per_shot: Mapped[float] = mapped_column(Float)
+    ev_toi_pg: Mapped[float] = mapped_column(Float)
+    pp_toi_pg: Mapped[float] = mapped_column(Float)
+    games: Mapped[int] = mapped_column(Integer)
+    model_version: Mapped[str] = mapped_column(String(32))
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class RosterSpot(Base):
+    """A player on a team's current roster, and whether he is dressing lately."""
+
+    __tablename__ = "roster_spots"
+    team: Mapped[str] = mapped_column(String(3), primary_key=True)
+    player_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text)
+    position: Mapped[str] = mapped_column(String(1))
+    in_lineup: Mapped[bool] = mapped_column(Boolean)
+    ev_toi_pg: Mapped[float] = mapped_column(Float)
+    pp_toi_pg: Mapped[float] = mapped_column(Float)
+    toi_share: Mapped[float] = mapped_column(Float)  # goalies: share of recent minutes
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

@@ -707,6 +707,13 @@ class Worker:
             await run_discipline(self.season)
         except Exception as exc:
             log.warning("worker.discipline_failed", error=str(exc))
+        from aftershock.jobs.player_values import FIRST_SEASON, roster_seasons, run_player_values
+
+        try:
+            # The Roster Lab's player values, from this season and the two before.
+            await run_player_values([x for x in roster_seasons(self.season) if x >= FIRST_SEASON])
+        except Exception as exc:
+            log.warning("worker.player_values_failed", error=str(exc))
 
     async def maybe_recap(self) -> None:
         """Fifteen minutes after the night's last game goes final."""

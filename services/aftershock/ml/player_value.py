@@ -39,6 +39,8 @@ class PlayerValue:
     ev_toi_pg: float = 0.0  # minutes
     pp_toi_pg: float = 0.0
     games: int = 0
+    name: str = ""
+    last_team: str | None = None
 
 
 def _design(stints: list[Stint]) -> tuple[sp.csr_matrix, np.ndarray, np.ndarray, list[int]]:

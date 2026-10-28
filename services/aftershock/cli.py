@@ -309,3 +309,16 @@ def onice(season: Annotated[list[int], typer.Option(help="Season id(s).")]) -> N
             typer.echo(await run_on_ice(s))
 
     asyncio.run(run())
+
+
+@app.command("player-values")
+def player_values(
+    season: Annotated[list[int], typer.Option(help="Season id(s), e.g. 20252026.")],
+    refit_alpha: Annotated[
+        bool, typer.Option(help="Choose the ridge penalty again by cross-validation.")
+    ] = False,
+) -> None:
+    """Value every player and record each team's lineup (Roster Lab)."""
+    from aftershock.jobs.player_values import run_player_values
+
+    typer.echo(asyncio.run(run_player_values(season, refit_alpha=refit_alpha)))
