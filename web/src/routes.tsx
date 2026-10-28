@@ -14,6 +14,7 @@ const Game = lazy(() => import("./pages/Game"));
 const TremorPage = lazy(() => import("./pages/Tremor"));
 const Leaders = lazy(() => import("./pages/Leaders"));
 const WhatIf = lazy(() => import("./pages/WhatIf"));
+const RosterLab = lazy(() => import("./pages/RosterLab"));
 const Method = lazy(() => import("./pages/Method"));
 const About = lazy(() => import("./pages/About"));
 const Status = lazy(() => import("./pages/Status"));
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: "/tremor/:id", element: page(<TremorPage />) },
       { path: "/leaders", element: page(<Leaders />) },
       { path: "/what-if", element: page(<WhatIf />) },
+      { path: "/roster-lab", element: page(<RosterLab />) },
       { path: "/method", element: page(<Method />) },
       { path: "/about", element: page(<About />) },
       { path: "/status", element: page(<Status />) },

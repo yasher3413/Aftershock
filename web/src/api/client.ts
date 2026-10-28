@@ -15,9 +15,12 @@ import type {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** The server's own explanation, when it gave one in words. */
+  detail?: string;
+  constructor(status: number, message: string, detail?: string) {
     super(message);
     this.status = status;
+    this.detail = detail;
   }
 }
 
@@ -42,7 +45,16 @@ export const queryClient = new QueryClient({
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, init);
-  if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText} for ${path}`);
+  if (!res.ok) {
+    let detail: string | undefined;
+    try {
+      const body = (await res.json()) as { detail?: unknown };
+      if (typeof body.detail === "string") detail = body.detail;
+    } catch {
+      // Not JSON.
+    }
+    throw new ApiError(res.status, `${res.status} ${res.statusText} for ${path}`, detail);
+  }
   return (await res.json()) as T;
 }
 

@@ -12,6 +12,7 @@ const NAV = [
   { to: "/leaders", label: "Leaders" },
   { to: "/standings", label: "Standings" },
   { to: "/what-if", label: "What if" },
+  { to: "/roster-lab", label: "Roster Lab" },
   { to: "/method", label: "How it works" },
 ];
 
