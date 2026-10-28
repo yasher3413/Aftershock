@@ -821,14 +821,21 @@ async def roster_free_agents(session: Db, st: State, q: str = "") -> Any:
     ]
 
 
-async def _roster_run(encoded: str, session: AsyncSession, st: AppState) -> S.RosterRunOut:
+_roster_waiting = 0  # runs queued for the simulator lock
+
+
+async def _roster_run(
+    encoded: str, session: AsyncSession, st: AppState, client: str
+) -> S.RosterRunOut:
     import hashlib
 
     from aftershock.api import roster as R
+    from aftershock.db.models import PlayerValueRow
     from aftershock.jobs.player_values import roster_state
+    from aftershock.sim import roster_lab as RL
     from aftershock.sim.roster import encode_moves, parse_moves, team_deltas
-    from aftershock.sim.roster_lab import run_roster_lab
 
+    global _roster_waiting
     try:
         moves = parse_moves(encoded)
     except ValueError as exc:
@@ -836,35 +843,67 @@ async def _roster_run(encoded: str, session: AsyncSession, st: AppState) -> S.Ro
     canon = encode_moves(moves)
     raw, boot = await _boot(st)
     day = R.today()
-    key = f"aftershock:roster-run:{canon}:{day}:{hashlib.sha1(raw).hexdigest()[:16]}"
+    # The same moves give the same numbers until the day, the forecast, or
+    # the player values change.
+    values_at = await session.scalar(select(func.max(PlayerValueRow.computed_at)))
+    stamp = hashlib.sha1(raw + str(values_at).encode()).hexdigest()[:16]
+    key = f"aftershock:roster-run:{canon}:{day}:{stamp}"
     cached = await st.redis.get(key)
     if cached is not None:
         return S.RosterRunOut.model_validate_json(cached)
+    limit_key = f"aftershock:roster-runs:{client}"
+    count = await st.redis.incr(limit_key)
+    if count == 1:
+        await st.redis.expire(limit_key, R.RATE_WINDOW_S)
+    if count > R.RUN_LIMIT:
+        raise HTTPException(429, "Too many trades at once; try again in a few minutes.")
     rosters, values = await roster_state(session)
     problem = R.validate(moves, rosters, values)
     if problem:
         raise HTTPException(422, problem)
-    league = float(boot["league_avg"])
-    windows = team_deltas(moves, rosters, values, league, day)
-    async with _scenario_sim:
-        result = await asyncio.to_thread(run_roster_lab, boot, windows)
-    why = R.why(moves, rosters, values, league, day, R.future_games(boot))
-    out = S.RosterRunOut(
-        encoded=canon,
-        moves=[S.RosterMoveOut(**m) for m in R.describe(moves, rosters, values)],
-        teams=[S.RosterTeamLine(**vars(t)) for t in result.teams],
-        changed=sorted({w.team for w in windows} | set(why)),
-        why={t: [S.RosterWhy(**r) for r in rows] for t, rows in why.items()},
-        computed_at=datetime.now(UTC),
-    )
-    await st.redis.set(key, out.model_dump_json(), ex=ROSTER_RUN_TTL_S)
-    return out
+    if _roster_waiting >= R.MAX_WAITING:
+        raise HTTPException(503, "The Roster Lab is busy. Try again in a few seconds.")
+    _roster_waiting += 1
+    try:
+        async with _scenario_sim:
+            # Someone else may have run these moves while this one waited.
+            cached = await st.redis.get(key)
+            if cached is not None:
+                return S.RosterRunOut.model_validate_json(cached)
+            league = float(boot["league_avg"])
+            windows = team_deltas(moves, rosters, values, league, day)
+            job = asyncio.ensure_future(asyncio.to_thread(RL.run_roster_lab, boot, windows))
+            try:
+                result = await asyncio.shield(job)
+            except asyncio.CancelledError:
+                # The caller left; keep the lock until the simulation ends so
+                # two never share the CPU.
+                with contextlib.suppress(Exception):
+                    await job
+                raise
+            why = R.why(moves, rosters, values, league, day, R.future_games(boot))
+            out = S.RosterRunOut(
+                encoded=canon,
+                moves=[S.RosterMoveOut(**m) for m in R.describe(moves, rosters, values)],
+                teams=[S.RosterTeamLine(**vars(t)) for t in result.teams],
+                changed=sorted({w.team for w in windows} | set(why)),
+                why={t: [S.RosterWhy(**r) for r in rows] for t, rows in why.items()},
+                computed_at=datetime.now(UTC),
+            )
+            await st.redis.set(key, out.model_dump_json(), ex=ROSTER_RUN_TTL_S)
+            return out
+    finally:
+        _roster_waiting -= 1
 
 
 @router.post("/roster-lab/run", response_model=S.RosterRunOut)
-async def roster_run(body: S.RosterRunIn, session: Db, st: State) -> S.RosterRunOut:
+async def roster_run(
+    body: S.RosterRunIn, session: Db, st: State, request: Request
+) -> S.RosterRunOut:
     """Run the season before and after a set of roster moves."""
-    return await _roster_run(body.encoded, session, st)
+    from aftershock.api import scenarios as SC
+
+    return await _roster_run(body.encoded, session, st, SC.client_ip(request))
 
 
 @router.post("/roster-moves", response_model=S.ScenarioOut)
@@ -920,7 +959,7 @@ async def get_roster_moves(moves_id: str, session: Db) -> Response:
 
 
 @router.get("/og/roster/{moves_id}.png")
-async def og_roster(moves_id: str, session: Db, st: State) -> Response:
+async def og_roster(moves_id: str, session: Db, st: State, request: Request) -> Response:
     """A saved trade's preview: the moves and the changed teams' playoff
     odds before and after, rerun on the current forecast."""
     from aftershock.api import scenarios as SC
@@ -930,7 +969,7 @@ async def og_roster(moves_id: str, session: Db, st: State) -> Response:
     row = await session.get(SavedRosterMoves, moves_id) if SC.ID_RE.fullmatch(moves_id) else None
     if row is None:
         raise HTTPException(404, f"No saved trade {moves_id}")
-    run = await _roster_run(row.encoded, session, st)
+    run = await _roster_run(row.encoded, session, st, SC.client_ip(request))
     return await _png(roster_og(run), cache="public, max-age=3600")
 
 

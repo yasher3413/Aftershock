@@ -270,3 +270,56 @@ async def test_card_names_moves_and_odds(client: Any) -> None:
     svg = roster_og(body)
     assert "MTL gets TOR F0" in svg and "MTL F0 out 4 weeks" in svg
     assert "puckquake.com/roster-lab" in svg and "TOR" in svg
+
+
+def count_runs(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    import aftershock.sim.roster_lab as RL
+
+    calls: list[int] = []
+    real = RL.run_roster_lab
+
+    def counted(boot: Any, windows: Any) -> Any:
+        calls.append(1)
+        return real(boot, windows)
+
+    monkeypatch.setattr(RL, "run_roster_lab", counted)
+    return calls
+
+
+async def test_identical_runs_at_once_simulate_once(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import asyncio
+
+    c, _ = client
+    calls = count_runs(monkeypatch)
+    rs = await asyncio.gather(*(run(c, "t100-MTL") for _ in range(3)))
+    assert [r.status_code for r in rs] == [200, 200, 200]
+    assert len(calls) == 1
+
+
+async def test_new_player_values_are_not_served_from_cache(
+    client: Any, db_engine: AsyncEngine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sqlalchemy import update
+
+    c, _ = client
+    calls = count_runs(monkeypatch)
+    await run(c, "t100-MTL")
+    async with session_scope(db_engine) as s:
+        await s.execute(
+            update(PlayerValueRow).values(computed_at=datetime(2026, 11, 2, tzinfo=UTC))
+        )
+    await run(c, "t100-MTL")
+    assert len(calls) == 2
+
+
+async def test_runs_are_rate_limited(client: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from aftershock.api import roster as R
+
+    c, _ = client
+    monkeypatch.setattr(R, "RUN_LIMIT", 2)
+    codes = [(await run(c, f"i{100 + i}-4")).status_code for i in range(3)]
+    assert codes == [200, 200, 429]
+    # A run already cached is not counted.
+    assert (await run(c, "i100-4")).status_code == 200
