@@ -314,6 +314,15 @@ def realism(
     losses.sort(reverse=True)
     top5 = [(values[p].name if p in values else str(p), round(x, 2)) for x, p in losses[:5]]
 
+    starters = []
+    for team, spots in rosters.items():
+        goalies = [s for s in spots if s.in_lineup and s.position == "G"]
+        if goalies:
+            g = max(goalies, key=lambda s: s.toi_share)
+            starters.append((-pts([Injury(g.player_id, None)]).get(team, 0.0), g.player_id))
+    starters.sort(reverse=True)
+    top_goalie = [(values[p].name if p in values else str(p), round(x, 2)) for x, p in starters[:3]]
+
     def fourth(team: str) -> int:
         fw = sorted(
             (s for s in rosters[team] if s.in_lineup and s.position == "F"),
@@ -347,6 +356,8 @@ def realism(
         "fourth_line_swap_points": round(swap, 3),
         "fourth_line_swap_median_points": round(swap_median, 3),
         "corr_lineup_vs_goal_diff": round(corr, 3),
+        # Spot check, not a gate: losing the three most valuable starting goalies.
+        "top_starting_goalies_full_season_points": top_goalie,
         "passed": passed,
     }
     return report
@@ -413,10 +424,12 @@ async def _game_ids(seasons: list[int], settings: Settings) -> list[int]:
 
 
 async def load_season(seasons: list[int], settings: Settings | None = None) -> Season:
+    """Every finished regular-season game in the seasons, in order. Each game
+    is reduced to what the model needs as it is read, so the raw files are
+    never all in memory at once (the worker shares a small machine)."""
     s = settings or get_settings()
     model = default_model()
-    season = Season()
-    raw: list[tuple[str, dict[str, Any], list[dict[str, Any]]]] = []
+    read: list[tuple[str, GameData]] = []
     async with NhlClient() as client:
         for gid in await _game_ids(seasons, s):
             pbp = await client.play_by_play(gid)
@@ -425,10 +438,12 @@ async def load_season(seasons: list[int], settings: Settings | None = None) -> S
             shifts = (await client.shiftcharts(gid)).get("data", [])
             if not shifts:
                 continue
-            raw.append((str(pbp.get("startTimeUTC", "")), pbp, shifts))
-    raw.sort(key=lambda r: r[0])
-    for i, (_, pbp, shifts) in enumerate(raw):
-        season.games.append(read_game(i, pbp, shifts, model))
+            read.append((str(pbp.get("startTimeUTC", "")), read_game(0, pbp, shifts, model)))
+    read.sort(key=lambda r: r[0])
+    season = Season()
+    for i, (_, g) in enumerate(read):
+        g.order = i
+        season.games.append(g)
     return season
 
 
