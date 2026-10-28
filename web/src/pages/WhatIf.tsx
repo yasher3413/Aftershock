@@ -310,6 +310,9 @@ export default function WhatIfPage() {
             random numbers, so you can compare the effect of your choices.{" "}
             <Link to="/method#use-whatif" className="font-semibold text-blue-line hover:underline">
               How to use it
+            </Link>{" "}
+            <Link to="/roster-lab" className="font-semibold text-blue-line hover:underline">
+              Try a trade in the Roster Lab
             </Link>
           </p>
           {sharedMissing && (

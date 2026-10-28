@@ -167,6 +167,12 @@ export default function TeamPage() {
               >
                 {myTeam === abbrev ? "This is my team" : "Make this my team"}
               </button>
+              <Link
+                to={`/roster-lab?team=${abbrev}`}
+                className="min-h-[44px] content-center font-semibold text-blue-line"
+              >
+                Try a trade
+              </Link>
               <Alerts team={abbrev} />
             </div>
           </div>
