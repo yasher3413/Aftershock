@@ -5,6 +5,7 @@
  */
 export interface Schema {
   energy: EnergySeries[];
+  free_agents: FreeAgent[];
   game: GameResponse;
   health: HealthResponse;
   leaders: LeadersResponse;
@@ -23,6 +24,9 @@ export interface Schema {
   player: PlayerResponse;
   recap: RecapResponse;
   replay: ReplayBundleOut;
+  roster_run: RosterRunOut;
+  roster_team: RosterTeamResponse;
+  saved: ScenarioOut;
   state: StateResponse;
   status: StatusResponse;
   team: TeamResponse;
@@ -44,6 +48,17 @@ export interface EnergyPoint {
   cumulative: number;
   day: number;
   shift: number;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "FreeAgent".
+ */
+export interface FreeAgent {
+  id: number;
+  last_team: string | null;
+  name: string;
+  position: string;
+  worth_goals: number;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -532,6 +547,83 @@ export interface ReplayInitial {
   games: GameSummary[];
   odds: TeamOdds[];
   standings: StandingsRow[];
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterRunOut".
+ */
+export interface RosterRunOut {
+  changed: string[];
+  computed_at: string;
+  encoded: string;
+  moves: RosterMoveOut[];
+  teams: RosterTeamLine[];
+  why: {
+    [k: string]: RosterWhy[];
+  };
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterMoveOut".
+ */
+export interface RosterMoveOut {
+  from_team: string | null;
+  move: "trade" | "injury" | "sign";
+  name: string;
+  player_id: number;
+  to_team: string | null;
+  weeks: number | null;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterTeamLine".
+ */
+export interface RosterTeamLine {
+  cup_after: number;
+  cup_before: number;
+  playoffs_after: number;
+  playoffs_before: number;
+  points_after: number;
+  points_before: number;
+  team: string;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterWhy".
+ */
+export interface RosterWhy {
+  goals: number;
+  move: "trade" | "injury" | "sign";
+  name: string;
+  player_id: number;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterTeamResponse".
+ */
+export interface RosterTeamResponse {
+  games_left: number;
+  players: RosterPlayer[];
+  team: string;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterPlayer".
+ */
+export interface RosterPlayer {
+  id: number;
+  in_lineup: boolean;
+  name: string;
+  position: string;
+  worth_goals: number;
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "ScenarioOut".
+ */
+export interface ScenarioOut {
+  encoded: string;
+  id: string;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema

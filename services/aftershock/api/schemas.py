@@ -650,3 +650,7 @@ class Schema(BaseModel):
     recap: RecapResponse
     message: LiveMessage
     replay: ReplayBundleOut
+    roster_team: RosterTeamResponse
+    free_agents: list[FreeAgent]
+    roster_run: RosterRunOut
+    saved: ScenarioOut

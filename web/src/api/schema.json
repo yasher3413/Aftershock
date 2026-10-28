@@ -170,6 +170,46 @@
       "title": "EventMsg",
       "type": "object"
     },
+    "FreeAgent": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "last_team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Team"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "position": {
+          "title": "Position",
+          "type": "string"
+        },
+        "worth_goals": {
+          "title": "Worth Goals",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "position",
+        "last_team",
+        "worth_goals"
+      ],
+      "title": "FreeAgent",
+      "type": "object"
+    },
     "GamePreview": {
       "description": "Before puck drop: the model's projection instead of empty stats.",
       "properties": {
@@ -1664,6 +1704,277 @@
       "title": "RootingLine",
       "type": "object"
     },
+    "RosterMoveOut": {
+      "properties": {
+        "from_team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "From Team"
+        },
+        "move": {
+          "enum": [
+            "trade",
+            "injury",
+            "sign"
+          ],
+          "title": "Move",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "player_id": {
+          "title": "Player Id",
+          "type": "integer"
+        },
+        "to_team": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "To Team"
+        },
+        "weeks": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Weeks"
+        }
+      },
+      "required": [
+        "player_id",
+        "name",
+        "move",
+        "from_team",
+        "to_team",
+        "weeks"
+      ],
+      "title": "RosterMoveOut",
+      "type": "object"
+    },
+    "RosterPlayer": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "in_lineup": {
+          "title": "In Lineup",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "position": {
+          "title": "Position",
+          "type": "string"
+        },
+        "worth_goals": {
+          "title": "Worth Goals",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "position",
+        "in_lineup",
+        "worth_goals"
+      ],
+      "title": "RosterPlayer",
+      "type": "object"
+    },
+    "RosterRunOut": {
+      "properties": {
+        "changed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Changed",
+          "type": "array"
+        },
+        "computed_at": {
+          "format": "date-time",
+          "title": "Computed At",
+          "type": "string"
+        },
+        "encoded": {
+          "title": "Encoded",
+          "type": "string"
+        },
+        "moves": {
+          "items": {
+            "$ref": "#/$defs/RosterMoveOut"
+          },
+          "title": "Moves",
+          "type": "array"
+        },
+        "teams": {
+          "items": {
+            "$ref": "#/$defs/RosterTeamLine"
+          },
+          "title": "Teams",
+          "type": "array"
+        },
+        "why": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/RosterWhy"
+            },
+            "type": "array"
+          },
+          "title": "Why",
+          "type": "object"
+        }
+      },
+      "required": [
+        "encoded",
+        "moves",
+        "teams",
+        "changed",
+        "why",
+        "computed_at"
+      ],
+      "title": "RosterRunOut",
+      "type": "object"
+    },
+    "RosterTeamLine": {
+      "properties": {
+        "cup_after": {
+          "title": "Cup After",
+          "type": "number"
+        },
+        "cup_before": {
+          "title": "Cup Before",
+          "type": "number"
+        },
+        "playoffs_after": {
+          "title": "Playoffs After",
+          "type": "number"
+        },
+        "playoffs_before": {
+          "title": "Playoffs Before",
+          "type": "number"
+        },
+        "points_after": {
+          "title": "Points After",
+          "type": "number"
+        },
+        "points_before": {
+          "title": "Points Before",
+          "type": "number"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "playoffs_before",
+        "playoffs_after",
+        "cup_before",
+        "cup_after",
+        "points_before",
+        "points_after"
+      ],
+      "title": "RosterTeamLine",
+      "type": "object"
+    },
+    "RosterTeamResponse": {
+      "properties": {
+        "games_left": {
+          "title": "Games Left",
+          "type": "integer"
+        },
+        "players": {
+          "items": {
+            "$ref": "#/$defs/RosterPlayer"
+          },
+          "title": "Players",
+          "type": "array"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team",
+        "games_left",
+        "players"
+      ],
+      "title": "RosterTeamResponse",
+      "type": "object"
+    },
+    "RosterWhy": {
+      "properties": {
+        "goals": {
+          "title": "Goals",
+          "type": "number"
+        },
+        "move": {
+          "enum": [
+            "trade",
+            "injury",
+            "sign"
+          ],
+          "title": "Move",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "player_id": {
+          "title": "Player Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "player_id",
+        "name",
+        "move",
+        "goals"
+      ],
+      "title": "RosterWhy",
+      "type": "object"
+    },
+    "ScenarioOut": {
+      "properties": {
+        "encoded": {
+          "title": "Encoded",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "encoded"
+      ],
+      "title": "ScenarioOut",
+      "type": "object"
+    },
     "ScheduleGame": {
       "properties": {
         "game_id": {
@@ -2895,6 +3206,13 @@
       "title": "Energy",
       "type": "array"
     },
+    "free_agents": {
+      "items": {
+        "$ref": "#/$defs/FreeAgent"
+      },
+      "title": "Free Agents",
+      "type": "array"
+    },
     "game": {
       "$ref": "#/$defs/GameResponse"
     },
@@ -2970,6 +3288,15 @@
     "replay": {
       "$ref": "#/$defs/ReplayBundleOut"
     },
+    "roster_run": {
+      "$ref": "#/$defs/RosterRunOut"
+    },
+    "roster_team": {
+      "$ref": "#/$defs/RosterTeamResponse"
+    },
+    "saved": {
+      "$ref": "#/$defs/ScenarioOut"
+    },
     "state": {
       "$ref": "#/$defs/StateResponse"
     },
@@ -2996,7 +3323,11 @@
     "status",
     "recap",
     "message",
-    "replay"
+    "replay",
+    "roster_team",
+    "free_agents",
+    "roster_run",
+    "saved"
   ],
   "title": "Schema",
   "type": "object"
