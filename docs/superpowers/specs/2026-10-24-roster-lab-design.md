@@ -1,4 +1,4 @@
-# Team Builder: design
+# Roster Lab: design
 
 Status: agreed in conversation with the owner on 2026-10-24 and 2026-10-27,
 pending the owner's read of this document. Answers that are my calls rather
@@ -9,7 +9,7 @@ than the owner's are marked "(my call)".
 Fans argue about trades, injuries, and signings constantly: "if we got
 Hughes we'd make it", "losing Matthews kills us". Puckquake already turns
 any change in the season into playoff and Cup odds; the What-If Lab does it
-for game results. The Team Builder does it for rosters: move players between
+for game results. The Roster Lab does it for rosters: move players between
 teams, take a player out, or add one, and see how far it moves each team's
 odds. The owner's reference is hockeystats.com's Roster Builder.
 
@@ -24,10 +24,14 @@ believable answer, and share it.
 ## Goals
 
 - Pick a team (or two) and move players: trade between two teams, remove a
-  player (injury), or add any NHL player (signing). An injury has a length
-  the fan chooses (owner's decision; see "Moves").
+  player (injury), or sign a free agent. An injury has a length the fan
+  chooses (owner's decision; see "Moves"). A player on another team can
+  only be had by trading for him (owner's decision, 2026-10-27, after
+  comparing hockeystats and PuckGM; not a sandbox).
 - Rerun the rest of the season and show, for each team changed, playoff odds
-  and Cup odds before and after, plus projected points.
+  and Cup odds before and after, plus projected points, and the whole
+  league's table before and after with the changed teams highlighted (owner's
+  decision, following hockeystats' projections table).
 - Show each moved player's worth ("about +X goals over the rest of the
   season" for his new team), so a result can be traced to who caused it.
 - Share it like everything else: one share menu (Post on X, Share, Copy
@@ -62,17 +66,17 @@ believable answer, and share it.
   lengths is my call). Games inside that window use the team without him;
   games after it use the team with him back. Lengths are counted in calendar
   days from today, so "4 weeks" covers the team's games in the next 28 days.
-- **Signing:** adding a player who is on another NHL team takes him off that
-  team, so it is really a one-way trade, and that team's odds are shown too
-  (my call: otherwise one player would count on two teams). Only players with
-  NHL minutes since 2024-25 can be added, since the model has no value for
-  anyone else (my call).
+- **Signing:** only free agents can be signed: players with NHL minutes since
+  2024-25 who are on no NHL roster now (owner's decision). Players with no
+  NHL minutes are left out, since the model has no value for them (my call).
+  A player on another team can only be traded for, and that team gets
+  players back (owner's decision).
 - **The "before" roster** is who has been dressing lately: players in the
   team's lineup in its recent games (my call). A player already out of the
   lineup (injured, scratched) is not in it, and taking him out changes
   nothing; the team rating already reflects his absence, so counting it again
   would double it. Bringing such a player back is not in the first version.
-- **Offseason:** the builder works during the regular season only; in the
+- **Offseason:** the Roster Lab works during the regular season only; in the
   offseason the page says it returns when the season starts (my call).
   Projecting next season for summer signings is a separate later job.
 
@@ -131,15 +135,19 @@ page:
 
 ## The page
 
-- Its own tab in the site menu, "Team builder", at `/team-builder` (the
-  owner's decision). The phone menu already scrolls sideways; the builder
-  makes sure the new tab fits that row cleanly.
-- Team pages get "Try a trade" linking to the builder with that team loaded.
+- Its own tab in the site menu, "Roster Lab", at `/roster-lab`, next to the
+  What-If Lab, which stays as it is (owner's decision, 2026-10-28: the two do
+  different jobs, and mixing picks with trades would hide which one moved
+  the odds). The phone menu already scrolls sideways; the new tab must fit
+  that row cleanly.
+- Team pages get "Try a trade" linking to the Roster Lab with that team
+  loaded. The What-If Lab and the Roster Lab link to each other (my call).
 - Flow: choose up to two teams; each shows its roster (forwards, defence,
   goalies) with each player's worth; tap a player to send him to the other
-  team or remove him; "Add a player" searches every NHL player. Results
+  team or remove him; "Sign a free agent" searches the free agents. Results
   update after each change: per team, playoff odds and Cup odds before and
-  after, projected points, and a one-line "why" (the biggest contributors).
+  after, projected points, and a one-line "why" (the biggest contributors);
+  below that, the league table before and after, changed teams highlighted.
 - Phones: the same pattern as the What-If Lab (one column, sticky summary
   with the headline change, share as an icon).
 - Roster shape stays normal: at most 14 forwards, 8 defence, and 3 goalies
