@@ -57,4 +57,8 @@ def whatif_payload(
         "playoff_p": [[round(float(v), 5) for v in row] for row in inputs.playoff_p],
         "tie_theta": float(inputs.tie_theta),
         "team_sigma": float(inputs.team_sigma),
+        # For the Roster Lab (sim/roster_lab.py); the What-If Lab ignores them.
+        "ratings": {t: [round(o, 6), round(d, 6)] for t, (o, d) in inputs.ratings.items()},
+        "league_avg": float(inputs.league_avg),
+        "params": inputs.params.to_dict() if inputs.params else None,
     }

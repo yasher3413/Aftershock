@@ -79,6 +79,12 @@ class SimInputs:
     focus: NDArray[np.uint32]
     # Per-simulation team strength noise (log-odds scale), tuned by the backtest.
     team_sigma: float = 0.0
+    # The simulation ratings ({team: (off, def)}), league scoring and model
+    # parameters behind ``probs``, ``lam`` and ``playoff_p``; the Roster Lab
+    # rescales from them.
+    ratings: dict[str, tuple[float, float]] = field(default_factory=dict)
+    league_avg: float = 0.0
+    params: StrengthParams | None = None
 
     def copy(self) -> SimInputs:
         return replace(
@@ -281,4 +287,7 @@ async def build_inputs(
         tie_theta=params.tie_theta,
         focus=np.array(focus, dtype=np.uint32),
         team_sigma=float(getattr(shrink, "sigma", 0.0)),
+        ratings={t: (sim_engine.team(t).off, sim_engine.team(t).defense) for t in schedule.teams},
+        league_avg=sim_engine.league_goals,
+        params=sim_engine.params,
     )

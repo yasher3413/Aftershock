@@ -1,0 +1,31 @@
+{
+  "model_version": "roster-1.0.0",
+  "alpha": 1000.0,
+  "players": 1207,
+  "top5_full_season_points": [
+    [
+      "Zach Werenski",
+      10.12
+    ],
+    [
+      "Leon Draisaitl",
+      9.93
+    ],
+    [
+      "Nathan MacKinnon",
+      9.09
+    ],
+    [
+      "Jordan Spence",
+      8.85
+    ],
+    [
+      "Adam Fox",
+      8.72
+    ]
+  ],
+  "fourth_line_swap_points": 3.711,
+  "fourth_line_swap_median_points": 1.682,
+  "corr_lineup_vs_goal_diff": 0.797,
+  "passed": true
+}

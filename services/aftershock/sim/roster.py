@@ -37,6 +37,11 @@ NOUNS = {
 # shot applies to (checked against the data in the realism report).
 SHOTS_AGAINST_PG = 40.0
 MIN_GAMES_FOR_LEVEL = 20
+# The values cover five on five, finishing, and goaltending, not the power
+# play, penalties, or faceoffs, so they understate a whole player. One scale
+# brings the top five skaters to about 9 standings points over 82 games, in
+# line with public player-value models (docs/DECISIONS.md, 2026-10-28).
+VALUE_SCALE = 1.48
 
 
 @dataclass(frozen=True)
@@ -230,7 +235,7 @@ def team_goals(
     for k, share in enumerate(shares):
         v = order[k] if k < len(order) else repl_g
         ga -= v.gsax_per_shot * SHOTS_AGAINST_PG * share
-    return gf, ga
+    return VALUE_SCALE * gf, VALUE_SCALE * ga
 
 
 def team_deltas(

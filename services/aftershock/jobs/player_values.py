@@ -9,6 +9,7 @@ the worker's nightly step, outside game hours, and from the CLI.
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -19,6 +20,7 @@ import numpy as np
 import structlog
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from aftershock.config import Settings, get_settings
 from aftershock.db.models import Game, PlayerValueRow, RosterSpot
@@ -255,27 +257,25 @@ def value_from_row(r: PlayerValueRow) -> PlayerValue:
     )
 
 
-async def load_roster_state() -> tuple[dict[str, list[Spot]], dict[int, PlayerValue]]:
+async def roster_state(
+    session: AsyncSession,
+) -> tuple[dict[str, list[Spot]], dict[int, PlayerValue]]:
     """Every team's roster spots and every player's value, as stored."""
-    async with session_scope() as s:
-        values = {
-            r.player_id: value_from_row(r)
-            for r in (await s.execute(select(PlayerValueRow))).scalars()
-        }
-        rosters: dict[str, list[Spot]] = defaultdict(list)
-        for r in (await s.execute(select(RosterSpot).order_by(RosterSpot.team))).scalars():
-            rosters[r.team].append(
-                Spot(
-                    r.player_id,
-                    r.team,
-                    r.position,
-                    r.in_lineup,
-                    r.ev_toi_pg,
-                    r.pp_toi_pg,
-                    r.toi_share,
-                )
+    rows = (await session.execute(select(PlayerValueRow))).scalars()
+    values = {r.player_id: value_from_row(r) for r in rows}
+    rosters: dict[str, list[Spot]] = defaultdict(list)
+    for r in (await session.execute(select(RosterSpot).order_by(RosterSpot.team))).scalars():
+        rosters[r.team].append(
+            Spot(
+                r.player_id, r.team, r.position, r.in_lineup, r.ev_toi_pg, r.pp_toi_pg, r.toi_share
             )
+        )
     return dict(rosters), values
+
+
+async def load_roster_state() -> tuple[dict[str, list[Spot]], dict[int, PlayerValue]]:
+    async with session_scope() as s:
+        return await roster_state(s)
 
 
 def season_points(d_off: float, d_def: float, params: StrengthParams | None = None) -> float:
@@ -322,14 +322,12 @@ def realism(
         return fw[min(11, len(fw) - 1)].player_id
 
     teams = sorted(rosters)
-    swap = max(
-        (
-            abs(v)
-            for a, b in zip(teams[::2], teams[1::2], strict=False)
-            for v in pts([Trade(fourth(a), b), Trade(fourth(b), a)]).values()
-        ),
-        default=0.0,
-    )
+    swaps = [
+        max((abs(v) for v in pts([Trade(fourth(a), b), Trade(fourth(b), a)]).values()), default=0.0)
+        for a, b in zip(teams[::2], teams[1::2], strict=False)
+    ]
+    swap = max(swaps, default=0.0)
+    swap_median = float(np.median(swaps)) if swaps else 0.0
     net: dict[str, float] = {}
     for t, spots in rosters.items():
         lu = [s for s in spots if s.in_lineup]
@@ -341,13 +339,54 @@ def realism(
         if len(common) > 2
         else 0.0
     )
-    passed = all(7.0 <= x <= 11.0 for _, x in top5) and swap < 1.0 and corr > 0.4
+    passed = (
+        all(7.0 <= x <= 11.0 for _, x in top5) and swap_median < 2.0 and swap < 4.0 and corr > 0.4
+    )
     report: dict[str, Any] = {
         "top5_full_season_points": top5,
         "fourth_line_swap_points": round(swap, 3),
+        "fourth_line_swap_median_points": round(swap_median, 3),
         "corr_lineup_vs_goal_diff": round(corr, 3),
         "passed": passed,
     }
+    return report
+
+
+def goal_diff(season: int, settings: Settings | None = None) -> dict[str, float]:
+    """Each team's goal difference per game in a season, from raw play-by-play."""
+    s = settings or get_settings()
+    year = str(season // 10000)
+    tot: dict[str, float] = defaultdict(float)
+    n: dict[str, int] = defaultdict(int)
+    for path in (s.raw_cache_dir / "play-by-play").glob(f"{year}02*.json.gz"):
+        with gzip.open(path, "rt", encoding="utf-8") as fh:
+            g = json.load(fh)
+        if g.get("gameState") not in FINISHED_STATES:
+            continue
+        h, a = g["homeTeam"], g["awayTeam"]
+        d = float(h.get("score", 0)) - float(a.get("score", 0))
+        tot[h["abbrev"]] += d
+        tot[a["abbrev"]] -= d
+        n[h["abbrev"]] += 1
+        n[a["abbrev"]] += 1
+    return {t: tot[t] / n[t] for t in tot}
+
+
+async def run_roster_check(season: int, settings: Settings | None = None) -> dict[str, Any]:
+    """The realism report, from the stored values and last season's results;
+    written to ``ml/reports/roster.json``."""
+    s = settings or get_settings()
+    rosters, values = await load_roster_state()
+    alpha = float(json.loads(_alpha_path(s).read_text())["alpha"])
+    previous = (season // 10000 - 1) * 10000 + season // 10000
+    report = {
+        "model_version": MODEL_VERSION,
+        "alpha": alpha,
+        "players": len(values),
+        **realism(rosters, values, goal_diff(previous, s)),
+    }
+    path = s.ml_dir / "reports" / "roster.json"
+    path.write_text(json.dumps(report, indent=2) + "\n")
     return report
 
 

@@ -54,7 +54,10 @@ def _picks(encoded: str) -> dict[int, tuple[bool, str]]:
     return out
 
 
-def _run(core: Any, boot: dict[str, Any], picks: dict[int, tuple[bool, str]]) -> np.ndarray:
+def _run(
+    core: Any, boot: dict[str, Any], picks: dict[int, tuple[bool, str]]
+) -> dict[str, np.ndarray]:
+    """The simulator's metrics for the bootstrap with ``picks`` made final."""
     teams = {t: i for i, t in enumerate(boot["teams"])}
     games = boot["games"]
     n = len(games)
@@ -103,7 +106,7 @@ def _run(core: Any, boot: dict[str, Any], picks: dict[int, tuple[bool, str]]) ->
         np.zeros(0, np.uint32),
         team_sigma=float(boot.get("team_sigma", 0.0)),
     )
-    return np.asarray(res.metrics["p_playoffs"], np.float64)
+    return {k: np.asarray(v, np.float64) for k, v in res.metrics.items()}
 
 
 def scenario_card(boot: dict[str, Any], encoded: str, top: int = 5) -> ScenarioCard:
@@ -123,8 +126,8 @@ def scenario_card(boot: dict[str, Any], encoded: str, top: int = 5) -> ScenarioC
     if not future:
         return ScenarioCard(picks=[], movers=[])
     live = {g["game_id"]: picks[g["game_id"]] for g in future}
-    before = _run(aftershock_core, boot, {})
-    after = _run(aftershock_core, boot, live)
+    before = _run(aftershock_core, boot, {})["p_playoffs"]
+    after = _run(aftershock_core, boot, live)["p_playoffs"]
     order = np.argsort(-np.abs(after - before), kind="stable")[:top]
     movers = [
         Mover(boot["teams"][i], float(before[i]), float(after[i]))

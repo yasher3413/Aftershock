@@ -322,3 +322,15 @@ def player_values(
     from aftershock.jobs.player_values import run_player_values
 
     typer.echo(asyncio.run(run_player_values(season, refit_alpha=refit_alpha)))
+
+
+@app.command("roster-check")
+def roster_check(
+    season: Annotated[int, typer.Option(help="The current season id, e.g. 20262027.")],
+) -> None:
+    """Check the Roster Lab's realism targets; exits 1 if one fails."""
+    from aftershock.jobs.player_values import run_roster_check
+
+    report = asyncio.run(run_roster_check(season))
+    typer.echo(json.dumps(report, indent=2))
+    raise typer.Exit(0 if report["passed"] else 1)

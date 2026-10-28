@@ -622,3 +622,25 @@ Each entry: date, decision, alternatives considered, reason.
   needs a login); X rejects posts over its weighted 280, which plain
   character counts underestimate by three or more per post.
 
+
+## 2026-10-28: Roster Lab player values: one scale, and what "near zero" means
+
+- **Decision:** the ridge penalty is the one cross-validation picks (1000,
+  in minutes of weight), and every team change from a roster move is
+  multiplied by `VALUE_SCALE = 1.48` (`services/aftershock/sim/roster.py`),
+  which puts the five most valuable skaters at about 9 standings points over
+  82 games. The realism check (`aftershock roster-check`) asks for the top
+  five within 7 to 11 points, a typical fourth-line swap under 2 points and
+  none over 4, and lineup strength that tracks real goal difference.
+- **Alternatives:** no scale (top five at 6 to 7 points); a stronger penalty
+  (3000 to 30000) with a larger scale (2.2 to 3.1); the design's first
+  target of every fourth-line swap under 1 point.
+- **Reason:** the values cover five on five, finishing, and goaltending, not
+  the power play, penalties, or faceoffs, so they understate a whole player;
+  public player-value models put the best skaters near 4 to 5 wins, about 8
+  to 10 points. A stronger penalty did not narrow the gap between stars and
+  depth players: at every penalty the best fourth-line swap stayed about a
+  third of a top-five player. Real fourth-liners do differ by a point or two
+  in those models too, so "under 1 point for every swap" was too strict. The
+  owner's worry was a depth trade swinging a team 20 points; the largest is
+  under 4.

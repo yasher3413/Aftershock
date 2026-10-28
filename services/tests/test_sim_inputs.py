@@ -34,3 +34,40 @@ def test_future_games_use_the_shrunk_simulation_ratings() -> None:
     half = shrunk(engine, 0.5).predict("CAR", "TOR", None)
     assert np.allclose(probs[1], half.p, atol=1e-6)
     assert 0.5 < half.p_home_win < full.p_home_win
+
+
+def test_whatif_payload_carries_the_simulation_ratings() -> None:
+    from aftershock.sim.inputs import SimInputs
+    from aftershock.sim.whatif import whatif_payload
+
+    sch = SeasonSchedule(
+        season=20262027,
+        config="test",
+        teams=["CAR", "TOR"],
+        game_ids=np.array([1], dtype=np.int64),
+        home=np.array([0], dtype=np.uint16),
+        away=np.array([1], dtype=np.uint16),
+        start_utc=[datetime(2026, 10, 1, tzinfo=UTC)],
+    )
+    z = np.zeros(1, np.uint8)
+    inputs = SimInputs(
+        schedule=sch,
+        status=z,
+        home_goals=z,
+        away_goals=z,
+        end=z,
+        live_home=z,
+        live_away=z,
+        probs=np.zeros((1, 6), np.float32),
+        lam=np.zeros((1, 2), np.float32),
+        playoff_p=np.zeros((2, 2), np.float32),
+        tie_theta=1.2,
+        focus=np.zeros(0, np.uint32),
+        ratings={"CAR": (0.1, -0.05), "TOR": (0.0, 0.02)},
+        league_avg=3.01,
+        params=StrengthParams(),
+    )
+    p = whatif_payload(inputs, 20262027)
+    assert p["ratings"] == {"CAR": [0.1, -0.05], "TOR": [0.0, 0.02]}
+    assert p["league_avg"] == 3.01
+    assert StrengthParams(**p["params"]) == StrengthParams()
