@@ -627,7 +627,8 @@ Each entry: date, decision, alternatives considered, reason.
 
 - **Decision:** the ridge penalty is the one cross-validation picks (1000,
   in minutes of weight), and every team change from a roster move is
-  multiplied by `VALUE_SCALE = 1.48` (`services/aftershock/sim/roster.py`),
+  multiplied by `VALUE_SCALE = 1.48` (skaters only; goalie saves above
+  expected are already a whole measure) (`services/aftershock/sim/roster.py`),
   which puts the five most valuable skaters at about 9 standings points over
   82 games. The realism check (`aftershock roster-check`) asks for the top
   five within 7 to 11 points, a typical fourth-line swap under 2 points and

@@ -231,17 +231,21 @@ by shots plus 1,500. Usage: even strength and power play minutes per game
 over each player's last 40 games. Lineup: rostered players who played on or
 after the team's third-last game (goalies: tenth-last). A move reassigns the
 team's minutes by rank, fills an empty slot with a lower-quartile regular,
-and multiplies the change by `VALUE_SCALE = 1.48`.
+and multiplies the skaters' change by `VALUE_SCALE = 1.48` (goalies' saves
+above expected are already whole and are not scaled; 43 unblocked shots
+against per game, measured on 2025-26).
 
 **Checks** (`ml/reports/roster.json`, `aftershock roster-check`). In
 synthetic games a planted player is recovered and one with few minutes is
 shrunk (tests). On real data the five most valuable skaters are worth 10.1,
 9.9, 9.1, 8.9, and 8.7 standings points over 82 games for an average team;
 the median fourth-line swap is 1.7 points and the largest 3.7; summed lineup
-strength follows last season's goal difference per game at r = 0.80.
+strength follows last season's goal difference per game at r = 0.81.
+Losing the most valuable starting goalies for a season costs 10.8 (Logan
+Thompson), 10.7 (Ilya Sorokin), and 8.3 (Jeremy Swayman) points.
 
 **Limitations.** No power play, penalty, or faceoff model (one scale covers
 them); players out of the lineup lately cannot be moved or brought back;
 players new to the NHL since 2024-25 have no value until they play; a player
 has the same value on any team (no fit with linemates); the goalie term
-assumes 40 unblocked shots against per game.
+assumes 43 unblocked shots against per game for every team.

@@ -34,8 +34,8 @@ NOUNS = {
     "G": ("goalie", "goalies"),
 }
 # Unblocked attempts a team faces per game, the shots a goalie's GSAx per
-# shot applies to (checked against the data in the realism report).
-SHOTS_AGAINST_PG = 40.0
+# shot applies to: 42.8 per team-game over 400 games of 2025-26.
+SHOTS_AGAINST_PG = 43.0
 MIN_GAMES_FOR_LEVEL = 20
 # The values cover five on five, finishing, and goaltending, not the power
 # play, penalties, or faceoffs, so they understate a whole player. One scale
@@ -134,7 +134,11 @@ def _team_of(rosters: dict[str, list[Spot]], pid: int) -> str | None:
     return None
 
 
-def check_shape(rosters: dict[str, list[Spot]], moves: list[Move]) -> str | None:
+def check_shape(
+    rosters: dict[str, list[Spot]],
+    moves: list[Move],
+    values: dict[int, PlayerValue] | None = None,
+) -> str | None:
     """The first roster limit the moves break, in words. A limit a team
     already breaks today only counts if the moves make it worse."""
     pos = {s.player_id: s.position for spots in rosters.values() for s in spots}
@@ -149,7 +153,8 @@ def check_shape(rosters: dict[str, list[Spot]], moves: list[Move]) -> str | None
                 after.setdefault(mv.to, Counter())[p] += 1
     for mv in moves:
         if isinstance(mv, Sign):
-            p = pos.get(mv.player_id, "F")
+            v = (values or {}).get(mv.player_id)
+            p = pos.get(mv.player_id) or (v.position if v else "F")
             after.setdefault(mv.to, Counter())[p] += 1
     for low in (True, False):  # a shortage is the clearer message
         for team in sorted(after):
@@ -219,6 +224,7 @@ def team_goals(
                 v, pp = repl, 0.0
             gf += v.off60 * m / 60 + v.finish_per_shot * v.shots_per60 * (m + pp) / 60
             ga += v.def60 * m / 60
+    gf, ga = VALUE_SCALE * gf, VALUE_SCALE * ga  # skaters only: GSAx is already whole
     shares = sorted((s.toi_share for s in slots if s.position == "G"), reverse=True)
     incumbents = sorted(
         (s for s in lineup if s.position == "G" and s.toi_share >= 0), key=lambda s: -s.toi_share
@@ -235,7 +241,7 @@ def team_goals(
     for k, share in enumerate(shares):
         v = order[k] if k < len(order) else repl_g
         ga -= v.gsax_per_shot * SHOTS_AGAINST_PG * share
-    return VALUE_SCALE * gf, VALUE_SCALE * ga
+    return gf, ga
 
 
 def team_deltas(

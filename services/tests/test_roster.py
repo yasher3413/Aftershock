@@ -1,3 +1,4 @@
+import math
 from datetime import date, timedelta
 
 import pytest
@@ -116,3 +117,28 @@ def test_bad_encodings_are_refused(bad: str) -> None:
 
 def test_window_type() -> None:
     assert Window("TOR", TODAY, None, 0.0, 0.0).end is None
+
+
+def test_shape_uses_a_free_agents_own_position(league) -> None:
+    rosters, values = league
+    values[901] = PlayerValue(901, "G", games=40)
+    values[902] = PlayerValue(902, "D", games=40)
+    values[903] = PlayerValue(903, "G", games=40)
+    # TOR has 2 goalies: a third is fine, a fourth is not.
+    assert check_shape(rosters, [Sign(901, "TOR")], values) is None
+    msg = check_shape(rosters, [Sign(901, "TOR"), Sign(903, "TOR")], values)
+    assert msg == "TOR would have 4 goalies; a team can carry at most 3."
+    # A defenceman is not counted as a forward.
+    assert check_shape(rosters, [Sign(902, "TOR")], values) is None
+
+
+def test_goalie_value_is_not_scaled_like_skaters(league) -> None:
+    from aftershock.sim.roster import SHOTS_AGAINST_PG
+
+    rosters, values = league
+    values[999] = PlayerValue(999, "G", gsax_per_shot=0.02)
+    (w,) = team_deltas([Sign(999, "TOR")], rosters, values, LEAGUE, TODAY)
+    # The newcomer takes the starter's 0.7; the old starter the backup's 0.3.
+    d_ga = -((0.02 - 0.004) * 0.7 + (0.004 - 0.0) * 0.3) * SHOTS_AGAINST_PG
+    assert w.d_def == pytest.approx(math.log(1 + d_ga / LEAGUE))
+    assert SHOTS_AGAINST_PG == 43.0

@@ -14,6 +14,7 @@ from typing import Any
 
 from aftershock.ml.player_value import PlayerValue
 from aftershock.sim.roster import (
+    SHOTS_AGAINST_PG,
     VALUE_SCALE,
     Injury,
     Move,
@@ -30,6 +31,8 @@ from aftershock.sim.roster_lab import EASTERN, game_date
 MAX_TEAMS = 2
 RATE_LIMIT = 30  # saved moves per address per window
 RATE_WINDOW_S = 600
+RUN_LIMIT = 60  # simulated (uncached) runs per address per window
+MAX_WAITING = 4  # runs queued for the one simulator before new ones are turned away
 
 
 def today() -> date:
@@ -72,7 +75,7 @@ def validate(
             teams.add(mv.to)
     if len(teams) > MAX_TEAMS:
         return "The Roster Lab moves players between two teams at a time."
-    return check_shape(rosters, moves)
+    return check_shape(rosters, moves, values)
 
 
 def future_games(boot: dict[str, Any]) -> dict[str, list[date]]:
@@ -117,7 +120,7 @@ def free_agent_worth(v: PlayerValue, games_left: float) -> float:
         v.ev_toi_pg + v.pp_toi_pg
     ) / 60
     if v.position == "G":
-        per_game = v.gsax_per_shot * 40.0 * 0.5
+        return games_left * v.gsax_per_shot * SHOTS_AGAINST_PG * 0.5
     return VALUE_SCALE * games_left * per_game
 
 

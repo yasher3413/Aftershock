@@ -9,7 +9,7 @@ splits, metrics, and limitations are in [`ml/MODEL_CARDS.md`](../ml/MODEL_CARDS.
 | Team strength | `ml/artifacts/strength-1.0.0.json` | `ml/reports/strength.json` | 2021-22 to 2025-26: 59.3% accuracy, 3-way log loss 1.035 |
 | Win probability | `ml/artifacts/wp-1.0.0*` | `ml/reports/wp.json` | 2025-26: log loss 0.798 (lookup table 0.800) |
 | Season simulator | `ml/artifacts/sim-1.0.0.json` | `ml/reports/backtest.json` | P(playoffs) Brier 0.106 (points % baseline 0.153) |
-| Player values (Roster Lab) | `ml/artifacts/roster-1.0.0.json` | `ml/reports/roster.json` | Top five skaters 8.7 to 10.1 points a season; lineup strength vs goal difference r = 0.80 |
+| Player values (Roster Lab) | `ml/artifacts/roster-1.0.0.json` | `ml/reports/roster.json` | Top five skaters 8.7 to 10.1 points a season; lineup strength vs goal difference r = 0.81 |
 
 Training order matters because each model feeds the next: xG, then team
 strength (which uses xG), then win probability (which uses both). Run

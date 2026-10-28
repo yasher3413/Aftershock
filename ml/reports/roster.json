@@ -26,6 +26,20 @@
   ],
   "fourth_line_swap_points": 3.711,
   "fourth_line_swap_median_points": 1.682,
-  "corr_lineup_vs_goal_diff": 0.797,
+  "corr_lineup_vs_goal_diff": 0.807,
+  "top_starting_goalies_full_season_points": [
+    [
+      "Logan Thompson",
+      10.78
+    ],
+    [
+      "Ilya Sorokin",
+      10.69
+    ],
+    [
+      "Jeremy Swayman",
+      8.29
+    ]
+  ],
   "passed": true
 }
