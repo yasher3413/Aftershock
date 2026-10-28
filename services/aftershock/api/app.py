@@ -455,7 +455,7 @@ async def methodology(st: State) -> dict[str, Any]:
     reports = st.settings.ml_dir / "reports"
     out: dict[str, Any] = {"plots": {}}
     raw: dict[str, Any] = {}
-    for name in ("xg", "strength", "wp", "backtest", "magnitude", "discipline"):
+    for name in ("xg", "strength", "wp", "backtest", "magnitude", "discipline", "roster"):
         f = reports / f"{name}.json"
         if f.exists():
             raw[name] = json.loads(f.read_text())

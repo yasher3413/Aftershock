@@ -47,3 +47,31 @@ test("mobile contents reaches limitations without overflowing the page", async (
     true,
   );
 });
+
+test("the Roster Lab section explains player values with its realism check", async ({ page }) => {
+  const roster = {
+    alpha: 1000,
+    players: 1207,
+    top5_full_season_points: [
+      ["Zach Werenski", 10.12],
+      ["Leon Draisaitl", 9.93],
+      ["Nathan MacKinnon", 9.09],
+      ["Jordan Spence", 8.85],
+      ["Adam Fox", 8.72],
+    ],
+    fourth_line_swap_points: 3.711,
+    fourth_line_swap_median_points: 1.682,
+    corr_lineup_vs_goal_diff: 0.797,
+    passed: true,
+  };
+  await page.route("**/api/methodology", (route) =>
+    route.fulfill({ json: { ...(fixture("methodology") as object), roster } }),
+  );
+  await page.goto("/method#roster-lab");
+  await expect(
+    page.getByRole("heading", { name: "Player values in the Roster Lab" }),
+  ).toBeVisible();
+  await page.getByText("Roster Lab evidence", { exact: true }).click();
+  await expect(page.getByText(/Zach Werenski \(10\.1\)/)).toBeVisible();
+  await expect(page.getByText(/typical fourth-line swap moves 1\.7 points/)).toBeVisible();
+});

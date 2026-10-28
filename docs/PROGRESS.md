@@ -300,30 +300,45 @@ built from the recording:
     off; `bot_posts` table (migration 0009), `aftershock bot-mode`, setup in
     DEPLOY. Goal clock corrections now reach the stored goal too.
 
+  - Roster Lab (2026-10-28): a tab at `/roster-lab` from the approved
+    design and plan (`docs/superpowers/specs/2026-10-24-roster-lab-design.md`,
+    `docs/superpowers/plans/2026-10-28-roster-lab.md`). Trade players
+    between two teams, take one out for 1 to 8 weeks or the season, or sign
+    a free agent; both teams' playoff odds, Cup odds, and points before and
+    after, each move's goals, and the league table. Player values from
+    five-on-five RAPM, finishing, and goalie GSAx (`roster-1.0.0`), rebuilt
+    nightly; `player_values`, `roster_spots`, and `roster_moves` tables
+    (migrations 0010 and 0011); short links and a server card. Linked from
+    the What-If Lab and team pages.
+
 ## Next
 
-1. The X goal bot is built and deployed, switched off (2026-10-24). The
+1. Deploy the Roster Lab (DEPLOY, "Roster Lab"): migrate, run
+   `aftershock player-values` once in the worker, restart the worker so the
+   What-If bootstrap carries the simulation ratings, then try a trade on a
+   phone.
+2. The X goal bot is built and deployed, switched off (2026-10-24). The
    owner creates @puckquake and its developer app and adds the keys
    (DEPLOY, "Goal bot on X"); then a full night in dry run, then live.
-2. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
+3. Resize the VM to 4 OCPU / 24 GB when Oracle has A1 capacity (Edit,
    Shape; free), then set `API_WORKERS=4` in the VM's `.env`.
-3. From the critique, still open: merge Night's two transport rows; open
+4. From the critique, still open: merge Night's two transport rows; open
    teams and goals in a sheet over the map instead of leaving it. (Home and
    Night now share one panel component, `panels/SidePanels.tsx`.)
-4. The domain is done: www.puckquake.com for the site, api.puckquake.com for
+5. The domain is done: www.puckquake.com for the site, api.puckquake.com for
    the api and live updates, and the site is in Google Search Console with
    the sitemap submitted (2026-10-24). Later: fill the 2024-25 shift-chart
    gap from NHL HTML reports; goalie "PPA saved".
-5. Later: goal alerts. The code is done, but the VM has no VAPID keys, so
+6. Later: goal alerts. The code is done, but the VM has no VAPID keys, so
    `/api/push/key` returns a null key and the team page hides the alerts option.
    Generate a key pair, put both in the VM's `.env`, restart, and check a
    notification arrives. Until then, About's privacy section describes a
    feature nobody can turn on; drop that sentence if alerts stay off.
-6. Later, before the April playoffs: the X goal bot's playoff version (see
+7. Later, before the April playoffs: the X goal bot's playoff version (see
    docs/superpowers/specs/2026-10-23-goal-bot-design.md, "Playoffs,
    later"), starting with checking that the simulator honours playoff
    series already in progress.
-7. Optional: recompute this season's odds history overnight with the
+8. Optional: recompute this season's odds history overnight with the
    2026-10-24 model, so team odds charts have no model step (it would also
    shift past goals' magnitudes slightly).
 

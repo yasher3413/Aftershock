@@ -275,6 +275,20 @@ page (a hint says how to zoom), and on touch one finger scrolls the page
 until the map is zoomed in. The projection itself is scaled, so team circles
 keep their size and crowded areas like New York spread apart.
 
+**Roster Lab** (`/roster-lab`, 2026-10-28). A tab beside the What-If Lab,
+which stays about game results. Choose a team and, for trades, a partner;
+each roster lists forwards, defence, and goalies with each player's worth in
+goals over the rest of the season and one native menu per player (Keep,
+Trade to the partner, Out 1 to 8 weeks, Out for the season). A traded player
+stays in his old list, struck through with an Undo, and appears in the new
+one as "From TOR". Players out of the lineup lately are listed but cannot be
+moved. The two rosters stack in the left column (side by side cut names
+off); the right column, sticky on laptops, shows each changed team's
+playoff odds, Cup odds, and points before and after, each move's goals, and
+the league table (changed teams first, all 32 on request). The sticky
+summary bar matches the What-If Lab's, with Rosters and Results tabs on
+phones and sharing as an icon. A refused move says why and offers Undo.
+
 **Phones.** Long lists start short with a Show all button (team pages,
 `components/PhoneFold.tsx`); the footer shows team logos by division and
 the sources as one sentence; Leaders rows are one tap target each with the

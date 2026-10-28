@@ -210,3 +210,38 @@ percentage to date (and its interaction with the month), fit on the tuning
 seasons. Plot: `backtest_reliability.svg`. Before the season, odds only
 modestly beat a coin flip (Brier 0.25), which is the honest state of preseason
 forecasting.
+
+## Player values (`roster-1.0.0`)
+
+**What it predicts.** Each player's effect on his team's goals per game, for
+the Roster Lab's trades, injuries, and signings.
+
+**Data.** Regular-season games since 2024-25 (shift charts start there):
+2,650 games and 1,207 players at the 2026-10-28 run. Five-on-five stints
+with both goalies in (`services/aftershock/ml/stints.py`); unblocked attempts
+scored by the xG model.
+
+**Method.** Skaters: weighted ridge regression of each stint's xG per 60 for
+the attacking side on attacker offense and defender defense indicators
+(`services/aftershock/ml/player_value.py`), weighted by minutes, penalty 1000
+chosen by five-fold cross-validation grouped by game
+(`ml/artifacts/roster-1.0.0.json`). Finishing: goals minus xG per shot,
+divided by shots plus 200. Goalies: xG minus goals against per shot, divided
+by shots plus 1,500. Usage: even strength and power play minutes per game
+over each player's last 40 games. Lineup: rostered players who played on or
+after the team's third-last game (goalies: tenth-last). A move reassigns the
+team's minutes by rank, fills an empty slot with a lower-quartile regular,
+and multiplies the change by `VALUE_SCALE = 1.48`.
+
+**Checks** (`ml/reports/roster.json`, `aftershock roster-check`). In
+synthetic games a planted player is recovered and one with few minutes is
+shrunk (tests). On real data the five most valuable skaters are worth 10.1,
+9.9, 9.1, 8.9, and 8.7 standings points over 82 games for an average team;
+the median fourth-line swap is 1.7 points and the largest 3.7; summed lineup
+strength follows last season's goal difference per game at r = 0.80.
+
+**Limitations.** No power play, penalty, or faceoff model (one scale covers
+them); players out of the lineup lately cannot be moved or brought back;
+players new to the NHL since 2024-25 have no value until they play; a player
+has the same value on any team (no fit with linemates); the goalie term
+assumes 40 unblocked shots against per game.

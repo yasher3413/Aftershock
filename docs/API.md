@@ -31,6 +31,11 @@ the generated file is stale.
 | `POST /scenarios` | Save What-If picks (`{"encoded": "2026020170.hr_..."}`, the Lab's `s` format, up to 1,400 picks of scheduled games) for a short link; returns `{"id", "encoded"}` with an 8-character id, the same id for the same picks. Limited to 30 saves per visitor per 10 minutes (`429`) |
 | `GET /scenarios/{id}` | A saved scenario (`404` if unknown); cached for a day |
 | `GET /og/scenario/{id}.png` | A saved scenario's share image, 1200 by 630: its picks rerun on the current forecast (10,000 seasons, the Lab's seed), cached for six hours |
+| `GET /roster-lab/teams/{abbrev}` | A team's roster for the Roster Lab: `games_left` and each player's `position` (F, D, G), `in_lineup` (dressing lately), and `worth_goals` (goal difference for the team over its remaining games). `409` outside the regular season, `503` before the worker publishes |
+| `GET /roster-lab/free-agents?q=` | Up to 20 free agents (NHL minutes since 2024-25, on no roster) whose name contains `q`, most valuable first |
+| `POST /roster-lab/run` | `{"encoded": "t8482079-TOR_i8479318-4"}` (`t{player}-{TEAM}` trade, `s{player}-{TEAM}` sign, `i{player}-{weeks}` out, 0 for the season; at most 20 moves, two teams). Returns `moves`, all 32 teams' playoff odds, Cup odds, and points before and after (10,000 seasons, seed 1), the `changed` teams, and `why`: each move's goal difference per changed team. `422` with the reason for an illegal move; cached six hours per day and forecast |
+| `POST /roster-moves`, `GET /roster-moves/{id}` | Save Roster Lab moves for a short link (`/roster-lab?id=`), like `/scenarios`; same limits |
+| `GET /og/roster/{id}.png` | A saved trade's share image, 1200 by 630: the moves and each changed team's playoff odds and points before and after |
 | `GET /push/key` | `{"key": ...}`: the web push public key, or `null` when alerts are not set up (the team page then hides them) |
 | `POST /push/subscribe`, `POST /push/unsubscribe` | Store or delete a browser's alert subscription (team and minimum magnitude) |
 | `GET /sitemap.xml` | Sitemap of the sections, every team, every night replayed this season, and every player who scored or assisted this season (served at `/sitemap.xml` on the site) |

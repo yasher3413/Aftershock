@@ -183,6 +183,28 @@ rate limiting or down, it retries for about three minutes, then gives up on
 that goal (`bot.gave_up`). Spending so far this month is the Redis key
 `aftershock:bot:spend:YYYY-MM`, in tenths of a cent.
 
+## Roster Lab
+
+The Roster Lab needs two new tables, the player values, and a What-If
+bootstrap that carries the simulation ratings. On the VM, after pulling and
+rebuilding (`up -d --build` runs `alembic upgrade head` in the api):
+
+```sh
+cd ~/Aftershock
+sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env exec -T worker \
+  aftershock player-values --season 20242025 --season 20252026 --season 20262027
+sudo docker compose -f infra/docker-compose.oracle.yml --env-file .env restart worker
+```
+
+The first run fetches any shift charts and play-by-play the VM does not have
+yet (about 2,600 games from 2024-25 on), so it takes a while; later runs
+happen in the worker's 06:00 Eastern step and only read what is cached. The
+ridge penalty is stored in `ml/artifacts/roster-1.0.0.json`; refit it on a
+laptop with `--refit-alpha` and check the result with
+`aftershock roster-check --season 20262027` before committing it. Until the
+worker restarts, `/api/roster-lab/*` answers `409` (the bootstrap has no
+ratings yet) and the page shows its offseason note.
+
 ## Other hosts
 
 ## What the owner needs

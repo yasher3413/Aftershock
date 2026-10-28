@@ -19,6 +19,7 @@ const STEPS = [
   { id: "magnitude", label: "Magnitude and PPA" },
   { id: "stakes", label: "Game stakes" },
   { id: "discipline", label: "Discipline and defense" },
+  { id: "roster-lab", label: "Player values in the Roster Lab" },
   { id: "metrics", label: "Reading the evidence" },
   { id: "limits", label: "Known limitations" },
   { id: "data", label: "Data and attribution" },
@@ -127,6 +128,7 @@ export default function MethodPage() {
   const bt = m?.backtest;
   const mag = m?.magnitude;
   const disc = m?.discipline;
+  const roster = m?.roster;
   const charts = m?.charts ?? {};
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -573,6 +575,41 @@ export default function MethodPage() {
                   columns say what happened, not who is good at it.
                 </p>
               )}
+            </Evidence>
+          )}
+
+          <H id="roster-lab">Player values in the Roster Lab</H>
+          <p>
+            The <Link to="/roster-lab">Roster Lab</Link> needs to know what one player is worth, not
+            just a team. From every five-on-five shift since 2024-25, a ridge regression finds how
+            much each skater adds to his team&apos;s expected goals for and against while he is on
+            the ice, with his linemates and opponents held equal; players with few minutes are
+            pulled toward average. Shooting above or below expected and goalies&apos; goals saved
+            above expected are added the same careful way. A team&apos;s strength is the sum over
+            the players dressing lately, at their usual minutes. A move hands those minutes out
+            again, so a new top-line forward pushes someone else down the lineup, and the change in
+            goals becomes a change in the team&apos;s rating for the games it covers. The season
+            then reruns 10,000 times before and after, with the same random numbers.
+          </p>
+          <p>
+            The values leave out the power play, penalties, and faceoffs, so one scale brings the
+            best skaters to about 9 standings points over a full season, in line with public
+            player-value models. Players out of the lineup lately cannot be moved: the forecast
+            already plays without them.
+          </p>
+          {roster?.top5_full_season_points && (
+            <Evidence label="Roster Lab evidence">
+              <p>
+                Losing one of the five most valuable skaters for a full season costs an average team{" "}
+                {roster.top5_full_season_points
+                  .map(([name, pts]: [string, number]) => `${name} (${f(pts, 1)})`)
+                  .join(", ")}{" "}
+                standings points. A typical fourth-line swap moves{" "}
+                {f(roster.fourth_line_swap_median_points, 1)} points and the largest{" "}
+                {f(roster.fourth_line_swap_points, 1)}. Team strength summed from today&apos;s
+                lineups follows last season&apos;s goal difference with a correlation of{" "}
+                {f(roster.corr_lineup_vs_goal_diff, 2)}.
+              </p>
             </Evidence>
           )}
 
