@@ -46,6 +46,11 @@ STATIC = {
         "What-If Lab",
         "Pick results for upcoming games and rerun the NHL season in your browser.",
     ),
+    "/roster-lab": (
+        "Roster Lab",
+        "Trade players, take one out for a few weeks, or sign a free agent, and see how far "
+        "each team's playoff and Stanley Cup odds move.",
+    ),
     "/nights": ("Every night", "Replay any NHL night of the last three seasons, goal by goal."),
     "/method": (
         "How it works",
@@ -94,6 +99,25 @@ async def page_meta(
                 "Pick your own in the What-If Lab.",
                 f"/api/og/scenario/{saved.id}.png",
                 path=f"/what-if?id={saved.id}",
+            )
+    if path == "/roster-lab" and SCENARIO_ID.fullmatch(scenario):
+        from aftershock.api.roster import headline
+        from aftershock.db.models import SavedRosterMoves
+        from aftershock.jobs.player_values import roster_state
+        from aftershock.sim.roster import parse_moves
+
+        moves_row = await session.get(SavedRosterMoves, scenario)
+        if moves_row is not None:
+            from aftershock.api.roster import describe
+
+            rosters, values = await roster_state(session)
+            words = headline(describe(parse_moves(moves_row.encoded), rosters, values))
+            return PageMeta(
+                f"{words} | {SITE}",
+                "A trade run through 10,000 simulated seasons: each team's playoff and Stanley "
+                "Cup odds before and after. Try your own in the Roster Lab.",
+                f"/api/og/roster/{moves_row.id}.png",
+                path=f"/roster-lab?id={moves_row.id}",
             )
     if re.fullmatch(r"/embed/[A-Za-z]{3}", path):
         return PageMeta(SITE, TAGLINE)

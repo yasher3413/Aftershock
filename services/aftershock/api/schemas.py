@@ -452,6 +452,67 @@ class ScenarioOut(Model):
     encoded: str
 
 
+class RosterPlayer(Model):
+    id: int
+    name: str
+    position: str  # F, D, or G
+    in_lineup: bool
+    worth_goals: float  # goal difference over the team's remaining games
+
+
+class RosterTeamResponse(Model):
+    team: str
+    games_left: int
+    players: list[RosterPlayer]
+
+
+class FreeAgent(Model):
+    id: int
+    name: str
+    position: str
+    last_team: str | None
+    worth_goals: float
+
+
+class RosterRunIn(Model):
+    encoded: str = Field(min_length=1, max_length=400)
+
+
+class RosterTeamLine(Model):
+    team: str
+    playoffs_before: float
+    playoffs_after: float
+    cup_before: float
+    cup_after: float
+    points_before: float
+    points_after: float
+
+
+class RosterWhy(Model):
+    player_id: int
+    name: str
+    move: Literal["trade", "injury", "sign"]
+    goals: float
+
+
+class RosterMoveOut(Model):
+    player_id: int
+    name: str
+    move: Literal["trade", "injury", "sign"]
+    from_team: str | None  # None for a free agent
+    to_team: str | None  # None for an injury
+    weeks: int | None  # injuries: None is the rest of the season
+
+
+class RosterRunOut(Model):
+    encoded: str
+    moves: list[RosterMoveOut]
+    teams: list[RosterTeamLine]
+    changed: list[str]
+    why: dict[str, list[RosterWhy]]
+    computed_at: datetime
+
+
 class RecapResponse(Model):
     night_date: date
     headline: str

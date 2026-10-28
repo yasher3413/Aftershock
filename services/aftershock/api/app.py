@@ -747,6 +747,193 @@ async def og_scenario(scenario_id: str, session: Db, st: State) -> Response:
     return await _png(scenario_og(data["picks"], movers, len(data["picks"])))
 
 
+ROSTER_RUN_TTL_S = 6 * 3600
+
+
+async def _boot(st: AppState) -> tuple[bytes, dict[str, Any]]:
+    raw = await st.redis.get(WHATIF_KEY)
+    if raw is None:
+        raise HTTPException(503, "The forecast is not ready yet. Try again in a minute.")
+    boot = json.loads(raw)
+    if not boot.get("ratings") or not any(g["status"] == "future" for g in boot["games"]):
+        raise HTTPException(409, "The Roster Lab returns when the regular season starts.")
+    return raw if isinstance(raw, bytes) else raw.encode(), boot
+
+
+@router.get("/roster-lab/teams/{abbrev}", response_model=S.RosterTeamResponse)
+async def roster_team(abbrev: str, session: Db, st: State) -> Any:
+    """A team's roster: who is dressing lately and what each is worth."""
+    from aftershock.api import roster as R
+    from aftershock.jobs.player_values import roster_state
+
+    rosters, values = await roster_state(session)
+    team = abbrev.upper()
+    if team not in rosters:
+        raise HTTPException(404, f"No roster for {abbrev}")
+    _, boot = await _boot(st)
+    left = len(R.future_games(boot).get(team, []))
+    worth = R.worth(team, rosters, values, left)
+    players = [
+        S.RosterPlayer(
+            id=s.player_id,
+            name=values[s.player_id].name if s.player_id in values else str(s.player_id),
+            position=s.position,
+            in_lineup=s.in_lineup,
+            worth_goals=round(worth.get(s.player_id, 0.0), 1),
+        )
+        for s in rosters[team]
+    ]
+    order = {"F": 0, "D": 1, "G": 2}
+    players.sort(key=lambda p: (order[p.position], not p.in_lineup, -p.worth_goals))
+    body = S.RosterTeamResponse(team=team, games_left=left, players=players)
+    return JSONResponse(
+        body.model_dump(mode="json"), headers={"Cache-Control": "public, max-age=300"}
+    )
+
+
+@router.get("/roster-lab/free-agents", response_model=list[S.FreeAgent])
+async def roster_free_agents(session: Db, st: State, q: str = "") -> Any:
+    """Free agents (NHL minutes since 2024-25, on no roster) by name."""
+    from aftershock.api import roster as R
+    from aftershock.jobs.player_values import free_agents, roster_state
+
+    rosters, values = await roster_state(session)
+    _, boot = await _boot(st)
+    games = R.future_games(boot)
+    left = sum(len(d) for d in games.values()) / max(len(games), 1)
+    rostered = {s.player_id for spots in rosters.values() for s in spots}
+    needle = q.strip().lower()
+    found = [
+        values[p]
+        for p in free_agents(values, rostered)
+        if not needle or needle in values[p].name.lower()
+    ]
+    found.sort(key=lambda v: -R.free_agent_worth(v, left))
+    return [
+        S.FreeAgent(
+            id=v.player_id,
+            name=v.name,
+            position=v.position,
+            last_team=v.last_team,
+            worth_goals=round(R.free_agent_worth(v, left), 1),
+        )
+        for v in found[:20]
+    ]
+
+
+async def _roster_run(encoded: str, session: AsyncSession, st: AppState) -> S.RosterRunOut:
+    import hashlib
+
+    from aftershock.api import roster as R
+    from aftershock.jobs.player_values import roster_state
+    from aftershock.sim.roster import encode_moves, parse_moves, team_deltas
+    from aftershock.sim.roster_lab import run_roster_lab
+
+    try:
+        moves = parse_moves(encoded)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    canon = encode_moves(moves)
+    raw, boot = await _boot(st)
+    day = R.today()
+    key = f"aftershock:roster-run:{canon}:{day}:{hashlib.sha1(raw).hexdigest()[:16]}"
+    cached = await st.redis.get(key)
+    if cached is not None:
+        return S.RosterRunOut.model_validate_json(cached)
+    rosters, values = await roster_state(session)
+    problem = R.validate(moves, rosters, values)
+    if problem:
+        raise HTTPException(422, problem)
+    league = float(boot["league_avg"])
+    windows = team_deltas(moves, rosters, values, league, day)
+    async with _scenario_sim:
+        result = await asyncio.to_thread(run_roster_lab, boot, windows)
+    why = R.why(moves, rosters, values, league, day, R.future_games(boot))
+    out = S.RosterRunOut(
+        encoded=canon,
+        moves=[S.RosterMoveOut(**m) for m in R.describe(moves, rosters, values)],
+        teams=[S.RosterTeamLine(**vars(t)) for t in result.teams],
+        changed=sorted({w.team for w in windows} | set(why)),
+        why={t: [S.RosterWhy(**r) for r in rows] for t, rows in why.items()},
+        computed_at=datetime.now(UTC),
+    )
+    await st.redis.set(key, out.model_dump_json(), ex=ROSTER_RUN_TTL_S)
+    return out
+
+
+@router.post("/roster-lab/run", response_model=S.RosterRunOut)
+async def roster_run(body: S.RosterRunIn, session: Db, st: State) -> S.RosterRunOut:
+    """Run the season before and after a set of roster moves."""
+    return await _roster_run(body.encoded, session, st)
+
+
+@router.post("/roster-moves", response_model=S.ScenarioOut)
+async def save_roster_moves(
+    body: S.RosterRunIn, session: Db, st: State, request: Request
+) -> S.ScenarioOut:
+    """Save Roster Lab moves for a short link; the same moves get the same id."""
+    from sqlalchemy.dialects.postgresql import insert
+
+    from aftershock.api import roster as R
+    from aftershock.api import scenarios as SC
+    from aftershock.db.models import SavedRosterMoves
+    from aftershock.sim.roster import encode_moves, parse_moves
+
+    try:
+        encoded = encode_moves(parse_moves(body.encoded))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    key = f"aftershock:roster-saves:{SC.client_ip(request)}"
+    count = await st.redis.incr(key)
+    if count == 1:
+        await st.redis.expire(key, R.RATE_WINDOW_S)
+    if count > R.RATE_LIMIT:
+        raise HTTPException(429, "Too many saved trades; try again in a few minutes.")
+    dig = SC.digest(encoded)
+    for _ in range(3):
+        await session.execute(
+            insert(SavedRosterMoves)
+            .values(id=SC.new_id(), encoded=encoded, digest=dig)
+            .on_conflict_do_nothing()
+        )
+        await session.commit()
+        found = await session.scalar(
+            select(SavedRosterMoves.id).where(SavedRosterMoves.digest == dig)
+        )
+        if found:
+            return S.ScenarioOut(id=found, encoded=encoded)
+    raise HTTPException(500, "Could not save the trade.")
+
+
+@router.get("/roster-moves/{moves_id}", response_model=S.ScenarioOut)
+async def get_roster_moves(moves_id: str, session: Db) -> Response:
+    from aftershock.api import scenarios as SC
+    from aftershock.db.models import SavedRosterMoves
+
+    row = await session.get(SavedRosterMoves, moves_id) if SC.ID_RE.fullmatch(moves_id) else None
+    if row is None:
+        raise HTTPException(404, f"No saved trade {moves_id}")
+    return JSONResponse(
+        {"id": row.id, "encoded": row.encoded},
+        headers={"Cache-Control": "public, max-age=86400, immutable"},
+    )
+
+
+@router.get("/og/roster/{moves_id}.png")
+async def og_roster(moves_id: str, session: Db, st: State) -> Response:
+    """A saved trade's preview: the moves and the changed teams' playoff
+    odds before and after, rerun on the current forecast."""
+    from aftershock.api import scenarios as SC
+    from aftershock.db.models import SavedRosterMoves
+    from aftershock.share.cards import roster_og
+
+    row = await session.get(SavedRosterMoves, moves_id) if SC.ID_RE.fullmatch(moves_id) else None
+    if row is None:
+        raise HTTPException(404, f"No saved trade {moves_id}")
+    run = await _roster_run(row.encoded, session, st)
+    return await _png(roster_og(run), cache="public, max-age=3600")
+
+
 def read_gz_json(path: Path) -> Any:
     with gzip.open(path, "rt", encoding="utf-8") as fh:
         return json.load(fh)

@@ -341,6 +341,61 @@ def scenario_og(picks: list[str], movers: list[Any], pick_count: int) -> str:
     return _svg(w, h, "".join(parts))
 
 
+def roster_og(run: Any) -> str:
+    """A shared Roster Lab trade (an ``S.RosterRunOut``): the moves and each
+    changed team's playoff odds before and after."""
+    from aftershock.api.roster import headline
+
+    w, h = 1200, 630
+    moves = [m.model_dump() for m in run.moves]
+    parts = [
+        _text(56, 120, "My NHL trade", 80, family=DISPLAY, weight=800),
+        _text(1140, 110, "Puckquake", 40, family=DISPLAY, weight=800, anchor="end"),
+        _text(60, 168, "10,000 seasons simulated, before and after", 26, fill=INK_SOFT),
+        _text(60, 232, "THE MOVES", 20, weight=600),
+    ]
+    lines = [p.strip() for p in headline(moves).split(", ")]
+    shown = lines[:6]
+    for i, line in enumerate(shown):
+        parts.append(_text(60, 276 + i * 42, line, 26))
+    if len(lines) > len(shown):
+        parts.append(
+            _text(
+                60, 276 + len(shown) * 42, f"and {len(lines) - len(shown)} more", 26, fill=INK_SOFT
+            )
+        )
+    x0, bar = 600, 360
+    parts.append(_text(x0, 232, "PLAYOFF ODDS, BEFORE → AFTER", 20, weight=600))
+    changed = [t for t in run.teams if t.team in run.changed]
+    for i, t in enumerate(changed[:4]):
+        y = 272 + i * 80
+        color = BLUE if t.playoffs_after >= t.playoffs_before else GOAL
+        lo, hi = sorted((t.playoffs_before, t.playoffs_after))
+        bx = x0 + 80
+        parts += [
+            _text(x0, y + 10, t.team, 32, family=DISPLAY, weight=700),
+            f'<rect x="{bx}" y="{y - 8}" width="{bar}" height="12" fill="{LAND}"/>',
+            f'<rect x="{bx}" y="{y - 8}" width="{bar * lo:.1f}" height="12" fill="{INK}"/>',
+            f'<rect x="{bx + bar * lo:.1f}" y="{y - 8}" width="{max(3, bar * (hi - lo)):.1f}" '
+            f'height="12" fill="{color}"/>',
+            _text(bx, y + 34, f"{_scenario_pct(t.playoffs_before)} →", 20, fill=INK_SOFT),
+            _text(bx + 96, y + 34, _scenario_pct(t.playoffs_after), 20, weight=600, fill=color),
+            _text(
+                bx + 200,
+                y + 34,
+                f"{t.points_before:.0f} → {t.points_after:.0f} pts",
+                20,
+                fill=INK_SOFT,
+            ),
+        ]
+    parts.append(
+        _text(
+            60, 600, f"Make your own at puckquake.com/roster-lab. {ATTRIBUTION}", 15, fill=INK_SOFT
+        )
+    )
+    return _svg(w, h, "".join(parts))
+
+
 def _scenario_pct(p: float) -> str:
     return f"{p * 100:.{0 if p >= 0.995 or p < 0.005 else 1}f}%"
 

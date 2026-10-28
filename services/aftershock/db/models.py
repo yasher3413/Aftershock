@@ -452,3 +452,13 @@ class RosterSpot(Base):
     pp_toi_pg: Mapped[float] = mapped_column(Float)
     toi_share: Mapped[float] = mapped_column(Float)  # goalies: share of recent minutes
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class SavedRosterMoves(Base):
+    """Roster Lab moves saved for a short share link (/roster-lab?id=...)."""
+
+    __tablename__ = "roster_moves"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    encoded: Mapped[str] = mapped_column(Text)
+    digest: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = _now()
