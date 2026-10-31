@@ -1,4 +1,5 @@
 import math
+from dataclasses import replace
 from datetime import date, timedelta
 
 import pytest
@@ -110,6 +111,13 @@ def test_extra_players_bump_the_least_used(league) -> None:
     # A one-for-one swap bumps nobody, and injured players are not "bumped".
     assert bumped(rosters, values, [Trade(111, "MTL"), Trade(211, "TOR")]) == {}
     assert bumped(rosters, values, [Injury(100, 4)]) == {}
+
+
+def test_the_weakest_sits_not_the_least_used(league) -> None:
+    rosters, values = league
+    # A power-play star with few even-strength minutes keeps his place.
+    values[211] = replace(values[211], off60=0.5)
+    assert bumped(rosters, values, [Trade(100, "MTL")]) == {"MTL": [210]}
 
 
 def test_encoding_is_canonical() -> None:
