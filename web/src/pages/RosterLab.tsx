@@ -229,7 +229,10 @@ export default function RosterLabPage() {
   const runProblem = submitted === encoded ? problem(run.error) : null;
   const rosterProblem = rosters.map((r) => problem(r.error)).find((p) => p && !p.offseason);
 
-  const changed = (result?.changed ?? [])
+  // Changed teams in the cards' order, then any other.
+  const order = (t: string) => (teams.includes(t) ? teams.indexOf(t) : teams.length);
+  const changed = [...(result?.changed ?? [])]
+    .sort((a, b) => order(a) - order(b))
     .map((t) => result!.teams.find((x) => x.team === t))
     .filter((t): t is RosterTeamLine => !!t);
   const words = headline(
@@ -285,7 +288,7 @@ export default function RosterLabPage() {
 
       <section
         aria-label="The trade"
-        className="mt-6 grid items-start gap-4 lg:grid-cols-[1fr_auto_1fr]"
+        className="mt-6 grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
       >
         {[0, 1].map((i) => {
           const team = teams[i] ?? null;
@@ -348,14 +351,21 @@ export default function RosterLabPage() {
             type="button"
             disabled={moves.length === 0 || (upToDate && !updating && !!result) || updating}
             onClick={submit}
-            className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-[var(--radius)] bg-ink px-6 text-[15px] font-semibold text-ice hover:bg-blue-line hover:text-surface disabled:cursor-default disabled:opacity-50 sm:flex-none"
+            className={`inline-flex min-h-[48px] flex-1 items-center justify-center rounded-[var(--radius)] px-6 text-[15px] font-semibold disabled:cursor-default sm:flex-none ${
+              updating
+                ? "bg-ink text-ice opacity-70"
+                : "bg-ink text-ice hover:bg-blue-line hover:text-surface disabled:bg-transparent disabled:text-ink-soft disabled:ring-1 disabled:ring-ice-scratch disabled:ring-inset"
+            }`}
           >
-            {updating ? "Running the season" : "See trade results"}
+            {updating ? "Running the season" : upToDate && result ? "Results below" : "See results"}
           </button>
           <button
             type="button"
             disabled={moves.length === 0}
-            onClick={() => setMoves([])}
+            onClick={() => {
+              setMoves([]);
+              setSubmitted("");
+            }}
             className="min-h-[48px] shrink-0 rounded-[var(--radius)] border border-ice-scratch px-4 text-[14px] font-semibold disabled:opacity-50"
           >
             Reset
@@ -372,7 +382,7 @@ export default function RosterLabPage() {
             <h2 className="display text-[34px] font-bold leading-none">Before and after</h2>
             {stale && (
               <p className="text-[13px] font-semibold text-ink-soft">
-                The trade changed. See trade results to update these numbers.
+                The trade changed. See results to update these numbers.
               </p>
             )}
           </div>
@@ -584,7 +594,10 @@ function Picker({
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  // Closing hands the keyboard back to the button that opened the list.
+  const refocus = useRef(false);
   const close = () => {
+    refocus.current = true;
     setOpen(false);
     setQ("");
   };
@@ -593,6 +606,12 @@ function Picker({
   if (!open)
     return (
       <button
+        ref={(el) => {
+          if (el && refocus.current) {
+            refocus.current = false;
+            el.focus();
+          }
+        }}
         type="button"
         aria-label={label}
         onClick={() => setOpen(true)}
@@ -678,6 +697,91 @@ function Change({ before, after, digits = 1 }: { before: number; after: number; 
   );
 }
 
+/** One row per move: who moved where, and the goals it is worth to each
+ * team over the rest of the season. */
+function MoveValues({ result, teams }: { result: RosterRunOut; teams: string[] }) {
+  const season = seasonOf(new Date().toISOString().slice(0, 10));
+  const worth = (team: string, id: number) =>
+    result.why[team]?.find((w) => w.player_id === id)?.goals ?? null;
+  const size = (id: number) => Math.max(...teams.map((t) => Math.abs(worth(t, id) ?? 0)));
+  // Trades first, biggest first; then players taken out.
+  const rows = [...result.moves].sort(
+    (a, b) =>
+      Number(a.move === "injury") - Number(b.move === "injury") ||
+      size(b.player_id) - size(a.player_id),
+  );
+  const bumped = Object.entries(result.bumped ?? {}).filter(([, list]) => list.length);
+  return (
+    <div className="mt-8">
+      <h3 className="display text-[24px] font-bold leading-none">What each move is worth</h3>
+      <p className="mt-1 max-w-[62ch] text-[13px] text-ink-soft">
+        Goal difference for each team over the rest of the season, one move at a time. Small
+        differences are estimates, not guarantees.
+      </p>
+      <table className="mt-3 w-full text-[14px]">
+        <thead className="text-left text-[12px] text-ink-soft">
+          <tr className="border-b border-ink">
+            <th className="py-1.5 font-normal">Player</th>
+            {teams.map((t) => (
+              <th key={t} className="w-[22%] py-1.5 text-right font-normal sm:w-[16%]">
+                <span className="inline-flex items-center gap-1.5">
+                  <TeamLogo team={t} size={16} />
+                  {t}
+                </span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m) => (
+            <tr key={m.player_id} className="border-b border-ice-scratch">
+              <th scope="row" className="py-2 pr-3 text-left font-normal">
+                <span className="flex items-center gap-3">
+                  <Headshot
+                    playerId={m.player_id}
+                    name={m.name}
+                    team={m.from_team}
+                    season={season}
+                    size={32}
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{m.name}</span>
+                    <span className="block text-[12px] text-ink-soft">
+                      {m.move === "injury"
+                        ? outLabel(m.weeks ?? null)
+                        : `${m.from_team} to ${m.to_team}`}
+                    </span>
+                  </span>
+                </span>
+              </th>
+              {teams.map((t) => {
+                const g = worth(t, m.player_id);
+                return (
+                  <td
+                    key={t}
+                    className={`text-right tabular-nums ${g == null || Math.abs(g) < 0.05 ? "text-ink-soft" : g > 0 ? "up" : "down"}`}
+                  >
+                    {g == null ? "" : goals(g)}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {bumped.length > 0 && (
+        <p data-testid="bumped" className="mt-3 text-[13px] text-ink-soft">
+          To make room in the lineup,{" "}
+          {bumped
+            .map(([team, list]) => `${team} sits ${list.map((b) => b.name).join(" and ")}`)
+            .join("; ")}
+          .
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Results({
   result,
   changed,
@@ -740,26 +844,6 @@ function Results({
                 </div>
               ))}
             </dl>
-            {(result.why[t.team] ?? []).length > 0 && (
-              <ul className="mt-3 text-[13px]">
-                {result.why[t.team]!.map((w) => (
-                  <li key={w.player_id} className="flex justify-between gap-3 py-0.5">
-                    <span className="min-w-0 truncate">{w.name}</span>
-                    <span
-                      className={`tabular-nums ${w.goals > 0.05 ? "up" : w.goals < -0.05 ? "down" : "text-ink-soft"}`}
-                    >
-                      {goals(w.goals)} goals
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {(result.bumped?.[t.team] ?? []).length > 0 && (
-              <p className="mt-2 text-[13px] text-ink-soft">
-                Out of the lineup to make room:{" "}
-                {result.bumped![t.team]!.map((b) => b.name).join(", ")}
-              </p>
-            )}
           </div>
         ))}
       </div>
@@ -768,11 +852,8 @@ function Results({
           These moves change no team's lineup over the rest of the season.
         </p>
       )}
-      <p className="mt-4 text-[12px] text-ink-soft">
-        Goals are each move's goal difference over the rest of the season. Small differences are
-        estimates, not guarantees.
-      </p>
-      <div className="mt-6 flex items-end justify-between border-b border-ink pb-1">
+      {changed.length > 0 && <MoveValues result={result} teams={changed.map((t) => t.team)} />}
+      <div className="mt-10 flex items-end justify-between border-b border-ink pb-1">
         <h3 className="text-[15px] font-semibold">League playoff odds</h3>
         <button
           type="button"

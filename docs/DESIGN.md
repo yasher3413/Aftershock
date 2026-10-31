@@ -283,11 +283,15 @@ goals) with a remove button, and has dashed "Add a player" and "Take a
 player out" buttons that open a searchable list of the team's dressing
 players in place. Injuries carry a length menu (1 to 8 weeks, the season).
 Trades can be uneven; the results name who loses a lineup spot. Nothing runs
-until "See trade results"; a shared link runs straight away. After an edit
-the results dim with a note until the button is pressed again. Results sit
-below the builder: each changed team's playoff odds, Cup odds, and points
-before and after, each move's goals, then the league table (changed teams
-first, all 32 on request). A refused trade says why beside the button.
+until "See results" (it reads "Results below", quiet, while they are
+current); a shared link runs straight away, and Reset clears the results.
+After an edit the results dim with a note until the button is pressed
+again. Results sit below the builder, in the cards' order: each changed
+team's playoff odds, Cup odds, and points before and after; then "What each
+move is worth", one row per player (headshot, "EDM to CBJ" or "Out 4
+weeks") with a goals column per team and who sits to make room; then the
+league table (changed teams first, all 32 on request). A refused trade says
+why beside the button. Closing a player list returns focus to its button.
 
 **Phones.** Long lists start short with a Show all button (team pages,
 `components/PhoneFold.tsx`); the footer shows team logos by division and
