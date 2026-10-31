@@ -104,6 +104,7 @@ function run(encoded: string) {
       TOR: [{ player_id: 2000, name: "VAN Forward 1", move: "trade", goals: 7.1 }],
       VAN: [{ player_id: 2000, name: "VAN Forward 1", move: "trade", goals: -7.1 }],
     },
+    bumped: encoded ? { TOR: [{ player_id: 1011, name: "TOR Forward 12" }] } : {},
     computed_at: "2026-11-01T12:00:00Z",
   };
 }
@@ -136,37 +137,73 @@ async function mockRoster(page: Page, opts: { offseason?: boolean } = {}) {
   return runs;
 }
 
-test("trade a player and see both teams move", async ({ page }) => {
+test("build a trade, then see its results", async ({ page }) => {
   const runs = await mockRoster(page);
   await page.goto("/roster-lab?teams=TOR,VAN");
   await expect(page.getByRole("heading", { name: "Roster Lab", level: 1 })).toBeVisible();
-  await page
-    .getByLabel("Move VAN Forward 1", { exact: true })
-    .selectOption({ label: "Trade to TOR" });
+  await page.getByRole("button", { name: "Add a VAN player to the trade" }).click();
+  await page.getByLabel("Find a VAN player").fill("forward 1");
+  await page.getByRole("button", { name: "Trade VAN Forward 1 to TOR" }).click();
   await expect(page).toHaveURL(/m=t2000-TOR/);
+  await expect(page.getByTestId("sends-VAN")).toContainText("VAN Forward 1");
+  // Nothing runs until asked.
+  expect(runs).toEqual([]);
+  await page.getByRole("button", { name: "See trade results" }).click();
   await expect.poll(() => runs.at(-1)).toBe("t2000-TOR");
   const tor = page.getByTestId("result-TOR");
   await expect(tor).toContainText("41.0%");
   await expect(tor).toContainText("52.0%");
   await expect(tor).toContainText("VAN Forward 1");
+  await expect(tor).toContainText("TOR Forward 12");
   await expect(page.getByTestId("result-VAN")).toContainText("31.0%");
-  // The player now shows on his new team, and can go back.
-  const arrived = page.getByTestId("roster-TOR").getByText("VAN Forward 1");
-  await expect(arrived).toBeVisible();
-  await page.getByRole("button", { name: "Undo move for VAN Forward 1" }).click();
+  await page.getByRole("button", { name: "Remove VAN Forward 1 from the trade" }).click();
   await expect(page).not.toHaveURL(/m=/);
 });
 
-test("an injury has a length, and a refused move says why", async ({ page }) => {
+test("a two-for-one trade runs, and an edit asks for a rerun", async ({ page }) => {
+  const runs = await mockRoster(page);
+  await page.goto("/roster-lab?teams=TOR,VAN");
+  for (const [team, name, to] of [
+    ["VAN", "VAN Forward 1", "TOR"],
+    ["VAN", "VAN Defence 2", "TOR"],
+    ["TOR", "TOR Forward 3", "VAN"],
+  ]) {
+    await page.getByRole("button", { name: `Add a ${team} player to the trade` }).click();
+    await page.getByRole("button", { name: `Trade ${name} to ${to}`, exact: true }).click();
+  }
+  await page.getByRole("button", { name: "See trade results" }).click();
+  await expect.poll(() => runs.at(-1)).toBe("t1002-VAN_t2000-TOR_t2021-TOR");
+  await expect(page.getByTestId("result-TOR")).toBeVisible();
+  await page.getByRole("button", { name: "Remove TOR Forward 3 from the trade" }).click();
+  await expect(page.getByText("The trade changed.")).toBeVisible();
+  await page.getByRole("button", { name: "See trade results" }).click();
+  await expect.poll(() => runs.at(-1)).toBe("t2000-TOR_t2021-TOR");
+});
+
+test("an injury has a length, and a refused trade says why", async ({ page }) => {
   await mockRoster(page);
   await page.goto("/roster-lab?team=TOR");
-  await page.getByLabel("Move TOR Goalie 1").selectOption({ label: "Out 4 weeks" });
-  await expect(page).toHaveURL(/m=i1030-4/);
-  await page.getByLabel("Move TOR Goalie 2").selectOption({ label: "Out for the season" });
+  for (const name of ["TOR Goalie 1", "TOR Goalie 2"]) {
+    await page.getByRole("button", { name: "Take a TOR player out" }).click();
+    await page.getByRole("button", { name: `Take ${name} out`, exact: true }).click();
+  }
+  await page.getByLabel("How long TOR Goalie 1 is out").selectOption({ label: "Out 4 weeks" });
+  await page
+    .getByLabel("How long TOR Goalie 2 is out")
+    .selectOption({ label: "Out for the season" });
+  await expect(page).toHaveURL(/m=i1030-4_i1031-0/);
+  await page.getByRole("button", { name: "See trade results" }).click();
   await expect(page.getByRole("alert")).toContainText("a team needs at least 2");
-  // Players already out are listed but cannot be moved.
-  await expect(page.getByText("TOR Hurt")).toBeVisible();
-  await expect(page.getByLabel("Move TOR Hurt")).toHaveCount(0);
+  // Players out of the lineup lately cannot be picked.
+  await page.getByRole("button", { name: "Take a TOR player out" }).click();
+  await expect(page.getByRole("button", { name: "Take TOR Hurt out" })).toHaveCount(0);
+});
+
+test("a shared trade shows its results straight away", async ({ page }) => {
+  const runs = await mockRoster(page);
+  await page.goto("/roster-lab?teams=TOR,VAN&m=t2000-TOR");
+  await expect(page.getByTestId("result-TOR")).toContainText("52.0%");
+  expect(runs).toEqual(["t2000-TOR"]);
 });
 
 test("offseason shows the note", async ({ page }) => {
@@ -177,14 +214,11 @@ test("offseason shows the note", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("phone: one column with tabs and no sideways scroll", async ({ page }) => {
+test("phone: one column and no sideways scroll", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockRoster(page);
   await page.goto("/roster-lab?teams=TOR,VAN&m=t2000-TOR");
-  await expect(page.getByRole("button", { name: "Results" })).toBeVisible();
-  await page.getByRole("button", { name: "Results" }).click();
   await expect(page.getByTestId("result-TOR")).toBeVisible();
-  await expect(page.getByTestId("roster-TOR")).toBeHidden();
   const wide = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(wide).toBeLessThanOrEqual(390);
 });

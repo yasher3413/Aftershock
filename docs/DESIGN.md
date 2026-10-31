@@ -275,19 +275,19 @@ page (a hint says how to zoom), and on touch one finger scrolls the page
 until the map is zoomed in. The projection itself is scaled, so team circles
 keep their size and crowded areas like New York spread apart.
 
-**Roster Lab** (`/roster-lab`, 2026-10-28). A tab beside the What-If Lab,
-which stays about game results. Choose a team and, for trades, a partner;
-each roster lists forwards, defence, and goalies with each player's worth in
-goals over the rest of the season and one native menu per player (Keep,
-Trade to the partner, Out 1 to 8 weeks, Out for the season). A traded player
-stays in his old list, struck through with an Undo, and appears in the new
-one as "From TOR". Players out of the lineup lately are listed but cannot be
-moved. The two rosters stack in the left column (side by side cut names
-off); the right column, sticky on laptops, shows each changed team's
-playoff odds, Cup odds, and points before and after, each move's goals, and
-the league table (changed teams first, all 32 on request). The sticky
-summary bar matches the What-If Lab's, with Rosters and Results tabs on
-phones and sharing as an icon. A refused move says why and offers Undo.
+**Roster Lab** (`/roster-lab`, 2026-10-28; a trade machine since
+2026-10-31). A tab beside the What-If Lab, which stays about game results.
+Two team cards side by side (stacked on phones) with a swap mark between
+them; each picks its team, lists what it sends (headshot, position, worth in
+goals) with a remove button, and has dashed "Add a player" and "Take a
+player out" buttons that open a searchable list of the team's dressing
+players in place. Injuries carry a length menu (1 to 8 weeks, the season).
+Trades can be uneven; the results name who loses a lineup spot. Nothing runs
+until "See trade results"; a shared link runs straight away. After an edit
+the results dim with a note until the button is pressed again. Results sit
+below the builder: each changed team's playoff odds, Cup odds, and points
+before and after, each move's goals, then the league table (changed teams
+first, all 32 on request). A refused trade says why beside the button.
 
 **Phones.** Long lists start short with a Show all button (team pages,
 `components/PhoneFold.tsx`); the footer shows team logos by division and
