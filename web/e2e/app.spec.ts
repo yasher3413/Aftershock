@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, fixture, test } from "./fixtures";
 
 test("demo mode replays a night and a tremor lands within 30 seconds at 60x", async ({ page }) => {
   await page.goto("/");
@@ -111,6 +111,20 @@ test("a player card shows the season and links each goal", async ({ page }) => {
     .first();
   await goal.click();
   await expect(page).toHaveURL(/\/tremor\/\d+$/);
+});
+
+test("a goalie's discipline shows only what a goalie can do", async ({ page }) => {
+  const skater = fixture("player-8481540") as { position: string };
+  await page.route("**/api/players/8481540", (route) =>
+    route.fulfill({ json: { ...skater, position: "G" } }),
+  );
+  await page.goto("/player/8481540");
+  const disc = page.getByRole("region", { name: "Discipline" });
+  await expect(disc.getByText("Penalty minutes")).toBeVisible();
+  await expect(disc.getByText("Plus/minus")).toHaveCount(0);
+  await expect(disc.getByText("PPA plus/minus")).toHaveCount(0);
+  await expect(disc.getByText(/^Drew /)).toHaveCount(0);
+  await expect(disc.getByText(/no shift data/)).toHaveCount(0);
 });
 
 test("night replay can skip quiet time and restart without leaving the page", async ({ page }) => {

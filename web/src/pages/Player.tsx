@@ -296,7 +296,7 @@ export default function PlayerPage() {
         {s && (
           <section aria-labelledby="disc-h" className="pt-10">
             <h2 id="disc-h" className="display mb-1 text-[30px] font-bold">
-              Discipline and defense
+              {goalie ? "Discipline" : "Discipline and defense"}
             </h2>
             <p className="mb-4 max-w-[56ch] text-[13px] text-ink-soft">
               Regular season. Penalty and giveaway costs are the playoff odds the power-play goals
@@ -306,7 +306,8 @@ export default function PlayerPage() {
             <dl className="grid grid-cols-2 gap-y-4 border-y border-ice-scratch py-3 sm:grid-cols-4">
               {(
                 [
-                  [
+                  // Plus/minus and drawn penalties are skater numbers.
+                  !goalie && [
                     "Plus/minus",
                     s.plus_minus != null
                       ? s.plus_minus > 0
@@ -314,13 +315,13 @@ export default function PlayerPage() {
                         : String(s.plus_minus)
                       : "-",
                   ],
-                  ["PPA plus/minus", s.on_ice_ppa != null ? pp(s.on_ice_ppa) : "-"],
+                  !goalie && ["PPA plus/minus", s.on_ice_ppa != null ? pp(s.on_ice_ppa) : "-"],
                   ["Penalty minutes", String(s.pim)],
                   [
                     `Penalties cost (${s.penalty_goals} PP goals)`,
                     s.penalties ? pp(s.penalty_ppa) : "-",
                   ],
-                  [
+                  !goalie && [
                     `Drew ${s.drawn} ${s.drawn === 1 ? "penalty" : "penalties"}`,
                     s.drawn ? pp(s.drawn_ppa) : "-",
                   ],
@@ -329,15 +330,17 @@ export default function PlayerPage() {
                     `Costly giveaways (${s.costly_giveaways})`,
                     s.costly_giveaways ? pp(s.giveaway_ppa) : "-",
                   ],
-                ] as [string, string][]
-              ).map(([k, v]) => (
-                <div key={k} className="pr-3">
-                  <dt className="text-[12px] text-ink-soft">{k}</dt>
-                  <dd className="display text-[26px] font-bold leading-none tabular-nums">{v}</dd>
-                </div>
-              ))}
+                ] as ([string, string] | false)[]
+              )
+                .filter((c) => c !== false)
+                .map(([k, v]) => (
+                  <div key={k} className="pr-3">
+                    <dt className="text-[12px] text-ink-soft">{k}</dt>
+                    <dd className="display text-[26px] font-bold leading-none tabular-nums">{v}</dd>
+                  </div>
+                ))}
             </dl>
-            {s.onice_coverage != null && s.onice_coverage < 0.99 && (
+            {!goalie && s.onice_coverage != null && s.onice_coverage < 0.99 && (
               <p className="mt-2 text-[12px] text-ink-soft">
                 The NHL has no shift data for {Math.round((1 - s.onice_coverage) * 100)}% of this
                 season's goals, so plus/minus and PPA plus/minus leave those goals out.
