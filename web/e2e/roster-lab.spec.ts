@@ -121,10 +121,6 @@ async function mockRoster(page: Page, opts: { offseason?: boolean } = {}) {
       return route.fulfill({ json: roster("TOR", 1000) });
     if (url.pathname === "/api/roster-lab/teams/VAN")
       return route.fulfill({ json: roster("VAN", 2000) });
-    if (url.pathname === "/api/roster-lab/free-agents")
-      return route.fulfill({
-        json: [{ id: 900, name: "Free Agent", position: "F", last_team: "CHI", worth_goals: 2.4 }],
-      });
     if (url.pathname === "/api/roster-lab/run") {
       const { encoded } = route.request().postDataJSON() as { encoded: string };
       runs.push(encoded);
@@ -171,14 +167,6 @@ test("an injury has a length, and a refused move says why", async ({ page }) => 
   // Players already out are listed but cannot be moved.
   await expect(page.getByText("TOR Hurt")).toBeVisible();
   await expect(page.getByLabel("Move TOR Hurt")).toHaveCount(0);
-});
-
-test("sign a free agent", async ({ page }) => {
-  const runs = await mockRoster(page);
-  await page.goto("/roster-lab?team=TOR");
-  await page.getByLabel("Find a free agent for TOR").fill("free");
-  await page.getByRole("button", { name: "Sign Free Agent to TOR" }).click();
-  await expect.poll(() => runs.at(-1)).toBe("s900-TOR");
 });
 
 test("offseason shows the note", async ({ page }) => {

@@ -1,19 +1,16 @@
 /** Roster Lab moves and their short form in the address, which matches the
  * server's (services/aftershock/sim/roster.py): `t{player}-{TEAM}` trades a
- * player, `s{player}-{TEAM}` signs a free agent, `i{player}-{weeks}` takes a
- * player out (0 is the rest of the season), joined by `_` in sorted order. */
+ * player, `i{player}-{weeks}` takes a player out (0 is the rest of the season), joined by `_` in sorted order. */
 
 export const WEEKS = [1, 2, 4, 6, 8] as const;
 
 export type Move =
-  | { kind: "t"; id: number; to: string }
-  | { kind: "s"; id: number; to: string }
-  | { kind: "i"; id: number; weeks: number | null };
+  { kind: "t"; id: number; to: string } | { kind: "i"; id: number; weeks: number | null };
 
-const PART = /^(?:([ts])(\d{1,8})-([A-Z]{3})|i(\d{1,8})-(\d))$/;
+const PART = /^(?:t(\d{1,8})-([A-Z]{3})|i(\d{1,8})-(\d))$/;
 
 export function code(m: Move): string {
-  return m.kind === "i" ? `i${m.id}-${m.weeks ?? 0}` : `${m.kind}${m.id}-${m.to}`;
+  return m.kind === "i" ? `i${m.id}-${m.weeks ?? 0}` : `t${m.id}-${m.to}`;
 }
 
 export function encodeMoves(moves: Move[]): string {
@@ -27,12 +24,12 @@ export function parseMoves(encoded: string | null): Move[] {
     const m = PART.exec(part);
     if (!m) continue;
     if (m[1]) {
-      const id = Number(m[2]);
-      out.set(id, { kind: m[1] as "t" | "s", id, to: m[3]! });
+      const id = Number(m[1]);
+      out.set(id, { kind: "t", id, to: m[2]! });
     } else {
-      const weeks = Number(m[5]);
+      const weeks = Number(m[4]);
       if (weeks && !(WEEKS as readonly number[]).includes(weeks)) continue;
-      const id = Number(m[4]);
+      const id = Number(m[3]);
       out.set(id, { kind: "i", id, weeks: weeks || null });
     }
   }

@@ -74,10 +74,6 @@ def lineup(
     return {p for p in roster if last_game.get(p, -1) >= since}
 
 
-def free_agents(values: dict[int, PlayerValue], rostered: set[int]) -> set[int]:
-    return set(values) - rostered
-
-
 @dataclass
 class GameData:
     order: int  # chronological position among all games read

@@ -1,5 +1,4 @@
-from aftershock.jobs.player_values import GOALIE_GAMES, free_agents, group, lineup
-from aftershock.ml.player_value import PlayerValue
+from aftershock.jobs.player_values import GOALIE_GAMES, group, lineup
 
 GAMES = list(range(1, 11))  # the team's games, in order
 
@@ -21,11 +20,6 @@ def test_player_who_left_is_not_in_lineup() -> None:
 
 def test_early_season_uses_the_games_there_are() -> None:
     assert lineup([1, 2], {1: 1, 2: 2}, {1, 2}) == {1, 2}
-
-
-def test_free_agents_exclude_rostered() -> None:
-    vals = {1: PlayerValue(1, "F"), 2: PlayerValue(2, "D")}
-    assert free_agents(vals, rostered={1}) == {2}
 
 
 def test_position_groups() -> None:

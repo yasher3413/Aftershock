@@ -2,8 +2,8 @@
 is worth over the rest of the season, and which players a result comes from.
 
 Only players dressing lately can be traded or taken out (the team ratings
-already reflect anyone who is out), only free agents can be signed, and one
-run moves players between at most two teams.
+already reflect anyone who is out), and one run moves players between at
+most two teams.
 """
 
 from __future__ import annotations
@@ -14,11 +14,8 @@ from typing import Any
 
 from aftershock.ml.player_value import PlayerValue
 from aftershock.sim.roster import (
-    SHOTS_AGAINST_PG,
-    VALUE_SCALE,
     Injury,
     Move,
-    Sign,
     Spot,
     Trade,
     Window,
@@ -51,15 +48,6 @@ def validate(
 
     for mv in moves:
         s = spot.get(mv.player_id)
-        if isinstance(mv, Sign):
-            if mv.to not in rosters:
-                return f"There is no team {mv.to}."
-            if s is not None:
-                return f"{name(mv.player_id)} is on {s.team}; trade for him instead."
-            if mv.player_id not in values:
-                return f"{name(mv.player_id)} has not played in the NHL since 2024-25."
-            teams.add(mv.to)
-            continue
         if s is None:
             return f"{name(mv.player_id)} is not on an NHL roster."
         if not s.in_lineup:
@@ -75,7 +63,7 @@ def validate(
             teams.add(mv.to)
     if len(teams) > MAX_TEAMS:
         return "The Roster Lab moves players between two teams at a time."
-    return check_shape(rosters, moves, values)
+    return check_shape(rosters, moves)
 
 
 def future_games(boot: dict[str, Any]) -> dict[str, list[date]]:
@@ -113,17 +101,6 @@ def worth(
     return out
 
 
-def free_agent_worth(v: PlayerValue, games_left: float) -> float:
-    """A free agent's goal difference over a typical team's remaining games
-    at his usual minutes."""
-    per_game = (v.off60 - v.def60) * v.ev_toi_pg / 60 + v.finish_per_shot * v.shots_per60 * (
-        v.ev_toi_pg + v.pp_toi_pg
-    ) / 60
-    if v.position == "G":
-        return games_left * v.gsax_per_shot * SHOTS_AGAINST_PG * 0.5
-    return VALUE_SCALE * games_left * per_game
-
-
 def why(
     moves: list[Move],
     rosters: dict[str, list[Spot]],
@@ -139,9 +116,7 @@ def why(
         for w in team_deltas([mv], rosters, values, league_avg, day):
             g = _goals(w, league_avg, games.get(w.team, []))
             name = values[mv.player_id].name if mv.player_id in values else str(mv.player_id)
-            kind = (
-                "injury" if isinstance(mv, Injury) else "sign" if isinstance(mv, Sign) else "trade"
-            )
+            kind = "injury" if isinstance(mv, Injury) else "trade"
             out.setdefault(w.team, []).append(
                 {"player_id": mv.player_id, "name": name, "move": kind, "goals": round(g, 2)}
             )
@@ -161,11 +136,7 @@ def describe(
             {
                 "player_id": mv.player_id,
                 "name": values[mv.player_id].name if mv.player_id in values else str(mv.player_id),
-                "move": "injury"
-                if isinstance(mv, Injury)
-                else "sign"
-                if isinstance(mv, Sign)
-                else "trade",
+                "move": "injury" if isinstance(mv, Injury) else "trade",
                 "from_team": team.get(mv.player_id),
                 "to_team": None if isinstance(mv, Injury) else mv.to,
                 "weeks": mv.weeks if isinstance(mv, Injury) else None,
@@ -175,8 +146,8 @@ def describe(
 
 
 def headline(moves: list[dict[str, Any]]) -> str:
-    """ "TOR gets Quinn Hughes, VAN gets Matthew Knies" for trades and
-    signings; injuries read "Auston Matthews out 4 weeks"."""
+    """ "TOR gets Quinn Hughes, VAN gets Matthew Knies" for trades;
+    injuries read "Auston Matthews out 4 weeks"."""
     gets: dict[str, list[str]] = {}
     out: list[str] = []
     for m in moves:

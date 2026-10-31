@@ -191,7 +191,7 @@ async def test_order_does_not_matter(client: Any) -> None:
     ("encoded", "words"),
     [
         ("t130-MTL_t131-MTL", "goalie"),
-        ("s100-MTL", "trade for him"),
+        ("s900-TOR", "Bad move"),
         ("t140-MTL", "not been playing lately"),
         ("t100-MTL_t300-TOR", "two teams"),
         ("t100-TOR", "already on TOR"),
@@ -205,15 +205,6 @@ async def test_illegal_moves_are_refused(client: Any, encoded: str, words: str) 
     c, _ = client
     r = await run(c, encoded)
     assert r.status_code == 422 and words in r.json()["detail"], r.text
-
-
-async def test_signing_a_free_agent(client: Any) -> None:
-    c, _ = client
-    agents = (await c.get("/api/roster-lab/free-agents", params={"q": "free"})).json()
-    assert [a["name"] for a in agents] == ["Free Agent"] and agents[0]["worth_goals"] > 0
-    body = (await run(c, "s900-TOR")).json()
-    assert body["changed"] == ["TOR"]
-    assert body["moves"][0]["from_team"] is None
 
 
 async def test_team_roster_lists_worth_and_who_is_out(client: Any) -> None:

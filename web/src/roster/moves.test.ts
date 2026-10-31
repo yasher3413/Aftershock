@@ -7,10 +7,9 @@ describe("moves", () => {
     expect(encodeMoves(parseMoves("i9-4_t5-MTL"))).toBe("i9-4_t5-MTL");
   });
 
-  it("reads every kind of move and drops what it cannot read", () => {
+  it("reads trades and injuries and drops what it cannot read, signings included", () => {
     expect(parseMoves("i9-0_s7-TOR_t5-MTL_x1-TOR_i3-3")).toEqual([
       { kind: "i", id: 9, weeks: null },
-      { kind: "s", id: 7, to: "TOR" },
       { kind: "t", id: 5, to: "MTL" },
     ]);
     expect(parseMoves(null)).toEqual([]);

@@ -5,7 +5,6 @@
  */
 export interface Schema {
   energy: EnergySeries[];
-  free_agents: FreeAgent[];
   game: GameResponse;
   health: HealthResponse;
   leaders: LeadersResponse;
@@ -48,17 +47,6 @@ export interface EnergyPoint {
   cumulative: number;
   day: number;
   shift: number;
-}
-/**
- * This interface was referenced by `Schema`'s JSON-Schema
- * via the `definition` "FreeAgent".
- */
-export interface FreeAgent {
-  id: number;
-  last_team: string | null;
-  name: string;
-  position: string;
-  worth_goals: number;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema
@@ -579,7 +567,7 @@ export interface RosterBumped {
  */
 export interface RosterMoveOut {
   from_team: string | null;
-  move: "trade" | "injury" | "sign";
+  move: "trade" | "injury";
   name: string;
   player_id: number;
   to_team: string | null;
@@ -604,7 +592,7 @@ export interface RosterTeamLine {
  */
 export interface RosterWhy {
   goals: number;
-  move: "trade" | "injury" | "sign";
+  move: "trade" | "injury";
   name: string;
   player_id: number;
 }

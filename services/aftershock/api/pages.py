@@ -48,7 +48,7 @@ STATIC = {
     ),
     "/roster-lab": (
         "Roster Lab",
-        "Trade players, take one out for a few weeks, or sign a free agent, and see how far "
+        "Trade players or take one out for a few weeks, and see how far "
         "each team's playoff and Stanley Cup odds move.",
     ),
     "/nights": ("Every night", "Replay any NHL night of the last three seasons, goal by goal."),

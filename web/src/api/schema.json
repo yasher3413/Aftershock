@@ -170,46 +170,6 @@
       "title": "EventMsg",
       "type": "object"
     },
-    "FreeAgent": {
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "integer"
-        },
-        "last_team": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Team"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "position": {
-          "title": "Position",
-          "type": "string"
-        },
-        "worth_goals": {
-          "title": "Worth Goals",
-          "type": "number"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "position",
-        "last_team",
-        "worth_goals"
-      ],
-      "title": "FreeAgent",
-      "type": "object"
-    },
     "GamePreview": {
       "description": "Before puck drop: the model's projection instead of empty stats.",
       "properties": {
@@ -1738,8 +1698,7 @@
         "move": {
           "enum": [
             "trade",
-            "injury",
-            "sign"
+            "injury"
           ],
           "title": "Move",
           "type": "string"
@@ -1963,8 +1922,7 @@
         "move": {
           "enum": [
             "trade",
-            "injury",
-            "sign"
+            "injury"
           ],
           "title": "Move",
           "type": "string"
@@ -3236,13 +3194,6 @@
       "title": "Energy",
       "type": "array"
     },
-    "free_agents": {
-      "items": {
-        "$ref": "#/$defs/FreeAgent"
-      },
-      "title": "Free Agents",
-      "type": "array"
-    },
     "game": {
       "$ref": "#/$defs/GameResponse"
     },
@@ -3355,7 +3306,6 @@
     "message",
     "replay",
     "roster_team",
-    "free_agents",
     "roster_run",
     "saved"
   ],

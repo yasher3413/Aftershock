@@ -214,7 +214,7 @@ forecasting.
 ## Player values (`roster-1.0.0`)
 
 **What it predicts.** Each player's effect on his team's goals per game, for
-the Roster Lab's trades, injuries, and signings.
+the Roster Lab's trades and injuries.
 
 **Data.** Regular-season games since 2024-25 (shift charts start there):
 2,650 games and 1,207 players at the 2026-10-28 run. Five-on-five stints

@@ -791,36 +791,6 @@ async def roster_team(abbrev: str, session: Db, st: State) -> Any:
     )
 
 
-@router.get("/roster-lab/free-agents", response_model=list[S.FreeAgent])
-async def roster_free_agents(session: Db, st: State, q: str = "") -> Any:
-    """Free agents (NHL minutes since 2024-25, on no roster) by name."""
-    from aftershock.api import roster as R
-    from aftershock.jobs.player_values import free_agents, roster_state
-
-    rosters, values = await roster_state(session)
-    _, boot = await _boot(st)
-    games = R.future_games(boot)
-    left = sum(len(d) for d in games.values()) / max(len(games), 1)
-    rostered = {s.player_id for spots in rosters.values() for s in spots}
-    needle = q.strip().lower()
-    found = [
-        values[p]
-        for p in free_agents(values, rostered)
-        if not needle or needle in values[p].name.lower()
-    ]
-    found.sort(key=lambda v: -R.free_agent_worth(v, left))
-    return [
-        S.FreeAgent(
-            id=v.player_id,
-            name=v.name,
-            position=v.position,
-            last_team=v.last_team,
-            worth_goals=round(R.free_agent_worth(v, left), 1),
-        )
-        for v in found[:20]
-    ]
-
-
 _roster_waiting = 0  # runs queued for the simulator lock
 
 

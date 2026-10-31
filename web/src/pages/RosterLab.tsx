@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { api, ApiError, useStateQuery } from "../api/client";
 import type {
-  FreeAgent,
   RosterPlayer,
   RosterRunOut,
   RosterTeamLine,
@@ -62,7 +61,7 @@ function problem(error: unknown): { text: string; offseason: boolean; retry: boo
 export default function RosterLabPage() {
   useDocumentMeta(
     "Roster Lab",
-    "Trade players, take one out for a few weeks, or sign a free agent, and see how far each team's playoff and Stanley Cup odds move.",
+    "Trade players or take one out for a few weeks, and see how far each team's playoff and Stanley Cup odds move.",
   );
   const state = useStateQuery();
   const teamsInfo = useMemo(
@@ -162,13 +161,10 @@ export default function RosterLabPage() {
   );
 
   // Names of everyone a move can mention.
-  const [agents, setAgents] = useState<Record<number, FreeAgent>>({});
   const players: Record<number, { name: string; position: string; team: string | null }> = {};
   for (const t of teams)
     for (const p of rosterBy[t]?.players ?? [])
       players[p.id] = { name: p.name, position: p.position, team: t };
-  for (const a of Object.values(agents))
-    players[a.id] ??= { name: a.name, position: a.position, team: null };
   for (const m of result?.moves ?? [])
     players[m.player_id] ??= { name: m.name, position: "F", team: m.from_team ?? null };
 
@@ -196,7 +192,7 @@ export default function RosterLabPage() {
     : headline(
         moves.map((m) => ({
           name: players[m.id]?.name ?? "A player",
-          move: m.kind === "i" ? "injury" : m.kind === "s" ? "sign" : "trade",
+          move: m.kind === "i" ? "injury" : "trade",
           to_team: m.kind === "i" ? null : m.to,
           weeks: m.kind === "i" ? m.weeks : null,
         })),
@@ -221,8 +217,8 @@ export default function RosterLabPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 [overflow-anchor:none] md:px-6 md:py-10">
       <h1 className="display text-[38px] font-extrabold leading-none sm:text-[60px]">Roster Lab</h1>
       <p className="mt-2 max-w-[62ch] text-[14px] text-ink-soft">
-        Trade players between two teams, take one out for a few weeks, or sign a free agent. The
-        season reruns 10,000 times before and after, so you can see what one player is worth.{" "}
+        Trade players between two teams or take one out for a few weeks. The season reruns 10,000
+        times before and after, so you can see what one player is worth.{" "}
         <Link to="/what-if" className="font-semibold text-blue-line hover:underline">
           Pick game results in the What-If Lab
         </Link>
@@ -246,7 +242,7 @@ export default function RosterLabPage() {
               }}
               className="min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-3 py-2 text-[14px] text-ink"
             >
-              <option value="">{i === 0 ? "Choose a team" : "None (injuries and signings)"}</option>
+              <option value="">{i === 0 ? "Choose a team" : "None (injuries only)"}</option>
               {allTeams
                 .filter((t) => t.abbrev !== teams[1 - i])
                 .map((t) => (
@@ -355,7 +351,6 @@ export default function RosterLabPage() {
               moves={moves}
               players={players}
               onMove={(next) => setMoves(withMove(moves, next))}
-              onAgent={(a) => setAgents((m) => ({ ...m, [a.id]: a }))}
             />
           ))}
         </section>
@@ -390,7 +385,6 @@ function TeamRoster({
   moves,
   players,
   onMove,
-  onAgent,
 }: {
   team: string;
   name: string;
@@ -399,7 +393,6 @@ function TeamRoster({
   moves: Move[];
   players: Record<number, { name: string; position: string; team: string | null }>;
   onMove: (next: Move | { kind: "none"; id: number }) => void;
-  onAgent: (a: FreeAgent) => void;
 }) {
   const moveOf = Object.fromEntries(moves.map((m) => [m.id, m]));
   const arrivals = moves.filter((m) => m.kind !== "i" && m.to === team);
@@ -449,21 +442,9 @@ function TeamRoster({
                           {players[m.id]?.name ?? "A player"}
                         </span>
                         <span className="text-[12px] font-semibold text-blue-line">
-                          {m.kind === "s"
-                            ? "Signed as a free agent"
-                            : `From ${players[m.id]?.team ?? "another team"}`}
+                          From {players[m.id]?.team ?? "another team"}
                         </span>
                       </span>
-                      {m.kind === "s" && (
-                        <button
-                          type="button"
-                          aria-label={`Undo move for ${players[m.id]?.name ?? "this player"}`}
-                          onClick={() => onMove({ kind: "none", id: m.id })}
-                          className="min-h-[44px] px-2 text-[13px] font-semibold text-blue-line"
-                        >
-                          Undo
-                        </button>
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -488,7 +469,6 @@ function TeamRoster({
               </ul>
             </div>
           )}
-          <FreeAgentSearch team={team} moves={moves} onMove={onMove} onAgent={onAgent} />
         </>
       )}
     </div>
@@ -556,86 +536,6 @@ function PlayerRow({
         </select>
       )}
     </li>
-  );
-}
-
-function FreeAgentSearch({
-  team,
-  moves,
-  onMove,
-  onAgent,
-}: {
-  team: string;
-  moves: Move[];
-  onMove: (next: Move) => void;
-  onAgent: (a: FreeAgent) => void;
-}) {
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const found = useQuery({
-    queryKey: ["free-agents", q.trim().toLowerCase()],
-    queryFn: () => api<FreeAgent[]>(`/roster-lab/free-agents?q=${encodeURIComponent(q.trim())}`),
-    enabled: open,
-    staleTime: 300_000,
-    placeholderData: keepPreviousData,
-  });
-  const taken = new Set(moves.map((m) => m.id));
-  const list = (found.data ?? []).filter((a) => !taken.has(a.id)).slice(0, 6);
-  return (
-    <div className="mt-6 border-t-2 border-ink pt-3">
-      <label className="flex flex-col gap-1 text-[13px] text-ink-soft">
-        <span className="text-[15px] font-semibold text-ink">Sign a free agent</span>
-        <input
-          type="search"
-          aria-label={`Find a free agent for ${team}`}
-          placeholder="Name"
-          value={q}
-          onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setOpen(true);
-            setQ(e.target.value);
-          }}
-          className="min-h-[44px] rounded-[var(--radius)] border border-ice-scratch bg-surface px-3 text-[14px] text-ink"
-        />
-      </label>
-      {open && (
-        <ul className="mt-1 divide-y divide-ice-scratch">
-          {found.isError && (
-            <li className="py-2 text-[13px] text-ink-soft">Free agents could not load.</li>
-          )}
-          {found.data && list.length === 0 && (
-            <li className="py-2 text-[13px] text-ink-soft">No free agent by that name.</li>
-          )}
-          {list.map((a) => (
-            <li key={a.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-1">
-              <span className="min-w-0 truncate text-[14px]">
-                {a.name}
-                <span className="ml-2 text-[12px] text-ink-soft">
-                  {a.position}
-                  {a.last_team ? `, last with ${a.last_team}` : ""}
-                </span>
-              </span>
-              <span className="text-right text-[13px] tabular-nums text-ink-soft">
-                {goals(a.worth_goals)}
-              </span>
-              <button
-                type="button"
-                aria-label={`Sign ${a.name} to ${team}`}
-                onClick={() => {
-                  onAgent(a);
-                  onMove({ kind: "s", id: a.id, to: team });
-                  setQ("");
-                  setOpen(false);
-                }}
-                className="min-h-[44px] rounded-[var(--radius)] px-3 text-[13px] font-semibold text-blue-line ring-1 ring-ice-scratch ring-inset hover:bg-ice-land"
-              >
-                Sign
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 

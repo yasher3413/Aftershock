@@ -6,7 +6,6 @@ import pytest
 from aftershock.ml.player_value import PlayerValue
 from aftershock.sim.roster import (
     Injury,
-    Sign,
     Spot,
     Trade,
     Window,
@@ -75,17 +74,11 @@ def test_trade_moves_both_teams_opposite_ways(league) -> None:
     assert w["TOR"].d_off < 0 < w["MTL"].d_off
 
 
-def test_signing_helps_only_the_signing_team(league) -> None:
-    rosters, values = league
-    (w,) = team_deltas([Sign(900, "MTL")], rosters, values, LEAGUE, TODAY)
-    assert w.team == "MTL" and w.d_off > 0
-
-
 def test_better_goalie_takes_the_starters_share(league) -> None:
     rosters, values = league
-    values[999] = PlayerValue(999, "G", gsax_per_shot=0.02)
-    (w,) = team_deltas([Sign(999, "TOR")], rosters, values, LEAGUE, TODAY)
-    assert w.d_def < -0.01
+    values[230] = PlayerValue(230, "G", gsax_per_shot=0.02)
+    w = {x.team: x for x in team_deltas([Trade(230, "TOR")], rosters, values, LEAGUE, TODAY)}
+    assert w["TOR"].d_def < -0.01
 
 
 def test_injury_after_season_end_is_harmless(league) -> None:
@@ -123,11 +116,19 @@ def test_encoding_is_canonical() -> None:
     a = encode_moves(parse_moves("t5-MTL_i9-4"))
     assert a == encode_moves(parse_moves("i9-4_t5-MTL")) == "i9-4_t5-MTL"
     assert parse_moves("i9-0") == [Injury(9, None)]
-    assert parse_moves("s7-TOR") == [Sign(7, "TOR")]
 
 
 @pytest.mark.parametrize(
-    "bad", ["", "x5-TOR", "i9-3", "t5-tor", "t5-MTL_t5-TOR", "_".join(f"i{i}-1" for i in range(21))]
+    "bad",
+    [
+        "",
+        "x5-TOR",
+        "s7-TOR",
+        "i9-3",
+        "t5-tor",
+        "t5-MTL_t5-TOR",
+        "_".join(f"i{i}-1" for i in range(21)),
+    ],
 )
 def test_bad_encodings_are_refused(bad: str) -> None:
     with pytest.raises(ValueError):
@@ -142,8 +143,8 @@ def test_goalie_value_is_not_scaled_like_skaters(league) -> None:
     from aftershock.sim.roster import SHOTS_AGAINST_PG
 
     rosters, values = league
-    values[999] = PlayerValue(999, "G", gsax_per_shot=0.02)
-    (w,) = team_deltas([Sign(999, "TOR")], rosters, values, LEAGUE, TODAY)
+    values[230] = PlayerValue(230, "G", gsax_per_shot=0.02)
+    w = {x.team: x for x in team_deltas([Trade(230, "TOR")], rosters, values, LEAGUE, TODAY)}["TOR"]
     # The newcomer takes the starter's 0.7; the old starter the backup's 0.3.
     d_ga = -((0.02 - 0.004) * 0.7 + (0.004 - 0.0) * 0.3) * SHOTS_AGAINST_PG
     assert w.d_def == pytest.approx(math.log(1 + d_ga / LEAGUE))

@@ -67,13 +67,7 @@ class Injury:
     weeks: int | None  # None: the rest of the season
 
 
-@dataclass(frozen=True)
-class Sign:
-    player_id: int
-    to: str
-
-
-Move = Trade | Injury | Sign
+Move = Trade | Injury
 
 
 @dataclass(frozen=True)
@@ -87,7 +81,7 @@ class Window:
     d_def: float
 
 
-_PART = re.compile(r"^(?:([ts])(\d{1,8})-([A-Z]{3})|i(\d{1,8})-([0-9]))$")
+_PART = re.compile(r"^(?:t(\d{1,8})-([A-Z]{3})|i(\d{1,8})-([0-9]))$")
 
 
 def parse_moves(encoded: str) -> list[Move]:
@@ -102,13 +96,12 @@ def parse_moves(encoded: str) -> list[Move]:
         if m is None:
             raise ValueError(f"Bad move {part!r}.")
         if m.group(1):
-            pid, team = int(m.group(2)), m.group(3)
-            out.append(Trade(pid, team) if m.group(1) == "t" else Sign(pid, team))
+            out.append(Trade(int(m.group(1)), m.group(2)))
         else:
-            weeks = int(m.group(5))
+            weeks = int(m.group(4))
             if weeks and weeks not in WEEKS:
                 raise ValueError(f"Bad injury length {weeks}.")
-            out.append(Injury(int(m.group(4)), weeks or None))
+            out.append(Injury(int(m.group(3)), weeks or None))
     ids = [mv.player_id for mv in out]
     if len(set(ids)) != len(ids):
         raise ValueError("A player can only move once.")
@@ -118,8 +111,6 @@ def parse_moves(encoded: str) -> list[Move]:
 def _code(mv: Move) -> str:
     if isinstance(mv, Trade):
         return f"t{mv.player_id}-{mv.to}"
-    if isinstance(mv, Sign):
-        return f"s{mv.player_id}-{mv.to}"
     return f"i{mv.player_id}-{mv.weeks or 0}"
 
 
@@ -134,11 +125,7 @@ def _team_of(rosters: dict[str, list[Spot]], pid: int) -> str | None:
     return None
 
 
-def check_shape(
-    rosters: dict[str, list[Spot]],
-    moves: list[Move],
-    values: dict[int, PlayerValue] | None = None,
-) -> str | None:
+def check_shape(rosters: dict[str, list[Spot]], moves: list[Move]) -> str | None:
     """The first team the moves leave short of players to dress, in words. A
     team already short today only counts if the moves make it worse. There is
     no maximum: a team with extra players sits the least used (``bumped``)."""
@@ -152,11 +139,6 @@ def check_shape(
             if frm and p:
                 after[frm][p] -= 1
                 after.setdefault(mv.to, Counter())[p] += 1
-    for mv in moves:
-        if isinstance(mv, Sign):
-            v = (values or {}).get(mv.player_id)
-            p = pos.get(mv.player_id) or (v.position if v else "F")
-            after.setdefault(mv.to, Counter())[p] += 1
     for team in sorted(after):
         for p, lo in MINIMUMS.items():
             n, was = after[team][p], before.get(team, Counter())[p]
@@ -195,11 +177,6 @@ def _lineups(
                 out[t] = [s for s in out[t] if s.player_id != mv.player_id]
         if isinstance(mv, Trade) and mv.player_id in spot:
             out.setdefault(mv.to, []).append(replace(spot[mv.player_id], team=mv.to, toi_share=-1))
-        if isinstance(mv, Sign) and mv.player_id in values:
-            v = values[mv.player_id]
-            out.setdefault(mv.to, []).append(
-                Spot(v.player_id, mv.to, v.position, True, v.ev_toi_pg, v.pp_toi_pg, -1)
-            )
     return out
 
 

@@ -466,14 +466,6 @@ class RosterTeamResponse(Model):
     players: list[RosterPlayer]
 
 
-class FreeAgent(Model):
-    id: int
-    name: str
-    position: str
-    last_team: str | None
-    worth_goals: float
-
-
 class RosterRunIn(Model):
     encoded: str = Field(min_length=1, max_length=400)
 
@@ -491,7 +483,7 @@ class RosterTeamLine(Model):
 class RosterWhy(Model):
     player_id: int
     name: str
-    move: Literal["trade", "injury", "sign"]
+    move: Literal["trade", "injury"]
     goals: float
 
 
@@ -503,7 +495,7 @@ class RosterBumped(Model):
 class RosterMoveOut(Model):
     player_id: int
     name: str
-    move: Literal["trade", "injury", "sign"]
+    move: Literal["trade", "injury"]
     from_team: str | None  # None for a free agent
     to_team: str | None  # None for an injury
     weeks: int | None  # injuries: None is the rest of the season
@@ -658,6 +650,5 @@ class Schema(BaseModel):
     message: LiveMessage
     replay: ReplayBundleOut
     roster_team: RosterTeamResponse
-    free_agents: list[FreeAgent]
     roster_run: RosterRunOut
     saved: ScenarioOut
