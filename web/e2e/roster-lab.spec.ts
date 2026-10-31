@@ -199,6 +199,19 @@ test("an injury has a length, and a refused trade says why", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Take TOR Hurt out" })).toHaveCount(0);
 });
 
+test("either team can be changed, and moves with the old team go", async ({ page }) => {
+  await mockRoster(page);
+  await page.route("**/api/roster-lab/teams/MTL", (route) =>
+    route.fulfill({ json: roster("MTL", 3000) }),
+  );
+  await page.goto("/roster-lab?teams=TOR,VAN&m=t2000-TOR_i1001-2");
+  await page.getByLabel("Trade partner", { exact: true }).selectOption("MTL");
+  await expect(page).toHaveURL(/teams=TOR%2CMTL&m=i1001-2$/);
+  await page.getByLabel("Team", { exact: true }).selectOption("VAN");
+  await expect(page).toHaveURL(/teams=VAN%2CMTL$/);
+  await expect(page.getByLabel("Team", { exact: true })).toHaveValue("VAN");
+});
+
 test("a shared trade shows its results straight away", async ({ page }) => {
   const runs = await mockRoster(page);
   await page.goto("/roster-lab?teams=TOR,VAN&m=t2000-TOR");

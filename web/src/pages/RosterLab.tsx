@@ -172,22 +172,29 @@ export default function RosterLabPage() {
     .map((t) => t.trim().toUpperCase())
     .filter((t) => /^[A-Z]{3}$/.test(t));
   const fromRun = (result?.moves ?? []).flatMap((m) => [m.from_team, m.to_team]);
-  const teams = [...new Set([...chosen, ...fromRun.filter((t): t is string => !!t)])].slice(0, 2);
+  // A shared link may name only moves; then its teams come from the result.
+  const teams = [
+    ...new Set(chosen.length ? chosen : fromRun.filter((t): t is string => !!t)),
+  ].slice(0, 2);
   const setTeam = (i: number, abbrev: string) => {
     const next = [...teams];
     const old = next[i];
     next[i] = abbrev;
+    // Moves that involve the team being replaced no longer make sense.
+    const kept =
+      old && old !== abbrev
+        ? moves.filter((m) => players[m.id]?.team !== old && !(m.kind === "t" && m.to === old))
+        : moves;
+    // One address change: two in a row would each start from the old address.
     update((p) => {
       p.delete("team");
       const list = next.filter(Boolean);
       if (list.length) p.set("teams", list.join(","));
       else p.delete("teams");
+      const e = encodeMoves(kept);
+      if (e) p.set("m", e);
+      else p.delete("m");
     });
-    // Moves that involve the team being replaced no longer make sense.
-    if (old && old !== abbrev)
-      setMoves(
-        moves.filter((m) => players[m.id]?.team !== old && !(m.kind === "t" && m.to === old)),
-      );
   };
 
   const rosters = useQueries({
