@@ -495,6 +495,11 @@ class RosterWhy(Model):
     goals: float
 
 
+class RosterBumped(Model):
+    player_id: int
+    name: str
+
+
 class RosterMoveOut(Model):
     player_id: int
     name: str
@@ -510,6 +515,8 @@ class RosterRunOut(Model):
     teams: list[RosterTeamLine]
     changed: list[str]
     why: dict[str, list[RosterWhy]]
+    # Players who dress today but lose their place to a newcomer.
+    bumped: dict[str, list[RosterBumped]] = {}
     computed_at: datetime
 
 

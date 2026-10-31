@@ -833,7 +833,7 @@ async def _roster_run(
     from aftershock.db.models import PlayerValueRow
     from aftershock.jobs.player_values import roster_state
     from aftershock.sim import roster_lab as RL
-    from aftershock.sim.roster import encode_moves, parse_moves, team_deltas
+    from aftershock.sim.roster import bumped, encode_moves, parse_moves, team_deltas
 
     global _roster_waiting
     try:
@@ -888,6 +888,10 @@ async def _roster_run(
                 teams=[S.RosterTeamLine(**vars(t)) for t in result.teams],
                 changed=sorted({w.team for w in windows} | set(why)),
                 why={t: [S.RosterWhy(**r) for r in rows] for t, rows in why.items()},
+                bumped={
+                    t: [S.RosterBumped(player_id=p, name=values[p].name) for p in ids]
+                    for t, ids in bumped(rosters, values, moves).items()
+                },
                 computed_at=datetime.now(UTC),
             )
             await st.redis.set(key, out.model_dump_json(), ex=ROSTER_RUN_TTL_S)

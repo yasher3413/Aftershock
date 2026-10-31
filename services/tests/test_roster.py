@@ -10,6 +10,7 @@ from aftershock.sim.roster import (
     Spot,
     Trade,
     Window,
+    bumped,
     check_shape,
     encode_moves,
     parse_moves,
@@ -100,6 +101,24 @@ def test_shape_limits(league) -> None:
     assert check_shape(rosters, [Trade(111, "MTL"), Trade(211, "TOR")]) is None
 
 
+def test_uneven_trades_are_allowed(league) -> None:
+    rosters, _ = league
+    three = [Trade(109, "MTL"), Trade(110, "MTL"), Trade(111, "MTL")]
+    # TOR keeps 9 forwards, too few to dress; MTL taking 15 is fine.
+    assert check_shape(rosters, three) == "TOR would have 9 forwards; a team needs at least 12."
+    rosters["TOR"] += [Spot(150 + i, "TOR", "F", True, 8.0, 0.0, 0.0) for i in range(3)]
+    assert check_shape(rosters, three) is None
+
+
+def test_extra_players_bump_the_least_used(league) -> None:
+    rosters, values = league
+    # MTL's 12th forward (211, fewest minutes) makes way for TOR's best.
+    assert bumped(rosters, values, [Trade(100, "MTL")]) == {"MTL": [211]}
+    # A one-for-one swap bumps nobody, and injured players are not "bumped".
+    assert bumped(rosters, values, [Trade(111, "MTL"), Trade(211, "TOR")]) == {}
+    assert bumped(rosters, values, [Injury(100, 4)]) == {}
+
+
 def test_encoding_is_canonical() -> None:
     a = encode_moves(parse_moves("t5-MTL_i9-4"))
     assert a == encode_moves(parse_moves("i9-4_t5-MTL")) == "i9-4_t5-MTL"
@@ -117,19 +136,6 @@ def test_bad_encodings_are_refused(bad: str) -> None:
 
 def test_window_type() -> None:
     assert Window("TOR", TODAY, None, 0.0, 0.0).end is None
-
-
-def test_shape_uses_a_free_agents_own_position(league) -> None:
-    rosters, values = league
-    values[901] = PlayerValue(901, "G", games=40)
-    values[902] = PlayerValue(902, "D", games=40)
-    values[903] = PlayerValue(903, "G", games=40)
-    # TOR has 2 goalies: a third is fine, a fourth is not.
-    assert check_shape(rosters, [Sign(901, "TOR")], values) is None
-    msg = check_shape(rosters, [Sign(901, "TOR"), Sign(903, "TOR")], values)
-    assert msg == "TOR would have 4 goalies; a team can carry at most 3."
-    # A defenceman is not counted as a forward.
-    assert check_shape(rosters, [Sign(902, "TOR")], values) is None
 
 
 def test_goalie_value_is_not_scaled_like_skaters(league) -> None:

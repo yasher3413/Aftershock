@@ -1704,6 +1704,24 @@
       "title": "RootingLine",
       "type": "object"
     },
+    "RosterBumped": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "player_id": {
+          "title": "Player Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "player_id",
+        "name"
+      ],
+      "title": "RosterBumped",
+      "type": "object"
+    },
     "RosterMoveOut": {
       "properties": {
         "from_team": {
@@ -1803,6 +1821,17 @@
     },
     "RosterRunOut": {
       "properties": {
+        "bumped": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/RosterBumped"
+            },
+            "type": "array"
+          },
+          "default": {},
+          "title": "Bumped",
+          "type": "object"
+        },
         "changed": {
           "items": {
             "type": "string"
@@ -1850,6 +1879,7 @@
         "teams",
         "changed",
         "why",
+        "bumped",
         "computed_at"
       ],
       "title": "RosterRunOut",

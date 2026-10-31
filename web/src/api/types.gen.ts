@@ -553,6 +553,9 @@ export interface ReplayInitial {
  * via the `definition` "RosterRunOut".
  */
 export interface RosterRunOut {
+  bumped: {
+    [k: string]: RosterBumped[];
+  };
   changed: string[];
   computed_at: string;
   encoded: string;
@@ -561,6 +564,14 @@ export interface RosterRunOut {
   why: {
     [k: string]: RosterWhy[];
   };
+}
+/**
+ * This interface was referenced by `Schema`'s JSON-Schema
+ * via the `definition` "RosterBumped".
+ */
+export interface RosterBumped {
+  name: string;
+  player_id: number;
 }
 /**
  * This interface was referenced by `Schema`'s JSON-Schema

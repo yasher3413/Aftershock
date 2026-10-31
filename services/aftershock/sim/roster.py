@@ -27,7 +27,7 @@ from aftershock.ml.player_value import PlayerValue
 WEEKS = (1, 2, 4, 6, 8)
 MAX_MOVES = 20
 SLOTS = {"F": 12, "D": 6}
-LIMITS = {"F": (12, 14), "D": (6, 8), "G": (2, 3)}
+MINIMUMS = {"F": 12, "D": 6, "G": 2}  # to dress a team; extras sit out
 NOUNS = {
     "F": ("forward", "forwards"),
     "D": ("defenceman", "defencemen"),
@@ -139,8 +139,9 @@ def check_shape(
     moves: list[Move],
     values: dict[int, PlayerValue] | None = None,
 ) -> str | None:
-    """The first roster limit the moves break, in words. A limit a team
-    already breaks today only counts if the moves make it worse."""
+    """The first team the moves leave short of players to dress, in words. A
+    team already short today only counts if the moves make it worse. There is
+    no maximum: a team with extra players sits the least used (``bumped``)."""
     pos = {s.player_id: s.position for spots in rosters.values() for s in spots}
     before = {t: Counter(s.position for s in spots) for t, spots in rosters.items()}
     after = {t: Counter(c) for t, c in before.items()}
@@ -156,15 +157,12 @@ def check_shape(
             v = (values or {}).get(mv.player_id)
             p = pos.get(mv.player_id) or (v.position if v else "F")
             after.setdefault(mv.to, Counter())[p] += 1
-    for low in (True, False):  # a shortage is the clearer message
-        for team in sorted(after):
-            for p, (lo, hi) in LIMITS.items():
-                n, was = after[team][p], before.get(team, Counter())[p]
+    for team in sorted(after):
+        for p, lo in MINIMUMS.items():
+            n, was = after[team][p], before.get(team, Counter())[p]
+            if n < lo and n < was:
                 noun = NOUNS[p][0 if n == 1 else 1]
-                if low and n < lo and n < was:
-                    return f"{team} would have {n} {noun}; a team needs at least {lo}."
-                if not low and n > hi and n > was:
-                    return f"{team} would have {n} {noun}; a team can carry at most {hi}."
+                return f"{team} would have {n} {noun}; a team needs at least {lo}."
     return None
 
 
@@ -205,6 +203,54 @@ def _lineups(
     return out
 
 
+def _skaters(lineup: list[Spot], position: str) -> list[Spot]:
+    """A team's forwards or defence, most used first: the order minutes go in."""
+    return sorted((s for s in lineup if s.position == position), key=lambda s: -s.ev_toi_pg)
+
+
+def _goalies(lineup: list[Spot], values: dict[int, PlayerValue]) -> list[Spot]:
+    """A team's goalies in the order they take the net: incumbents by share,
+    then a newcomer as the starter if he is better, otherwise the backup."""
+    order = sorted(
+        (s for s in lineup if s.position == "G" and s.toi_share >= 0), key=lambda s: -s.toi_share
+    )
+    repl = replacement(values, "G")
+    for s in lineup:
+        if s.position == "G" and s.toi_share < 0:
+            v = values.get(s.player_id, repl).gsax_per_shot
+            starter = values.get(order[0].player_id, repl).gsax_per_shot if order else -math.inf
+            order.insert(0 if v > starter else min(1, len(order)), s)
+    return order
+
+
+def _dressed(lineup: list[Spot], slots: list[Spot], values: dict[int, PlayerValue]) -> set[int]:
+    """The players in ``lineup`` who get minutes in ``slots``' places."""
+
+    def n(p: str) -> int:
+        return min(SLOTS.get(p, 99), sum(1 for s in slots if s.position == p))
+
+    picked = _skaters(lineup, "F")[: n("F")] + _skaters(lineup, "D")[: n("D")]
+    return {s.player_id for s in picked + _goalies(lineup, values)[: n("G")]}
+
+
+def bumped(
+    rosters: dict[str, list[Spot]], values: dict[int, PlayerValue], moves: list[Move]
+) -> dict[str, list[int]]:
+    """Per team, the players who dress today, are still there after the
+    moves, but lose their place to a newcomer."""
+    today = {t: [s for s in spots if s.in_lineup] for t, spots in rosters.items()}
+    out: dict[str, list[int]] = {}
+    for team, lineup in _lineups(rosters, values, moves).items():
+        slots = today.get(team, [])
+        before = _dressed(slots, slots, values)
+        after = _dressed(lineup, slots, values)
+        still = {s.player_id for s in lineup}
+        lost = sorted(before & still - after)
+        if lost:
+            out[team] = lost
+    return out
+
+
 def team_goals(
     lineup: list[Spot], slots: list[Spot], values: dict[int, PlayerValue]
 ) -> tuple[float, float]:
@@ -213,7 +259,7 @@ def team_goals(
     gf = ga = 0.0
     for p in ("F", "D"):
         mins = sorted((s.ev_toi_pg for s in slots if s.position == p), reverse=True)[: SLOTS[p]]
-        players = sorted((s for s in lineup if s.position == p), key=lambda s: -s.ev_toi_pg)
+        players = _skaters(lineup, p)
         repl = replacement(values, p)
         for k, m in enumerate(mins):
             if k < len(players):
@@ -226,17 +272,7 @@ def team_goals(
             ga += v.def60 * m / 60
     gf, ga = VALUE_SCALE * gf, VALUE_SCALE * ga  # skaters only: GSAx is already whole
     shares = sorted((s.toi_share for s in slots if s.position == "G"), reverse=True)
-    incumbents = sorted(
-        (s for s in lineup if s.position == "G" and s.toi_share >= 0), key=lambda s: -s.toi_share
-    )
-    order: list[PlayerValue] = [
-        values.get(s.player_id, replacement(values, "G")) for s in incumbents
-    ]
-    for s in lineup:
-        if s.position == "G" and s.toi_share < 0:
-            v = values.get(s.player_id, replacement(values, "G"))
-            starter = order[0].gsax_per_shot if order else -math.inf
-            order.insert(0 if v.gsax_per_shot > starter else min(1, len(order)), v)
+    order = [values.get(s.player_id, replacement(values, "G")) for s in _goalies(lineup, values)]
     repl_g = replacement(values, "G")
     for k, share in enumerate(shares):
         v = order[k] if k < len(order) else repl_g

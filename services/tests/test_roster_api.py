@@ -176,6 +176,8 @@ async def test_trade_moves_both_teams(client: Any) -> None:
         }
     ]
     assert body["why"]["MTL"][0]["goals"] > 0 > body["why"]["TOR"][0]["goals"]
+    # MTL's least-used forward makes way for the newcomer.
+    assert body["bumped"] == {"MTL": [{"player_id": 211, "name": "MTL F11"}]}
 
 
 async def test_order_does_not_matter(client: Any) -> None:
