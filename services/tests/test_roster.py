@@ -15,6 +15,7 @@ from aftershock.sim.roster import (
     encode_moves,
     parse_moves,
     team_deltas,
+    team_goals,
 )
 
 TODAY = date(2026, 11, 1)
@@ -118,6 +119,22 @@ def test_the_weakest_sits_not_the_least_used(league) -> None:
     # A power-play star with few even-strength minutes keeps his place.
     values[211] = replace(values[211], off60=0.5)
     assert bumped(rosters, values, [Trade(100, "MTL")]) == {"MTL": [210]}
+
+
+def test_today_the_most_used_dress_and_an_injury_brings_in_the_extra(league) -> None:
+    rosters, values = league
+    regulars = list(rosters["TOR"])
+    # A struggling regular, and a 13th forward who sat with the fewest minutes.
+    values[105] = replace(values[105], off60=-0.5)
+    extra = Spot(112, "TOR", "F", True, 8.0, 0.0, 0.0)
+    values[112] = PlayerValue(112, "F", off60=0.05, ev_toi_pg=8.0)
+    rosters["TOR"] = [*regulars, extra]
+    lineup = rosters["TOR"]
+    assert team_goals(lineup, lineup, values) == team_goals(regulars, regulars, values)
+    (w,) = team_deltas([Injury(100, None)], rosters, values, LEAGUE, TODAY)
+    after = [s for s in lineup if s.player_id != 100]
+    gf = team_goals(after, regulars, values)[0] - team_goals(regulars, regulars, values)[0]
+    assert w.d_off == pytest.approx(math.log(1 + gf / LEAGUE))
 
 
 def test_encoding_is_canonical() -> None:

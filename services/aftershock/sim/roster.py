@@ -181,19 +181,28 @@ def _lineups(
 
 
 def _skaters(
-    lineup: list[Spot], position: str, n: int, values: dict[int, PlayerValue]
+    lineup: list[Spot], slots: list[Spot], position: str, n: int, values: dict[int, PlayerValue]
 ) -> list[Spot]:
     """The ``n`` forwards or defence who dress, most used first (the order
-    minutes go in). With more than ``n``, the weakest per minute sit."""
+    minutes go in). Today's ``n`` most used keep their places and newcomers
+    join them; with more than ``n``, the weakest per minute sit, and with
+    fewer, the next most used come in."""
     repl = replacement(values, position)
 
     def rate(s: Spot) -> float:
         v = values.get(s.player_id, repl)
         return v.off60 - v.def60 + v.finish_per_shot * v.shots_per60
 
+    def by_use(group: list[Spot]) -> list[Spot]:
+        return sorted(group, key=lambda s: -s.ev_toi_pg)
+
+    today = {s.player_id for s in by_use([s for s in slots if s.position == position])[:n]}
     group = [s for s in lineup if s.position == position]
-    dressed = sorted(group, key=lambda s: (-rate(s), -s.ev_toi_pg))[:n]
-    return sorted(dressed, key=lambda s: -s.ev_toi_pg)
+    core = [s for s in group if s.player_id in today or s.toi_share < 0]
+    if len(core) > n:
+        core = sorted(core, key=lambda s: (-rate(s), -s.ev_toi_pg))[:n]
+    rest = by_use([s for s in group if s not in core])
+    return by_use(core + rest[: n - len(core)])
 
 
 def _goalies(lineup: list[Spot], values: dict[int, PlayerValue]) -> list[Spot]:
@@ -217,7 +226,9 @@ def _dressed(lineup: list[Spot], slots: list[Spot], values: dict[int, PlayerValu
     def n(p: str) -> int:
         return min(SLOTS.get(p, 99), sum(1 for s in slots if s.position == p))
 
-    picked = _skaters(lineup, "F", n("F"), values) + _skaters(lineup, "D", n("D"), values)
+    picked = _skaters(lineup, slots, "F", n("F"), values) + _skaters(
+        lineup, slots, "D", n("D"), values
+    )
     return {s.player_id for s in picked + _goalies(lineup, values)[: n("G")]}
 
 
@@ -247,7 +258,7 @@ def team_goals(
     gf = ga = 0.0
     for p in ("F", "D"):
         mins = sorted((s.ev_toi_pg for s in slots if s.position == p), reverse=True)[: SLOTS[p]]
-        players = _skaters(lineup, p, len(mins), values)
+        players = _skaters(lineup, slots, p, len(mins), values)
         repl = replacement(values, p)
         for k, m in enumerate(mins):
             if k < len(players):

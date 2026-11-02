@@ -229,8 +229,11 @@ chosen by five-fold cross-validation grouped by game
 divided by shots plus 200. Goalies: xG minus goals against per shot, divided
 by shots plus 1,500. Usage: even strength and power play minutes per game
 over each player's last 40 games. Lineup: rostered players who played on or
-after the team's third-last game (goalies: tenth-last). A move reassigns the
-team's minutes by rank, fills an empty slot with a lower-quartile regular,
+after the team's third-last game (goalies: tenth-last); the most used dress
+today. A move keeps those players, adds newcomers, sits the weakest per minute
+when there are too many and brings in the next most used when there are too
+few, reassigns the team's minutes by rank, fills an empty slot with a
+lower-quartile regular,
 and multiplies the skaters' change by `VALUE_SCALE = 1.48` (goalies' saves
 above expected are already whole and are not scaled; 43 unblocked shots
 against per game, measured on 2025-26).
